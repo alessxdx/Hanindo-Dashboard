@@ -524,7 +524,8 @@ function parseHash(){
   var sel = i === -1 ? "" : raw.slice(i + 1);
   try { tab = decodeURIComponent(tab); } catch(e){}
   try { sel = decodeURIComponent(sel); } catch(e){}
-  if(!TAB_TITLES[tab]){ tab = "customers"; sel = ""; }
+  /* no page in the address (plain site link, home-screen icon) opens the tracker */
+  if(!TAB_TITLES[tab]){ tab = "tracker"; sel = ""; }
   return { tab: tab, sel: sel };
 }
 
