@@ -346,8 +346,9 @@ function trkRenderStats(){
     "<div class='stat'><div class='stat-label'>Won</div><div class='stat-value'>"+won.length+"</div><div class='stat-sub'>"+(wonVal?(typeof fxFormatUSD==="function"?fxFormatUSD(wonVal):"$"+wonVal.toLocaleString())+" USD equivalent":"projects closed")+"</div></div>";
 }
 
-/* The global toolbar "+ Add entry" button doubles as the tracker's add
-   button. On the tracker list it creates a project, so relabel it; in the
+/* On the tracker the global toolbar "+ Add entry" button is only the
+   phone's floating + (the computer uses the Add project button in the
+   tracker's own filter row). It creates a project, so relabel it; in the
    detail view the Timeline has its own button, so hide the global one. */
 var TRK_BTN_HTML=null;
 function trkSyncToolbar(){
@@ -622,7 +623,7 @@ function trkRenderList(bodyOnly){
   var statusMenu=uiDropdown({key:"trk-status",multi:true,onPick:"trkPickStatus",cur:trkStaleOn()?[]:TRK_FSTATUS,opts:stOpts,
     label:stLabel,count:trkStaleOn()?undefined:cnt(function(p){return TRK_FSTATUS.indexOf(p.status)>-1;}),
     foot:[{value:"__all",label:"Show all"},{value:"__open",label:"Reset to open"}]});
-  var fuBtn=(staleN||trkStaleOn())?"<button class='trk-fu-toggle"+(trkStaleOn()?" active":"")+"' onclick='trkSetStatusFilter(\"stale\")' title='Open projects due a follow-up'>&#9200; Needs follow-up <span class='po-dd-n'>"+staleN+"</span></button>":"";
+  var fuBtn=(staleN||trkStaleOn())?"<button class='trk-fu-toggle"+(trkStaleOn()?" active":"")+"' onclick='trkSetStatusFilter(\"stale\")' title='Open projects due a follow-up'>&#9200;<span class='trk-fu-txt'> Follow-up</span> <span class='po-dd-n'>"+staleN+"</span></button>":"";
 
   var officeSel=uiDropdown({key:"trk-office",onPick:"trkSetOfficeFilter",cur:TRK_FOFFICE,
     opts:[{value:"",label:"All offices",count:TRK_PROJECTS.length}].concat(TRK_OFFICES.map(function(o){
@@ -746,17 +747,33 @@ function trkRenderList(bodyOnly){
     return;
   }
   var search="<div class='trk-search'><span class='trk-search-ico'>&#128269;</span>"+
-    "<input id='trk-search' type='search' value='"+trkEsc(TRK_Q)+"' placeholder='Search customer, model, month, notes, initials&hellip;' autocomplete='off' data-1p-ignore data-lpignore='true' data-bwignore data-form-type='other' readonly onfocus=\"this.removeAttribute('readonly')\" oninput='trkSearchInput(this.value)'>"+
+    "<input id='trk-search' type='search' value='"+trkEsc(TRK_Q)+"' placeholder='Search projects&hellip;' title='Customer, model, month, notes or initials' autocomplete='off' data-1p-ignore data-lpignore='true' data-bwignore data-form-type='other' readonly onfocus=\"this.removeAttribute('readonly')\" oninput='trkSearchInput(this.value)'>"+
     "</div>";
   var viewSw="<div class='trk-viewsw' role='group' aria-label='View'>"+
-    "<button class='"+(TRK_VIEW!=="cal"?"active":"")+"' onclick='trkSetView(\"list\")'>&#9776; List</button>"+
-    "<button class='"+(TRK_VIEW==="cal"?"active":"")+"' onclick='trkSetView(\"cal\")'>&#128197; Calendar</button>"+
+    "<button class='"+(TRK_VIEW!=="cal"?"active":"")+"' onclick='trkSetView(\"list\")' title='List'>&#9776;<span class='trk-vs-txt'> List</span></button>"+
+    "<button class='"+(TRK_VIEW==="cal"?"active":"")+"' onclick='trkSetView(\"cal\")' title='Calendar'>&#128197;<span class='trk-vs-txt'> Calendar</span></button>"+
     "</div>";
+  /* Phones fold the menus behind a Filters button (dot = something narrowed);
+     on the computer .trk-bar-more is display:contents, so nothing changes. */
+  var narrowed=(!trkStaleOn()&&TRK_FSTATUS.join()!==TRK_FSTATUS_DEFAULT.join())||TRK_FOFFICE||TRK_FSOL||TRK_VIEW==="cal";
+  var filtBtn="<button class='trk-filt-btn"+(narrowed?" on":"")+"' onclick='trkToggleFilters()' aria-expanded='"+TRK_FILT_OPEN+"'>"+
+    "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><path d='M4 6h16M7 12h10M10 18h4'/></svg>Filters</button>";
+  var addBtn="<button class='btn-add trk-add' onclick='trkOpenAdd()'>"+
+    "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' style='width:13px;height:13px'><line x1='12' y1='5' x2='12' y2='19'/><line x1='5' y1='12' x2='19' y2='12'/></svg> Add project</button>";
   document.getElementById("content").innerHTML=
-    "<div class='trk-bar'>"+search+fuBtn+statusMenu+solSel+officeSel+viewSw+"</div>"+
+    "<div class='trk-bar"+(TRK_FILT_OPEN?" open":"")+"'>"+search+fuBtn+filtBtn+
+      "<div class='trk-bar-more'>"+statusMenu+solSel+officeSel+viewSw+"</div>"+addBtn+"</div>"+
     "<div id='trk-list-body'>"+body+"</div>";
 }
 function trkSearchInput(v){TRK_Q=v;trkRenderList(true);}
+var TRK_FILT_OPEN=false;
+function trkToggleFilters(){
+  TRK_FILT_OPEN=!TRK_FILT_OPEN;
+  var bar=document.querySelector(".trk-bar");
+  if(!bar)return;
+  bar.classList.toggle("open",TRK_FILT_OPEN);
+  bar.querySelector(".trk-filt-btn").setAttribute("aria-expanded",TRK_FILT_OPEN);
+}
 
 /* Side panel for the selected project: the key facts, its next step and
    the timeline, with Add update / Edit project — the same entry and

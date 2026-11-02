@@ -1849,6 +1849,15 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
 .trk-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .trk-bar .trk-search{flex:1;min-width:240px}
 .trk-bar .trk-search input{width:100%;padding-top:8px;padding-bottom:8px;font-size:12.5px}
+.trk-bar .trk-search{min-width:200px}
+/* the menus sit straight in the row on the computer; phones fold them away */
+.trk-bar-more{display:contents}
+.trk-filt-btn{display:none}
+.trk-bar .trk-add{padding:8px 14px}
+/* icons only in the one-row computer bar; the phone's Filters grid has room for the words */
+.trk-bar .trk-vs-txt{display:none}
+/* the global toolbar on the tracker is only the phone's floating + */
+#toolbar.trk-fab{display:none}
 .trk-fu-toggle{
   display:flex;align-items:center;gap:7px;
   font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:600;white-space:nowrap;
@@ -1958,6 +1967,29 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
   .trk-row .trk-c-last{grid-column:1/-1;grid-row:3;margin-top:4px;font-size:11.5px;color:var(--text-muted);display:flex;gap:6px}
   .trk-row .trk-c-last .trk-r-sub{margin:0}
   .trk-row .trk-c-of,.trk-row .trk-c-val{display:none}
+}
+/* Phone: one row — search, follow-up count, Filters. The menus and the
+   List/Calendar switch open under it as a 2x2 grid. */
+@media (max-width:700px){
+  .trk-bar{position:relative;flex-wrap:wrap;gap:8px}
+  .trk-bar .trk-search{flex:1 1 0;min-width:0}
+  .trk-fu-txt,.trk-bar .trk-add{display:none}
+  .trk-fu-toggle{padding:0 10px;min-height:38px}
+  .trk-filt-btn{
+    display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 12px;
+    font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:600;color:var(--text);
+    background:var(--bg-stat);border:1px solid var(--border);border-radius:8px;cursor:pointer;position:relative;
+  }
+  .trk-filt-btn svg{width:16px;height:16px}
+  .trk-filt-btn.on::after{content:"";position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+  .trk-bar.open .trk-filt-btn{border-color:var(--accent);color:var(--accent-text)}
+  .trk-bar-more{display:none}
+  .trk-bar.open .trk-bar-more{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1 1 100%}
+  .trk-bar .trk-vs-txt{display:inline}
+  .trk-bar-more .trk-viewsw button{flex:1;white-space:nowrap;padding-left:6px;padding-right:6px}
+  /* menus open full width under the bar so none runs off the screen */
+  .trk-bar .po-dd{position:static}
+  .trk-bar .po-dd-menu{left:0;right:0;min-width:0}
 }
 
 /* ===== Project groups list ===== */
@@ -2245,9 +2277,16 @@ html{-webkit-tap-highlight-color:transparent}
   #toolbar.trk-fab .btn-add{
     position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:44;
     width:56px;height:56px;padding:0;border-radius:50%;justify-content:center;
-    font-size:0;box-shadow:0 6px 18px rgba(16,24,40,.22);
+    font-size:0;line-height:0;gap:0;box-shadow:0 6px 18px rgba(16,24,40,.22);
   }
-  #toolbar.trk-fab .btn-add svg{width:22px !important;height:22px !important}
+  /* gap:0 above: the hidden label still counted as a flex item and pushed the + left */
+  #toolbar.trk-fab .btn-add svg{width:22px !important;height:22px !important;display:block;flex-shrink:0}
+  /* compact stat cards, so the list starts on the first screen */
+  .stat-grid{gap:8px;margin:8px 0 16px}
+  .stat{padding:10px 12px;border-radius:10px}
+  .stat-label{font-size:9.5px;margin-bottom:3px;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stat-value{font-size:19px}
+  .stat-sub{font-size:10.5px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* comfortable tap targets */
   .po-seg-btn,.trk-chip,.trk-viewsw button,.pr-seg button,.trk-cal-nav{min-height:38px}
   .po-searchbox input,.trk-search input{min-height:36px;font-size:16px}
