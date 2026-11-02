@@ -327,12 +327,6 @@ function trkRenderStats(){
   var active=TRK_PROJECTS.filter(function(p){return TRK_ACTIVE_STATUSES.indexOf(p.status)>-1;});
   var quoted=TRK_PROJECTS.filter(function(p){return p.status==="Quoted";}).length;
   var won=TRK_PROJECTS.filter(function(p){return p.status==="Won";});
-  var pipeline=0;
-  active.forEach(function(p){
-    if(p.estValue===null)return;
-    var v=(typeof fxToUSD==="function")?fxToUSD(p.estValue,p.currency):(p.currency==="USD"?p.estValue:null);
-    if(v!==null)pipeline+=v;
-  });
   var wonVal=0;
   won.forEach(function(p){
     if(p.estValue===null)return;
@@ -341,7 +335,6 @@ function trkRenderStats(){
   });
   el.innerHTML=
     "<div class='stat'><div class='stat-label'>Active projects</div><div class='stat-value'>"+active.length+"</div><div class='stat-sub'>enquiry &rarr; quoted</div></div>"+
-    "<div class='stat'><div class='stat-label'>Pipeline value</div><div class='stat-value'>"+(typeof fxFormatUSD==="function"?fxFormatUSD(pipeline):"$"+pipeline.toLocaleString())+"</div><div class='stat-sub'>estimated, USD equivalent</div></div>"+
     "<div class='stat'><div class='stat-label'>Quotes outstanding</div><div class='stat-value'>"+quoted+"</div><div class='stat-sub'>waiting on customer</div></div>"+
     "<div class='stat'><div class='stat-label'>Won</div><div class='stat-value'>"+won.length+"</div><div class='stat-sub'>"+(wonVal?(typeof fxFormatUSD==="function"?fxFormatUSD(wonVal):"$"+wonVal.toLocaleString())+" USD equivalent":"projects closed")+"</div></div>";
 }
@@ -623,7 +616,7 @@ function trkRenderList(bodyOnly){
   var statusMenu=uiDropdown({key:"trk-status",multi:true,onPick:"trkPickStatus",cur:trkStaleOn()?[]:TRK_FSTATUS,opts:stOpts,
     label:stLabel,count:trkStaleOn()?undefined:cnt(function(p){return TRK_FSTATUS.indexOf(p.status)>-1;}),
     foot:[{value:"__all",label:"Show all"},{value:"__open",label:"Reset to open"}]});
-  var fuBtn=(staleN||trkStaleOn())?"<button class='trk-fu-toggle"+(trkStaleOn()?" active":"")+"' onclick='trkSetStatusFilter(\"stale\")' title='Open projects due a follow-up'>&#9200;<span class='trk-fu-txt'> Follow-up</span> <span class='po-dd-n'>"+staleN+"</span></button>":"";
+  var fuBtn=(staleN||trkStaleOn())?"<button class='trk-fu-toggle"+(trkStaleOn()?" active":"")+"' onclick='trkSetStatusFilter(\"stale\")' title='Open projects due a follow-up'>&#9200;<span class='trk-fu-txt'> Needs follow-up</span> <span class='po-dd-n'>"+staleN+"</span></button>":"";
 
   var officeSel=uiDropdown({key:"trk-office",onPick:"trkSetOfficeFilter",cur:TRK_FOFFICE,
     opts:[{value:"",label:"All offices",count:TRK_PROJECTS.length}].concat(TRK_OFFICES.map(function(o){
@@ -753,16 +746,16 @@ function trkRenderList(bodyOnly){
     "<button class='"+(TRK_VIEW!=="cal"?"active":"")+"' onclick='trkSetView(\"list\")' title='List'>&#9776;<span class='trk-vs-txt'> List</span></button>"+
     "<button class='"+(TRK_VIEW==="cal"?"active":"")+"' onclick='trkSetView(\"cal\")' title='Calendar'>&#128197;<span class='trk-vs-txt'> Calendar</span></button>"+
     "</div>";
-  /* Phones fold the menus behind a Filters button (dot = something narrowed);
-     on the computer .trk-bar-more is display:contents, so nothing changes. */
+  /* The menus and List/Calendar fold away behind a Filters button
+     (dot = something is narrowing the list). */
   var narrowed=(!trkStaleOn()&&TRK_FSTATUS.join()!==TRK_FSTATUS_DEFAULT.join())||TRK_FOFFICE||TRK_FSOL||TRK_VIEW==="cal";
   var filtBtn="<button class='trk-filt-btn"+(narrowed?" on":"")+"' onclick='trkToggleFilters()' aria-expanded='"+TRK_FILT_OPEN+"'>"+
     "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><path d='M4 6h16M7 12h10M10 18h4'/></svg>Filters</button>";
   var addBtn="<button class='btn-add trk-add' onclick='trkOpenAdd()'>"+
     "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' style='width:13px;height:13px'><line x1='12' y1='5' x2='12' y2='19'/><line x1='5' y1='12' x2='19' y2='12'/></svg> Add project</button>";
   document.getElementById("content").innerHTML=
-    "<div class='trk-bar"+(TRK_FILT_OPEN?" open":"")+"'>"+search+fuBtn+filtBtn+
-      "<div class='trk-bar-more'>"+statusMenu+solSel+officeSel+viewSw+"</div>"+addBtn+"</div>"+
+    "<div class='trk-bar"+(TRK_FILT_OPEN?" open":"")+"'>"+search+fuBtn+filtBtn+addBtn+
+      "<div class='trk-bar-more'>"+statusMenu+solSel+officeSel+viewSw+"</div></div>"+
     "<div id='trk-list-body'>"+body+"</div>";
 }
 function trkSearchInput(v){TRK_Q=v;trkRenderList(true);}

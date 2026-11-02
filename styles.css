@@ -1839,6 +1839,8 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
   table.pr-hist td:not(.pr-h-cust)::before{content:attr(data-label);display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint)}
 }
 .stat-grid:empty{display:none}
+/* the tracker shows three cards: give them the full width */
+.stat-grid:has(>.stat:nth-child(3):last-child){grid-template-columns:repeat(3,minmax(0,1fr))}
 @media (max-width:640px){.pr-matrix{font-size:12px}.pr-matrix td:first-child .pr-sub{display:none}.pr-matrix td:first-child{white-space:normal}}
 .pr-sheets{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .pr-sheets-l{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-right:2px}
@@ -1850,12 +1852,20 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
 .trk-bar .trk-search{flex:1;min-width:240px}
 .trk-bar .trk-search input{width:100%;padding-top:8px;padding-bottom:8px;font-size:12.5px}
 .trk-bar .trk-search{min-width:200px}
-/* the menus sit straight in the row on the computer; phones fold them away */
-.trk-bar-more{display:contents}
-.trk-filt-btn{display:none}
 .trk-bar .trk-add{padding:8px 14px}
-/* icons only in the one-row computer bar; the phone's Filters grid has room for the words */
-.trk-bar .trk-vs-txt{display:none}
+/* The menus and List/Calendar fold away behind Filters and open as a row
+   under the search (a 2x2 grid on phones) */
+.trk-filt-btn{
+  display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;
+  font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:600;color:var(--text);
+  background:var(--bg-stat);border:1px solid var(--border);border-radius:8px;cursor:pointer;position:relative;
+}
+.trk-filt-btn:hover{border-color:var(--border-strong)}
+.trk-filt-btn svg{width:16px;height:16px}
+.trk-filt-btn.on::after{content:"";position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.trk-bar.open .trk-filt-btn{border-color:var(--accent);color:var(--accent-text)}
+.trk-bar-more{display:none}
+.trk-bar.open .trk-bar-more{display:flex;flex-wrap:wrap;gap:8px;flex:1 1 100%}
 /* the global toolbar on the tracker is only the phone's floating + */
 #toolbar.trk-fab{display:none}
 .trk-fu-toggle{
@@ -1968,24 +1978,14 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
   .trk-row .trk-c-last .trk-r-sub{margin:0}
   .trk-row .trk-c-of,.trk-row .trk-c-val{display:none}
 }
-/* Phone: one row — search, follow-up count, Filters. The menus and the
-   List/Calendar switch open under it as a 2x2 grid. */
+/* Phone: one row — search, follow-up count, Filters (the + floats) */
 @media (max-width:700px){
   .trk-bar{position:relative;flex-wrap:wrap;gap:8px}
   .trk-bar .trk-search{flex:1 1 0;min-width:0}
   .trk-fu-txt,.trk-bar .trk-add{display:none}
   .trk-fu-toggle{padding:0 10px;min-height:38px}
-  .trk-filt-btn{
-    display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 12px;
-    font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:600;color:var(--text);
-    background:var(--bg-stat);border:1px solid var(--border);border-radius:8px;cursor:pointer;position:relative;
-  }
-  .trk-filt-btn svg{width:16px;height:16px}
-  .trk-filt-btn.on::after{content:"";position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
-  .trk-bar.open .trk-filt-btn{border-color:var(--accent);color:var(--accent-text)}
-  .trk-bar-more{display:none}
-  .trk-bar.open .trk-bar-more{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1 1 100%}
-  .trk-bar .trk-vs-txt{display:inline}
+  .trk-filt-btn{min-height:38px}
+  .trk-bar.open .trk-bar-more{display:grid;grid-template-columns:1fr 1fr}
   .trk-bar-more .trk-viewsw button{flex:1;white-space:nowrap;padding-left:6px;padding-right:6px}
   /* menus open full width under the bar so none runs off the screen */
   .trk-bar .po-dd{position:static}
@@ -2286,6 +2286,8 @@ html{-webkit-tap-highlight-color:transparent}
   .stat{padding:10px 12px;border-radius:10px}
   .stat-label{font-size:9.5px;margin-bottom:3px;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .stat-value{font-size:19px}
+  .stat-grid:has(>.stat:nth-child(3):last-child) .stat-label{white-space:normal}
+  .stat-grid:has(>.stat:nth-child(3):last-child) .stat-sub{display:none}
   .stat-sub{font-size:10.5px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* comfortable tap targets */
   .po-seg-btn,.trk-chip,.trk-viewsw button,.pr-seg button,.trk-cal-nav{min-height:38px}
