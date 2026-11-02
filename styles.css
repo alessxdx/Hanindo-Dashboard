@@ -668,6 +668,36 @@ details.others-sec:not([open]) > summary{border-bottom:none}
 }
 .btn-save:hover{background:var(--accent-hover)}
 
+/* ==========  APP COLOUR PICKER  ========== */
+.accent-modal{max-width:560px;padding:20px 24px 24px}
+.accent-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.accent-done{border:none;background:none;font-family:inherit;font-size:14px;font-weight:600;color:var(--accent-text);cursor:pointer;padding:4px 6px;border-radius:6px}
+.accent-done:hover{background:var(--accent-soft)}
+.accent-preview{border:1px solid var(--border);border-radius:14px;padding:16px;background:var(--bg);box-shadow:var(--shadow-sm);margin-bottom:6px}
+.accent-pv-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.accent-pv-title{font-size:16px;font-weight:700;color:var(--text-strong)}
+.accent-pv-chip{font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent-text)}
+.accent-pv-chip b{margin-left:3px}
+.accent-pv-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg-accent-soft);margin-bottom:12px}
+.accent-pv-bar{width:3px;align-self:stretch;border-radius:3px;background:var(--accent)}
+.accent-pv-name{font-size:13px;font-weight:600;color:var(--text-strong)}
+.accent-pv-sub{font-size:11.5px;color:var(--text-muted)}
+.accent-pv-link{margin-left:auto;font-size:12px;font-weight:600;color:var(--accent-text)}
+.accent-pv-btn{width:100%;padding:11px 16px;border-radius:999px;font-size:14px;pointer-events:none}
+.accent-set-name{font-size:13px;font-weight:600;color:var(--text-muted);margin:16px 0 8px}
+.accent-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px 4px}
+.accent-opt{display:flex;flex-direction:column;align-items:center;gap:5px;border:none;background:none;cursor:pointer;font-family:inherit;padding:4px 0;border-radius:10px}
+.accent-opt:hover .accent-dot{transform:scale(1.07)}
+.accent-dot{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px var(--bg-modal),0 0 0 4px var(--border);transition:transform .12s,box-shadow .12s}
+.accent-dot svg{width:18px;height:18px}
+.accent-opt.on .accent-dot{box-shadow:0 0 0 3px var(--bg-modal),0 0 0 5px var(--text-strong)}
+.accent-name{font-size:11px;color:var(--text-muted);white-space:nowrap}
+.accent-opt.on .accent-name{color:var(--text-strong);font-weight:600}
+@media(max-width:520px){
+  .accent-grid{grid-template-columns:repeat(4,1fr)}
+  .accent-dot{width:36px;height:36px}
+}
+
 /* ==========  MOBILE  ========== */
 @media(max-width:900px){
   .sidebar{

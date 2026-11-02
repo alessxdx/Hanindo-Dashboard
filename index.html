@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION="2026-11-02.2";
+var APP_VERSION="2026-11-02.3";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -114,6 +114,12 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
     </nav>
 
     <div class="sidebar-foot">
+      <button class="nav-item" onclick="openAccentPicker()" title="App colour">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.2a1.8 1.8 0 0 0-1.3 3.1A1.7 1.7 0 0 1 12 22z"/><circle cx="7.5" cy="10.5" r="1.2" fill="currentColor"/><circle cx="12" cy="7" r="1.2" fill="currentColor"/><circle cx="16.5" cy="10.5" r="1.2" fill="currentColor"/></svg>
+        </span>
+        <span class="nav-label sidebar-foot-label">App colour</span>
+      </button>
       <button class="nav-item" onclick="toggleTheme()" title="Toggle theme">
         <span class="nav-icon">
           <svg class="theme-icon-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -221,6 +227,18 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
     </div>
   </div>
 </div>
+<div class="modal-overlay" id="modal-accent" onclick="if(event.target===this)closeModal('modal-accent')">
+  <div class="modal accent-modal">
+    <div class="accent-head"><span class="modal-title" style="margin:0">App colour</span><button class="accent-done" onclick="closeModal('modal-accent')">Done</button></div>
+    <div class="accent-preview">
+      <div class="accent-pv-top"><span class="accent-pv-title">Project Tracker</span><span class="accent-pv-chip">&#9200; Needs follow-up <b>3</b></span></div>
+      <div class="accent-pv-row"><span class="accent-pv-bar"></span><div><div class="accent-pv-name">Amadeus &mdash; TK180 Plastic</div><div class="accent-pv-sub">Quoted &middot; Indonesia office</div></div><span class="accent-pv-link">Edit</span></div>
+      <button type="button" class="btn-save accent-pv-btn" tabindex="-1">+ Add project</button>
+    </div>
+    <div id="accent-sets"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-others">
   <div class="modal modal-wide">
     <div class="modal-title" id="others-modal-title">Add note / record</div>

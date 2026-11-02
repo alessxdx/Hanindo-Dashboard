@@ -63,6 +63,7 @@ function applyTheme(t){
   document.querySelectorAll(".theme-swatch").forEach(function(el){
     el.classList.toggle("active", el.dataset.themeChoice === t);
   });
+  if(typeof applyAccent==="function")applyAccent();
 }
 function toggleTheme(){
   var cur = document.documentElement.getAttribute("data-theme") || "light";
@@ -70,12 +71,87 @@ function toggleTheme(){
   applyTheme(THEME_ORDER[(idx + 1) % THEME_ORDER.length]);
 }
 function setThemeChoice(t){ applyTheme(t); }
+
+/* ===== APP COLOUR =====
+   One accent colour for buttons, links, highlights and tints, picked
+   from three palettes (saved per browser, like the theme). The --accent
+   tokens are derived from the swatch for the current background: in
+   light it is darkened just enough for white button text to stay
+   readable (pastels keep their softness in the tints), on dark/navy it
+   is lightened until it stands out. "Original" = the stylesheet teal. */
+var ACCENT_SETS = [
+  {name:"Classic", colors:[["Original","#0e7c86"],["Viridian","#2a6457"],["Harbor","#3a6585"],["Midnight","#283a6b"],["Terracotta","#b85a37"],["Aubergine","#5a3264"],["Stone","#7d6b55"]]},
+  {name:"Bright",  colors:[["Green","#2fa52a"],["Teal","#12a3a3"],["Violet","#6d48d8"],["Pink","#e0406a"],["Plum","#8e2e8a"],["Graphite","#444c63"]]},
+  {name:"Pastel",  colors:[["Mint","#8ee0bd"],["Sage","#a9cb97"],["Lavender","#ad9ff0"],["Lilac","#d5a6ec"],["Blush","#f5b0c8"],["Peach","#f9c09b"]]}
+];
+var ACCENT_PROPS = ["--accent","--accent-hover","--accent-soft","--accent-text","--bg-accent-soft"];
+function accentRgb(h){h=h.replace("#","");return [0,2,4].map(function(i){return parseInt(h.substr(i,2),16);});}
+function accentHex(c){return "#"+c.map(function(v){return ("0"+Math.round(Math.max(0,Math.min(255,v))).toString(16)).slice(-2);}).join("");}
+function accentMix(a,b,t){return a.map(function(v,i){return v+(b[i]-v)*t;});}
+function accentLum(c){
+  var l=c.map(function(v){v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);});
+  return 0.2126*l[0]+0.7152*l[1]+0.0722*l[2];
+}
+function accentContrast(a,b){var x=accentLum(a),y=accentLum(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
+/* step the colour toward `to` until it reaches `min` contrast against `bg` */
+function accentPush(c,to,bg,min){
+  for(var i=0;i<40&&accentContrast(c,bg)<min;i++)c=accentMix(c,to,0.06);
+  return c;
+}
+function accentTokens(hex,theme){
+  var base=accentRgb(hex),W=[255,255,255],K=[0,0,0];
+  if(theme==="light"){
+    var acc=accentPush(base,K,W,3.4);
+    return {"--accent":accentHex(acc),"--accent-hover":accentHex(accentMix(acc,K,0.14)),
+      "--accent-text":accentHex(accentPush(acc,K,W,4.8)),
+      "--accent-soft":accentHex(accentMix(base,W,0.86)),"--bg-accent-soft":accentHex(accentMix(base,W,0.82))};
+  }
+  var bg=theme==="navy"?accentRgb("#0d1b2e"):accentRgb("#191919");
+  var lit=accentPush(base,W,bg,5);
+  return {"--accent":accentHex(lit),"--accent-hover":accentHex(accentMix(lit,W,0.18)),
+    "--accent-text":accentHex(accentMix(lit,W,0.18)),
+    "--accent-soft":accentHex(accentMix(base,bg,0.78)),"--bg-accent-soft":accentHex(accentMix(base,bg,0.72))};
+}
+function accentSaved(){try{return localStorage.getItem("cpd_accent")||"";}catch(e){return "";}}
+function applyAccent(){
+  var name=accentSaved(),hex="";
+  ACCENT_SETS.forEach(function(g){g.colors.forEach(function(c){if(c[0]===name)hex=c[1];});});
+  var st=document.documentElement.style;
+  ACCENT_PROPS.forEach(function(p){st.removeProperty(p);});
+  if(!hex||name==="Original")return;
+  var tk=accentTokens(hex,document.documentElement.getAttribute("data-theme")||"light");
+  Object.keys(tk).forEach(function(p){st.setProperty(p,tk[p]);});
+}
+function setAccent(name){
+  try{localStorage.setItem("cpd_accent",name);}catch(e){}
+  applyAccent();
+  renderAccentPicker();
+}
+function renderAccentPicker(){
+  var el=document.getElementById("accent-sets");
+  if(!el)return;
+  var cur=accentSaved()||"Original";
+  el.innerHTML=ACCENT_SETS.map(function(g){
+    return "<div class='accent-set-name'>"+g.name+"</div><div class='accent-grid'>"+g.colors.map(function(c){
+      var on=c[0]===cur;
+      return "<button type='button' class='accent-opt"+(on?" on":"")+"' onclick='setAccent(\""+c[0]+"\")' aria-pressed='"+on+"'>"+
+        "<span class='accent-dot' style='background:"+c[1]+"'>"+(on?"<svg viewBox='0 0 24 24' fill='none' stroke='#fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='5 12 10 17 19 7'/></svg>":"")+"</span>"+
+        "<span class='accent-name'>"+c[0]+"</span></button>";
+    }).join("")+"</div>";
+  }).join("");
+}
+function openAccentPicker(){
+  renderAccentPicker();
+  document.getElementById("modal-accent").classList.add("open");
+  if(typeof closeMobileSidebar==="function")closeMobileSidebar();
+}
 (function initTheme(){
   // Always start light per user preference; if user toggled this session, respect it
   var saved = null;
   try { saved = localStorage.getItem("cpd_theme"); } catch(e){}
   applyTheme(saved || "light");
 })();
+applyAccent();
 
 /* ===== SIDEBAR ===== */
 function toggleSidebar(){
