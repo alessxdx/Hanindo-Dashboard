@@ -363,18 +363,20 @@ function trkSyncToolbar(){
 }
 
 /* Status is DERIVED from the timeline, not edited by hand:
-   Purchase order / Payment received ⇒ Won, Quotation ⇒ Quoted,
+   Purchase order / Invoice / Payment received / Delivery ⇒ Won
+   (you only invoice or deliver after a sale), Quotation ⇒ Quoted,
    nothing ⇒ Enquiry. "Lost" is the one manual flag (set from the
    editor's Mark-as-lost button) and is never derived away. The pass
    runs on every tracker render, so adding, editing or deleting
    entries keeps statuses correct with no extra bookkeeping. */
+var TRK_WIN_TYPES=["Purchase order","Invoice","Payment received","Delivery"];
 function trkDerivedStatus(p){
   if(p.status==="Lost")return "Lost";
   if(p.status==="Other")return "Other"; /* outside the pipeline */
   var won=false,quoted=false;
   TRK_ENTRIES.forEach(function(e){
     if(e.projectId!==p._id)return;
-    if(e.type==="Purchase order"||e.type==="Payment received")won=true;
+    if(TRK_WIN_TYPES.indexOf(e.type)>-1)won=true;
     else if(e.type==="Quotation")quoted=true;
   });
   return won?"Won":(quoted?"Quoted":"Enquiry");
@@ -1696,7 +1698,7 @@ function trkSetStatusDisplay(status){
   var el=document.getElementById("tp-status-display");
   if(!el)return;
   el.innerHTML=trkStatusBadge(status)+
-    " <span style='font-size:10.5px;color:var(--text-faint)'>from the timeline &mdash; quotation &rArr; Quoted, purchase order &rArr; Won</span>";
+    " <span style='font-size:10.5px;color:var(--text-faint)'>from the timeline &mdash; quotation &rArr; Quoted; PO, invoice, payment or delivery &rArr; Won</span>";
 }
 /* Mark as lost / Reopen — the only manual status action. Reopening
    re-derives from the timeline. */
