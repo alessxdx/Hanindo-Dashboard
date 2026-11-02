@@ -1993,12 +1993,14 @@ async function trkSaveEntry(){
   };
   var m=document.getElementById("modal-trk-entry");
   var editId=m.getAttribute("data-edit-id");
+  var oldType="";
   showLoad("Saving...");
   try{
     if(editId){
       var r1=await fetch(SB_URL+"/rest/v1/tracker_entries?id=eq."+editId,{method:"PATCH",headers:sbH(),body:JSON.stringify(trkEToDb(entry))});
       if(!r1.ok)throw new Error("HTTP "+r1.status);
       var idx=TRK_ENTRIES.findIndex(function(x){return x._id===editId;});
+      if(idx>-1)oldType=TRK_ENTRIES[idx].type;
       if(idx>-1){entry._id=editId;entry.createdAt=TRK_ENTRIES[idx].createdAt;TRK_ENTRIES[idx]=entry;}
     }else{
       var r=await trkInsert("tracker_entries",trkEToDb(entry));
@@ -2028,10 +2030,22 @@ async function trkSaveEntry(){
         await fetch(SB_URL+"/rest/v1/tracker_projects?id=eq."+proj._id,{method:"PATCH",headers:sbH(),body:JSON.stringify({payment:lvl})});
       }catch(err){console.error("Payment update failed:",err);}
     }
-  }
+  }else if(oldType==="Payment received")await trkResyncPayment(TRK_SEL);
   hideLoad();
   closeModal("modal-trk-entry");
   renderTracker();
+}
+/* A Payment received entry was deleted or retyped: with none left the
+   project goes back to Not paid (otherwise the badge would stay stuck).
+   The level itself lives on the project, so remaining ones keep it. */
+async function trkResyncPayment(projId){
+  var proj=TRK_PROJECTS.find(function(x){return x._id===projId;});
+  if(!proj||!proj.payment)return;
+  if(TRK_ENTRIES.some(function(e){return e.projectId===projId&&e.type==="Payment received";}))return;
+  proj.payment="";
+  try{
+    await fetch(SB_URL+"/rest/v1/tracker_projects?id=eq."+projId,{method:"PATCH",headers:sbH(),body:JSON.stringify({payment:null})});
+  }catch(err){console.error("Payment reset failed:",err);}
 }
 async function trkDeleteEntry(){
   var m=document.getElementById("modal-trk-entry");
@@ -2040,7 +2054,9 @@ async function trkDeleteEntry(){
   if(!confirm("Delete this timeline entry permanently?"))return;
   showLoad("Deleting...");
   await sbDelete("tracker_entries",editId);
+  var gone=TRK_ENTRIES.find(function(x){return x._id===editId;});
   TRK_ENTRIES=TRK_ENTRIES.filter(function(x){return x._id!==editId;});
+  if(gone&&gone.type==="Payment received")await trkResyncPayment(gone.projectId);
   hideLoad();
   closeModal("modal-trk-entry");
   renderTracker();
