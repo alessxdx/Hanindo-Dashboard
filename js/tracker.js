@@ -1921,7 +1921,7 @@ function trkOpenEntryModal(){
   document.getElementById("trk-entry-modal-title").textContent="Add timeline entry";
   document.getElementById("btn-delete-trk-entry").style.display="none";
   document.getElementById("te-date").value=new Date().toISOString().slice(0,10);
-  document.getElementById("te-type").value="Meeting";
+  document.getElementById("te-type").value="Note";
   document.getElementById("te-title").value="";
   document.getElementById("te-details").value="";
   document.getElementById("te-payment").value="Partially paid";

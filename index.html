@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION="2026-11-02.13";
+var APP_VERSION="2026-11-02.14";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -441,7 +441,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
     <div class="modal-title" id="trk-entry-modal-title">Add timeline entry</div>
     <div class="form-grid">
       <div class="form-group"><label>Date *</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="te-date" type="date"></div>
-      <div class="form-group"><label>Type *</label><select id="te-type" onchange="trkSyncEntryPaymentVis()"><option>Meeting</option><option>Quotation</option><option>Purchase order</option><option>Invoice</option><option>Payment received</option><option>Call</option><option>Email</option><option>WhatsApp</option><option>Site visit</option><option>Delivery</option><option>Note</option></select></div>
+      <div class="form-group"><label>Type *</label><select id="te-type" onchange="trkSyncEntryPaymentVis()"><option>Call</option><option>Delivery</option><option>Email</option><option>Invoice</option><option>Meeting</option><option selected>Note</option><option>Payment received</option><option>Purchase order</option><option>Quotation</option><option>Site visit</option><option>WhatsApp</option></select></div>
       <div class="form-group" id="te-payment-wrap" style="display:none"><label>Project payment after this</label><select id="te-payment"><option>Partially paid</option><option>Fully paid</option></select></div>
       <div class="form-group form-full"><label>Title</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="te-title" placeholder="e.g. Meeting with China office re: Dhaka enquiry"></div>
       <div class="form-group form-full"><label>Details / minutes</label><textarea id="te-details" style="min-height:120px" placeholder="Meeting minutes, quotation summary, agreed next steps&hellip;"></textarea></div>
