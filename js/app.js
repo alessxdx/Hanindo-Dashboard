@@ -163,7 +163,7 @@ function toggleSidebar(){
    Four main pages plus "More" (the full sidebar; Pricing lives there). Icons are copied from
    the sidebar so the two never drift apart; tapping one clicks the
    matching sidebar item, so routing stays in one place. */
-var BN_TABS=[["customers","Customers"],["tracker","Tracker"],["po","POs"],["buying","Buying"]];
+var BN_TABS=[["tracker","Tracker"],["customers","Customers"],["po","POs"],["buying","Buying"]];
 function buildBottomNav(){
   var nav=document.getElementById("bottom-nav");
   if(!nav)return;
