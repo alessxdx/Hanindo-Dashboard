@@ -725,7 +725,7 @@ function trkRenderList(bodyOnly){
       "</td></tr>"+grp.map(function(p,i){
         /* a thin divider above the first low-priority row of the band */
         var low=p.lowPriority&&!trkIsDone(p)&&!(i&&grp[i-1].lowPriority&&!trkIsDone(grp[i-1]));
-        return (low?"<tr class='trk-low-div'><td colspan='"+COLS+"'>"+TRK_LOW_ICO+"Low priority &middot; waiting</td></tr>":"")+rowHtml(p);
+        return (low?"<tr class='trk-low-div'><td colspan='"+COLS+"'>"+TRK_LOW_ICO+"Low priority &middot; waiting<span class='trk-low-n'>"+grp.filter(function(x){return x.lowPriority&&!trkIsDone(x);}).length+"</span></td></tr>":"")+rowHtml(p);
       }).join("");
     }).join("");
   }
