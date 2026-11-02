@@ -305,7 +305,7 @@ function mdOrderCard(d){
     (notes.length?"<details class='od-notes-wrap'"+(MD_NOTES_OPEN?" open":"")+"><summary>Notes <span>"+notes.length+"</span></summary>"+
       "<ul class='od-notes'>"+notes.map(function(n){return "<li>"+esc(n)+"</li>";}).join("")+"</ul></details>":"")+
     "<div class='od-foot'><span class='od-docs'>"+attClipsHtml(atts)+"</span>"+
-      "<button class='edit-btn' onclick='"+edit+"'>Edit</button></div>"+
+      "<button class='edit-btn' title='Edit' aria-label='Edit' onclick='"+edit+"'>"+EDIT_ICO+"</button></div>"+
   "</div>";
 }
 function mdDocsHtml(deals){

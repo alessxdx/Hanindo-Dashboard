@@ -798,7 +798,7 @@ function trkPanelHtml(p,act){
       return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+trkFileIcon(a.name)+" "+trkEsc(a.name)+"</a>";
     }).join("");
     return "<div class='trk-pn-e'><div class='trk-pn-e-meta'><strong>"+trkFmtDate(e.date)+"</strong> "+trkTypeBadge(e.type)+
-        "<a href='#' class='trk-tl-edit' onclick='trkEditEntry(event,\""+e._id+"\")'>Edit</a></div>"+
+        "<a href='#' class='trk-tl-edit' title='Edit' aria-label='Edit entry' onclick='trkEditEntry(event,\""+e._id+"\")'>"+EDIT_ICO+"</a></div>"+
       (e.title?"<div class='trk-pn-e-title'>"+trkEsc(e.title)+"</div>":"")+
       (e.details?"<div class='trk-pn-e-det'>"+trkEsc(e.details).replace(/\n/g,"<br>")+"</div>":"")+
       (atts?"<div class='trk-tl-atts'>"+atts+"</div>":"")+
@@ -1066,7 +1066,7 @@ function trkRenderDetail(){
     }).join("");
     return "<div class='trk-tl-item trk-t-"+trkTypeSlug(e.type)+"'><div class='trk-tl-dot'></div><div class='trk-tl-body'>"+
       "<div class='trk-tl-meta'><strong>"+trkFmtDate(e.date)+"</strong> "+trkTypeBadge(e.type)+
-        "<a href='#' class='trk-tl-edit' onclick='trkEditEntry(event,\""+e._id+"\")'>Edit</a></div>"+
+        "<a href='#' class='trk-tl-edit' title='Edit' aria-label='Edit entry' onclick='trkEditEntry(event,\""+e._id+"\")'>"+EDIT_ICO+"</a></div>"+
       (e.title?"<div class='trk-tl-title'>"+trkEsc(e.title)+"</div>":"")+
       (e.details?"<div class='trk-tl-details'>"+trkEsc(e.details).replace(/\n/g,"<br>")+"</div>":"")+
       (atts?"<div class='trk-tl-atts'>"+atts+"</div>":"")+

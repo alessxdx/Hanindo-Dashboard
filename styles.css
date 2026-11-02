@@ -372,6 +372,8 @@ body{
   transition:background .12s,color .12s;
 }
 .edit-btn:hover{color:var(--text-strong);background:var(--bg-hover)}
+.edit-ico{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.edit-btn:has(.edit-ico){padding:5px}
 .delete-btn{
   font-size:11px;color:#c0392b;cursor:pointer;
   margin-left:4px;background:transparent;border:none;
@@ -1148,7 +1150,8 @@ details.others-sec:not([open]) > summary{border-bottom:none}
   padding:12px 15px;
 }
 .trk-tl-meta{display:flex;align-items:center;gap:8px;font-size:14.5px;color:var(--text)}
-.trk-tl-edit{margin-left:auto;font-size:11px;color:var(--text-faint);text-decoration:none}
+.trk-tl-edit{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;margin-top:-6px;margin-bottom:-6px;border-radius:6px;color:var(--text-faint);text-decoration:none}
+.trk-tl-edit:hover{background:var(--bg-hover)}
 .trk-tl-edit:hover{color:var(--accent-text)}
 .trk-tl-title{font-size:17px;font-weight:600;color:var(--text-strong);margin-top:6px}
 .trk-tl-details{font-size:16px;color:var(--text);line-height:1.7;margin-top:6px}

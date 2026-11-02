@@ -9,6 +9,8 @@ function bTerm(t){const m={DDP:"b-ddp",DAP:"b-dap",EXW:"b-exw"};return`<span cla
 function bWarranty(w){if(!w)return"";const m={"5Y":"b-5y","3Y":"b-3y","2Y":"b-2y","1Y":"b-1y"};return`<span class="badge ${m[w]||"b-1y"}">${w} warranty</span>`;}
 
 let currentTab="customers",expandedCards={},expandedRows={};
+/* pencil used in place of the word "Edit" on row / entry edit buttons */
+var EDIT_ICO='<svg class="edit-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/></svg>';
 
 function setTab(btn){
   document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
@@ -213,7 +215,7 @@ function buildTxEntryHtml(tx){
       })()+
       fxNoteLine+
       "<div style='display:flex;justify-content:flex-end;padding-bottom:14px;margin-top:auto;padding-top:8px'>"+
-        "<button class='edit-btn' onclick='editTx("+TX.indexOf(tx)+",event)'>Edit</button>"+
+        "<button class='edit-btn' title='Edit' aria-label='Edit' onclick='editTx("+TX.indexOf(tx)+",event)'>"+EDIT_ICO+"</button>"+
       "</div>"+
     "</div></div>";
     return inner;
@@ -1298,7 +1300,7 @@ function buildProjectBlock(p,opts){
       "</div>"+
       "<div style='display:flex;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin-top:10px'>"+
         attClipsHtml(p.attachments)+
-        "<button class='edit-btn' onclick='editProject(\""+p._id+"\")'>Edit</button>"+
+        "<button class='edit-btn' title='Edit' aria-label='Edit' onclick='editProject(\""+p._id+"\")'>"+EDIT_ICO+"</button>"+
       "</div>"+
     "</div>";
 }
