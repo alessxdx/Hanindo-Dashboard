@@ -952,6 +952,8 @@ async function postOtherQuick(){
    "1." line (Enter on an empty item ends the list), Tab / Shift+Tab
    indent and outdent. listInput turns "- " or "* " at a line start into "• ". */
 const LIST_RE=/^(\s*)(•|\d+[.)])\s(.*)$/;
+// Any list-looking line ("a.", "b)", "iv.", "-", "1.", "•") shifts as a whole on Tab, wherever the cursor is
+const MARK_RE=/^\s*(•|[-*]|\d+[.)]|[a-z][.)]|[ivx]+[.)])\s/i;
 function editText(ta,from,to,text){
   ta.focus();ta.setSelectionRange(from,to);
   if(from===to&&!text)return;
@@ -971,7 +973,7 @@ function listKeys(e){
   }else if(e.key==="Tab"){
     e.preventDefault();
     const multi=v.slice(s,end).includes("\n");
-    if(!e.shiftKey&&!multi&&!LIST_RE.test(v.slice(ls).split("\n")[0])){editText(ta,s,end,"    ");return;}
+    if(!e.shiftKey&&!multi&&!MARK_RE.test(v.slice(ls).split("\n")[0])){editText(ta,s,end,"    ");return;}
     const le=(v.indexOf("\n",end)+1||v.length+1)-1,lines=v.slice(ls,le).split("\n");
     const out=lines.map(l=>e.shiftKey?l.replace(/^ {1,4}|^\t/,""):"    "+l).join("\n");
     editText(ta,ls,le,out);
