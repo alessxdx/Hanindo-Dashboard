@@ -1994,8 +1994,9 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
 .pg-kind-loc{background:var(--badge-order-bg);color:var(--badge-order-fg)}
 .pg-kind-proj{background:var(--badge-qt-bg);color:var(--badge-qt-fg)}
 .pg-c-parts{max-width:340px}
+/* one cover per line, so each location / quote / PO reads on its own */
 .pg-part{
-  display:inline-block;margin:2px 5px 2px 0;font-size:11.5px;color:var(--text);
+  display:block;width:fit-content;max-width:100%;margin:3px 0;font-size:11.5px;color:var(--text);
   background:var(--bg-soft);border:1px solid var(--border);border-radius:6px;padding:1px 7px;
 }
 .pg-amt{font-weight:600;color:var(--text-strong);white-space:nowrap;font-size:13px}

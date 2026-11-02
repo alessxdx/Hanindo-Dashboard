@@ -352,7 +352,7 @@ function trkSyncToolbar(){
      tab that can add something; the computer's tracker uses its own button */
   var tb=document.getElementById("toolbar");
   tb.classList.toggle("trk-fab",currentTab==="tracker");
-  tb.classList.toggle("has-fab",["customers","tracker","po","buying","spares","others"].indexOf(currentTab)>-1);
+  tb.classList.toggle("has-fab",["customers","groups","tracker","po","buying","spares","others"].indexOf(currentTab)>-1);
   if(currentTab==="tracker"){
     if(TRK_SEL&&TRK_VIEW==="cal"){btn.style.display="none";}
     else{btn.style.display="";btn.innerHTML=TRK_BTN_HTML.replace("Add entry","Add project");}
