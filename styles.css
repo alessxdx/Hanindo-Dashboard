@@ -2327,7 +2327,11 @@ html{-webkit-tap-highlight-color:transparent}
 .md-item .md-item-cty{font-style:italic}
 
 /* ===== By Customer: readability pass — larger type, more air, clearer numbers ===== */
-.md-layout{grid-template-columns:330px minmax(0,1fr);gap:18px}
+.md-layout{gap:18px}
+/* desktop only: below 980px the list and the detail stack (one column),
+   and with nothing picked the empty detail placeholder is dropped */
+@media (min-width:981px){.md-layout{grid-template-columns:330px minmax(0,1fr)}}
+@media (max-width:980px){.md-layout:not(.md-has-sel) .md-detail{display:none}}
 /* list */
 .md-country{font-size:13px;padding:10px 16px}
 .md-country b{letter-spacing:.04em}
