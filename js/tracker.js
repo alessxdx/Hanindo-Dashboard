@@ -354,6 +354,8 @@ function trkSyncToolbar(){
   var btn=document.querySelector("#toolbar .btn-add");
   if(!btn)return;
   if(TRK_BTN_HTML===null)TRK_BTN_HTML=btn.innerHTML;
+  /* phones hide the toolbar; the tracker keeps its add button as a floating + */
+  document.getElementById("toolbar").classList.toggle("trk-fab",currentTab==="tracker");
   if(currentTab==="tracker"){
     if(TRK_SEL&&TRK_VIEW==="cal"){btn.style.display="none";}
     else{btn.style.display="";btn.innerHTML=TRK_BTN_HTML.replace("Add entry","Add project");}
