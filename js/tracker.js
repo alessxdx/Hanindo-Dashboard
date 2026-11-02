@@ -171,15 +171,14 @@ function trkIsOpen(p){
   return TRK_ACTIVE_STATUSES.indexOf(p.status)>-1||p.status==="Other"||(p.status==="Won"&&p.payment!=="Fully paid");
 }
 function trkFollow(p,act){
-  if(!trkIsOpen(p))return null;
+  /* low priority = just waiting on them: no reminders at all, neither
+     Quiet nor an overdue follow-up date */
+  if(!trkIsOpen(p)||p.lowPriority)return null;
   var today=trkToday(),f=trkActiveFollowup(p,act);
   if(f){
     var late=trkDaysBetween(f,today);
     return {due:late>=0,kind:"followup",days:late,date:f};
   }
-  /* low priority = just waiting on them: no Quiet nag (a follow-up
-     date that was set on purpose still counts, above) */
-  if(p.lowPriority)return null;
   var last=trkLastDate(p,act);
   if(!last)return null;
   var days=trkDaysBetween(last,today);
