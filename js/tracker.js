@@ -33,8 +33,10 @@ var TRK_CLOSED_STATUSES=["Won","Lost"];
 var TRK_OFFICES=["China","Indonesia","Singapore"];
 
 /* ===== converters ===== */
-function dbToTrkP(r){return{_id:r.id,name:r.name||"",customer:r.customer||"",country:r.country||"",office:r.office||"",status:r.status||"Enquiry",payment:r.payment||"",solution:r.solution||"",products:Array.isArray(r.products)?r.products:[],estValue:(r.est_value===null||r.est_value===undefined)?null:Number(r.est_value),currency:r.currency||"USD",expectedDate:r.expected_date||"",expectedPeriod:r.expected_period||"",contactName:r.contact_name||"",contactPosition:r.contact_position||"",contactInfo:r.contact_info||"",notes:r.notes||"",nextFollowup:r.next_followup||"",createdAt:r.created_at||""};}
+function dbToTrkP(r){return{_id:r.id,name:r.name||"",customer:r.customer||"",country:r.country||"",office:r.office||"",status:r.status||"Enquiry",payment:r.payment||"",solution:r.solution||"",products:Array.isArray(r.products)?r.products:[],estValue:(r.est_value===null||r.est_value===undefined)?null:Number(r.est_value),currency:r.currency||"USD",expectedDate:r.expected_date||"",expectedPeriod:r.expected_period||"",contactName:r.contact_name||"",contactPosition:r.contact_position||"",contactInfo:r.contact_info||"",notes:r.notes||"",nextFollowup:r.next_followup||"",lowPriority:!!r.low_priority,createdAt:r.created_at||""};}
 var TRK_HAS_FU=true;
+/* low_priority is set only by its own toggle (never by the project form) */
+var TRK_HAS_LOW=true;
 function trkPToDb(p){var r=trkPToDbBase(p);if(TRK_HAS_FU)r.next_followup=p.nextFollowup||null;return r;}
 function trkPToDbBase(p){return{name:p.name,customer:p.customer||null,country:p.country||null,office:p.office||null,status:p.status,payment:p.payment||null,solution:p.solution||null,products:p.products||[],est_value:(p.estValue===null||isNaN(p.estValue))?null:p.estValue,currency:p.currency||"USD",expected_date:p.expectedDate||null,expected_period:p.expectedPeriod||null,contact_name:p.contactName||null,contact_position:p.contactPosition||null,contact_info:p.contactInfo||null,notes:p.notes||null};}
 function dbToTrkE(r){return{_id:r.id,projectId:r.project_id,date:r.entry_date||"",type:r.entry_type||"Note",title:r.title||"",details:r.details||"",attachments:Array.isArray(r.attachments)?r.attachments:[],createdAt:r.created_at||""};}
@@ -175,6 +177,9 @@ function trkFollow(p,act){
     var late=trkDaysBetween(f,today);
     return {due:late>=0,kind:"followup",days:late,date:f};
   }
+  /* low priority = just waiting on them: no Quiet nag (a follow-up
+     date that was set on purpose still counts, above) */
+  if(p.lowPriority)return null;
   var last=trkLastDate(p,act);
   if(!last)return null;
   var days=trkDaysBetween(last,today);
@@ -189,6 +194,30 @@ function trkFollowBadge(f){
   if(!f.due)return "<span class='trk-badge trk-fu' title='Next follow-up "+trkFmtDate(f.date)+"'>&#128197; Follow up "+nice+"</span>";
   if(f.days===0)return "<span class='trk-badge trk-stale' title='Follow-up planned for today'>&#9200; Follow up today</span>";
   return "<span class='trk-badge trk-stale trk-stale-hot' title='Follow-up was planned for "+trkFmtDate(f.date)+"'>&#9200; Follow-up overdue "+f.days+"d</span>";
+}
+/* ===== low priority =====
+   For deals where we're just waiting on the customer: the project
+   sinks to the bottom of its band, drops out of Needs follow-up (no
+   Quiet nag) and shows a grey badge. One click on/off, from the panel
+   or the full page. */
+function trkLowBadge(){return "<span class='trk-badge trk-low' title='Low priority — just waiting, no follow-up reminders'>&#128164; Low priority</span>";}
+function trkLowBtn(p){
+  if(!TRK_HAS_LOW)return"";
+  return "<button class='edit-btn trk-low-btn' onclick='trkToggleLow(\""+p._id+"\")' title='"+(p.lowPriority?"Back to the normal list and follow-up reminders":"Move to the bottom and stop follow-up reminders")+"'>"+
+    (p.lowPriority?"Back to normal":"&#128164; Low priority")+"</button>";
+}
+async function trkToggleLow(id){
+  var p=TRK_PROJECTS.find(function(x){return x._id===id;});
+  if(!p)return;
+  var v=!p.lowPriority;
+  showLoad("Saving...");
+  try{
+    var r=await fetch(SB_URL+"/rest/v1/tracker_projects?id=eq."+p._id,{method:"PATCH",headers:sbH(),body:JSON.stringify({low_priority:v})});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    p.lowPriority=v;
+  }catch(err){hideLoad();alert("Save failed: "+err.message);return;}
+  hideLoad();
+  renderTracker();
 }
 function trkEntriesFor(pid){
   return TRK_ENTRIES.filter(function(e){return e.projectId===pid;})
@@ -280,6 +309,7 @@ async function trkLoad(force){
      fields stay hidden and saves leave it out */
   TRK_HAS_FU=!res[0].length||("next_followup" in res[0][0]);
   document.querySelectorAll(".trk-fu-field").forEach(function(el){el.style.display=TRK_HAS_FU?"":"none";});
+  TRK_HAS_LOW=!res[0].length||("low_priority" in res[0][0]);
   TRK_LOADED=true;
   return true;
 }
@@ -624,6 +654,8 @@ function trkRenderList(bodyOnly){
     var ca=TRK_CLOSED_STATUSES.indexOf(a.status)>-1?1:0;
     var cb=TRK_CLOSED_STATUSES.indexOf(b.status)>-1?1:0;
     if(ca!==cb)return ca-cb;
+    /* low-priority (waiting) projects sit below the live ones */
+    if(!!a.lowPriority!==!!b.lowPriority)return a.lowPriority?1:-1;
     var da=actOf(a),db=actOf(b);
     if(da.d!==db.d)return db.d.localeCompare(da.d);
     if(da.c!==db.c)return db.c.localeCompare(da.c);
@@ -636,7 +668,7 @@ function trkRenderList(bodyOnly){
     var flag=trkFlag(p.country,14);
     var sub=[hl(p.customer),hl(p.country)].filter(Boolean).join(" &middot; ");
     var done=trkIsDone(p);
-    return "<tr class='trk-row"+(TRK_SEL===p._id?" sel":"")+(done?" trk-row-done":"")+"' onclick='trkOpen(\""+p._id+"\")'>"+
+    return "<tr class='trk-row"+(TRK_SEL===p._id?" sel":"")+(done?" trk-row-done":p.lowPriority?" trk-row-low":"")+"' onclick='trkOpen(\""+p._id+"\")'>"+
       "<td class='trk-c-proj'><div class='trk-r-name'>"+(q?hl(p.name):trkDisplayName(p))+"</div>"+
         (sub?"<div class='trk-r-sub'>"+(flag?flag+" ":"")+sub+"</div>":"")+
         (hit&&hit.why?"<div class='trk-card-why'>&#128269; "+hit.why+"</div>":"")+"</td>"+
@@ -644,7 +676,7 @@ function trkRenderList(bodyOnly){
       "<td class='trk-c-of'>"+(p.office?"<span class='trk-badge po-of-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+"</span>":"")+"</td>"+
       "<td class='trk-c-val num'>"+(p.estValue!==null?p.estValue.toLocaleString()+" <span class='trk-r-cur'>"+trkEsc(p.currency)+"</span>":"<span class='trk-r-none'>&mdash;</span>")+"</td>"+
       "<td class='trk-c-last'>"+(last?"<div>"+trkFmtDate(last.date)+"</div><div class='trk-r-sub'>"+trkEsc(last.type)+(last.title?" &mdash; "+trkEsc(last.title):"")+"</div>":"<span class='trk-r-none'>No activity yet</span>")+"</td>"+
-      "<td class='trk-c-fu'>"+trkFollowBadge(trkFollow(p,act))+"</td>"+
+      "<td class='trk-c-fu'>"+(trkFollowBadge(trkFollow(p,act))||(p.lowPriority&&!done?trkLowBadge():""))+"</td>"+
     "</tr>";
   }
   var COLS=6;
@@ -672,7 +704,7 @@ function trkRenderList(bodyOnly){
          projects don't sink here, per the user's preference — except
          completed ones (won, paid, delivered), which go to the bottom. */
       grp.sort(function(a,b){
-        var xa=trkIsDone(a)?1:0,xb=trkIsDone(b)?1:0;
+        var xa=trkIsDone(a)?2:a.lowPriority?1:0,xb=trkIsDone(b)?2:b.lowPriority?1:0;
         if(xa!==xb)return xa-xb;
         var da=actOf(a),db=actOf(b);
         if(da.d!==db.d)return db.d.localeCompare(da.d);
@@ -683,7 +715,11 @@ function trkRenderList(bodyOnly){
       return "<tr class='trk-band'><td colspan='"+COLS+"' style='box-shadow:inset 3px 0 0 "+(x?trkSolutionColor(x):"var(--border-strong)")+",inset 0 -1px 0 var(--border)'>"+
         "<span class='po-grp-name'>"+(x?trkEsc(x):"No tag yet")+"</span><span class='po-grp-n'>"+grp.length+"</span>"+
         (due?"<span class='trk-band-due'>&#9200; "+due+" need follow-up</span>":"")+
-      "</td></tr>"+grp.map(rowHtml).join("");
+      "</td></tr>"+grp.map(function(p,i){
+        /* a thin divider above the first low-priority row of the band */
+        var low=p.lowPriority&&!trkIsDone(p)&&!(i&&grp[i-1].lowPriority&&!trkIsDone(grp[i-1]));
+        return (low?"<tr class='trk-low-div'><td colspan='"+COLS+"'>&#128164; Low priority &middot; waiting</td></tr>":"")+rowHtml(p);
+      }).join("");
     }).join("");
   }
   var selP=TRK_SEL?TRK_PROJECTS.find(function(x){return x._id===TRK_SEL;}):null;
@@ -736,9 +772,9 @@ function trkPanelHtml(p,act){
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkDisplayName(p)+"</span>"+
       "<button class='trk-pn-expand' title='Open full page' aria-label='Open full page' onclick='trkExpand()'>&#x2922;</button>"+
       "<button class='po-panel-x' aria-label='Close' onclick='trkBack()'>&times;</button></div>"+
-    "<div class='po-panel-meta'>"+trkStatusBadge(p.status)+trkPaymentBadge(p)+trkFollowBadge(trkFollow(p,act))+"</div>"+
+    "<div class='po-panel-meta'>"+trkStatusBadge(p.status)+trkPaymentBadge(p)+trkFollowBadge(trkFollow(p,act))+(p.lowPriority?trkLowBadge():"")+"</div>"+
     ((p.customer||p.country)?"<div class='trk-pn-cust'>"+(flag?flag+" ":"")+[trkEsc(p.customer),trkEsc(p.country)].filter(Boolean).join(" &middot; ")+"</div>":"")+
-    "<div class='po-panel-acts'><button class='btn-save' onclick='trkOpenEntryModal()'>+ Add update</button><button class='edit-btn' onclick='trkEditProject()'>Edit project</button></div>"+
+    "<div class='po-panel-acts'><button class='btn-save' onclick='trkOpenEntryModal()'>+ Add update</button><button class='edit-btn' onclick='trkEditProject()'>Edit project</button>"+trkLowBtn(p)+"</div>"+
     "<div class='po-panel-sec'>Details</div>"+
     info("Office",p.office?"<span class='trk-badge po-of-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+" office</span>":"")+
     info("Solution",trkSolutionBadge(p))+
@@ -968,8 +1004,8 @@ function trkRenderDetail(){
     "<button class='trk-back' onclick='trkBack()'>&larr; All projects</button>"+
     "<div class='trk-detail-card'>"+
       "<div class='trk-detail-head'>"+
-        "<div class='trk-detail-name'>"+trkDisplayName(p)+" "+trkStatusBadge(p.status)+trkPaymentBadge(p)+"</div>"+
-        "<button class='edit-btn' onclick='trkEditProject()'>Edit project</button>"+
+        "<div class='trk-detail-name'>"+trkDisplayName(p)+" "+trkStatusBadge(p.status)+trkPaymentBadge(p)+(p.lowPriority?trkLowBadge():"")+"</div>"+
+        "<div style='display:flex;gap:8px;flex-shrink:0'>"+trkLowBtn(p)+"<button class='edit-btn' onclick='trkEditProject()'>Edit project</button></div>"+
       "</div>"+
       "<div class='trk-info-grid'>"+
         infoRow("Customer",(p.customer?flag+" "+trkEsc(p.customer):""))+
@@ -1736,6 +1772,7 @@ async function trkSaveProject(){
     solution:document.getElementById("tp-solution").value.trim(), /* applies to Other too — e.g. fire fighting */
     status:other?"Other":(prev&&prev.status!=="Other"?prev.status:"Enquiry"),
     payment:prev?(prev.payment||""):"",
+    lowPriority:prev?!!prev.lowPriority:false,
     products:other?[]:TRK_PROD.slice(),
     estValue:(other||valRaw==="")?null:parseFloat(valRaw),
     currency:document.getElementById("tp-currency").value,
