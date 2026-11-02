@@ -13,10 +13,10 @@ var TRK_LOADED=false,TRK_MISSING=false;
 var TRK_SEL=null;            /* project id shown in detail view */
 var TRK_EXPAND=false;        /* list view: selected project opened full page */
 /* status chips are multi-select: an array of statuses, or ["stale"] alone */
-/* Status chips: the live pipeline is on by default; Won and Lost sit
-   at the end, off until picked. */
+/* Status chips: everything but Lost is on by default; Lost sits at
+   the end, off until picked. */
 var TRK_CHIP_ORDER=["Enquiry","Quoted","Other","Won","Lost"];
-var TRK_FSTATUS_DEFAULT=["Enquiry","Quoted","Other"];
+var TRK_FSTATUS_DEFAULT=["Enquiry","Quoted","Other","Won"];
 var TRK_FSTATUS=TRK_FSTATUS_DEFAULT.slice(),TRK_FOFFICE="",TRK_FSOL="";
 var TRK_Q="";                 /* list search box text */
 var TRK_ATT=[];              /* entry-modal attachment staging */
@@ -614,11 +614,11 @@ function trkRenderList(bodyOnly){
     var n=cnt(function(p){return p.status===st;});
     return (st==="Other"&&!n)?null:{value:st,label:st==="Other"?"Others":st,count:n};
   }).filter(Boolean);
-  var stLabel=trkStaleOn()?"Status: any":trkDefaultStatusesOn()?"Status: Open":trkAllStatusesOn()?"All statuses":
+  var stLabel=trkStaleOn()?"Status: any":trkDefaultStatusesOn()?"Status: All but Lost":trkAllStatusesOn()?"All statuses":
     TRK_FSTATUS.length<=2?TRK_FSTATUS.map(function(x){return x==="Other"?"Others":x;}).join(" + "):TRK_FSTATUS.length+" statuses";
   var statusMenu=uiDropdown({key:"trk-status",multi:true,onPick:"trkPickStatus",cur:trkStaleOn()?[]:TRK_FSTATUS,opts:stOpts,
     label:stLabel,count:trkStaleOn()?undefined:cnt(function(p){return TRK_FSTATUS.indexOf(p.status)>-1;}),
-    foot:[{value:"__all",label:"Show all"},{value:"__open",label:"Reset to open"}]});
+    foot:[{value:"__all",label:"Show all"},{value:"__open",label:"Hide Lost"}]});
   var fuBtn=(staleN||trkStaleOn())?"<button class='trk-fu-toggle"+(trkStaleOn()?" active":"")+"' onclick='trkSetStatusFilter(\"stale\")' title='Open projects due a follow-up'>&#9200;<span class='trk-fu-txt'> Needs follow-up</span> <span class='po-dd-n'>"+staleN+"</span></button>":"";
 
   var officeSel=uiDropdown({key:"trk-office",onPick:"trkSetOfficeFilter",cur:TRK_FOFFICE,
@@ -685,6 +685,15 @@ function trkRenderList(bodyOnly){
     "</tr>";
   }
   var COLS=6;
+  /* rows with a thin divider above each run of low-priority rows */
+  function isLow(p){return p&&p.lowPriority&&!trkIsDone(p);}
+  function rowsWithLowDiv(arr){
+    return arr.map(function(p,i){
+      if(!isLow(p)||isLow(arr[i-1]))return rowHtml(p);
+      var n=0;while(isLow(arr[i+n]))n++;
+      return "<tr class='trk-low-div'><td colspan='"+COLS+"'>"+TRK_LOW_ICO+"Low priority &middot; waiting<span class='trk-low-n'>"+n+"</span></td></tr>"+rowHtml(p);
+    }).join("");
+  }
 
   /* ===== solution bands =====
      Once anything is tagged, rows sit under tinted solution bands
@@ -693,7 +702,8 @@ function trkRenderList(bodyOnly){
      solution, or when nothing is tagged yet. */
   var rows;
   if(q||TRK_FSOL||trkStaleOn()||!list.some(function(p){return p.solution;})){
-    rows=list.map(rowHtml).join("");
+    /* a search or the follow-up list is ordered by relevance, not priority */
+    rows=q||trkStaleOn()?list.map(rowHtml).join(""):rowsWithLowDiv(list);
   }else{
     var order=TRK_SOLUTIONS.slice(),extra=[];
     list.forEach(function(p){
@@ -720,11 +730,7 @@ function trkRenderList(bodyOnly){
       return "<tr class='trk-band'><td colspan='"+COLS+"' style='box-shadow:inset 3px 0 0 "+(x?trkSolutionColor(x):"var(--border-strong)")+",inset 0 -1px 0 var(--border)'>"+
         "<span class='po-grp-name'>"+(x?trkEsc(x):"No tag yet")+"</span><span class='po-grp-n'>"+grp.length+"</span>"+
         (due?"<span class='trk-band-due'>&#9200; "+due+" need follow-up</span>":"")+
-      "</td></tr>"+grp.map(function(p,i){
-        /* a thin divider above the first low-priority row of the band */
-        var low=p.lowPriority&&!trkIsDone(p)&&!(i&&grp[i-1].lowPriority&&!trkIsDone(grp[i-1]));
-        return (low?"<tr class='trk-low-div'><td colspan='"+COLS+"'>"+TRK_LOW_ICO+"Low priority &middot; waiting<span class='trk-low-n'>"+grp.filter(function(x){return x.lowPriority&&!trkIsDone(x);}).length+"</span></td></tr>":"")+rowHtml(p);
-      }).join("");
+      "</td></tr>"+rowsWithLowDiv(grp);
     }).join("");
   }
   var selP=TRK_SEL?TRK_PROJECTS.find(function(x){return x._id===TRK_SEL;}):null;
@@ -751,7 +757,7 @@ function trkRenderList(bodyOnly){
     "</div>";
   /* The menus and List/Calendar fold away behind a Filters button
      (dot = something is narrowing the list). */
-  var narrowed=(!trkStaleOn()&&TRK_FSTATUS.join()!==TRK_FSTATUS_DEFAULT.join())||TRK_FOFFICE||TRK_FSOL||TRK_VIEW==="cal";
+  var narrowed=(!trkStaleOn()&&!trkDefaultStatusesOn())||TRK_FOFFICE||TRK_FSOL||TRK_VIEW==="cal";
   var filtBtn="<button class='trk-filt-btn"+(narrowed?" on":"")+"' onclick='trkToggleFilters()' aria-expanded='"+TRK_FILT_OPEN+"'>"+
     "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><path d='M4 6h16M7 12h10M10 18h4'/></svg>Filters</button>";
   var addBtn="<button class='btn-add trk-add' onclick='trkOpenAdd()'>"+
