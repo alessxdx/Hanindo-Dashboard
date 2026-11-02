@@ -200,11 +200,18 @@ function trkFollowBadge(f){
    sinks to the bottom of its band, drops out of Needs follow-up (no
    Quiet nag) and shows a grey badge. One click on/off, from the panel
    or the full page. */
-function trkLowBadge(){return "<span class='trk-badge trk-low' title='Low priority — just waiting, no follow-up reminders'>&#128164; Low priority</span>";}
+/* hourglass icon (the sleep emoji rendered as a blurry squiggle) */
+var TRK_LOW_ICO="<svg class='trk-low-ico' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 2h12M6 22h12M7 2v4l5 6-5 6v4M17 2v4l-5 6 5 6v4'/></svg>";
+function trkLowBadge(){return "<span class='trk-badge trk-low' title='Low priority — just waiting, no follow-up reminders'>"+TRK_LOW_ICO+"Low priority</span>";}
+/* an on/off switch with a one-line explanation, so it reads as a
+   setting rather than a stray link */
 function trkLowBtn(p){
   if(!TRK_HAS_LOW)return"";
-  return "<button class='edit-btn trk-low-btn' onclick='trkToggleLow(\""+p._id+"\")' title='"+(p.lowPriority?"Back to the normal list and follow-up reminders":"Move to the bottom and stop follow-up reminders")+"'>"+
-    (p.lowPriority?"Back to normal":"&#128164; Low priority")+"</button>";
+  return "<button class='trk-low-sw"+(p.lowPriority?" on":"")+"' role='switch' aria-checked='"+(p.lowPriority?"true":"false")+"' onclick='trkToggleLow(\""+p._id+"\")'>"+
+    "<span class='trk-low-knob'></span>"+
+    "<span class='trk-low-txt'><strong>"+TRK_LOW_ICO+"Low priority</strong>"+
+      "<small>"+(p.lowPriority?"Waiting on them &mdash; kept at the bottom, no reminders":"Just waiting? Move it to the bottom and stop reminders")+"</small></span>"+
+  "</button>";
 }
 async function trkToggleLow(id){
   var p=TRK_PROJECTS.find(function(x){return x._id===id;});
@@ -718,7 +725,7 @@ function trkRenderList(bodyOnly){
       "</td></tr>"+grp.map(function(p,i){
         /* a thin divider above the first low-priority row of the band */
         var low=p.lowPriority&&!trkIsDone(p)&&!(i&&grp[i-1].lowPriority&&!trkIsDone(grp[i-1]));
-        return (low?"<tr class='trk-low-div'><td colspan='"+COLS+"'>&#128164; Low priority &middot; waiting</td></tr>":"")+rowHtml(p);
+        return (low?"<tr class='trk-low-div'><td colspan='"+COLS+"'>"+TRK_LOW_ICO+"Low priority &middot; waiting</td></tr>":"")+rowHtml(p);
       }).join("");
     }).join("");
   }
@@ -774,7 +781,7 @@ function trkPanelHtml(p,act){
       "<button class='po-panel-x' aria-label='Close' onclick='trkBack()'>&times;</button></div>"+
     "<div class='po-panel-meta'>"+trkStatusBadge(p.status)+trkPaymentBadge(p)+trkFollowBadge(trkFollow(p,act))+(p.lowPriority?trkLowBadge():"")+"</div>"+
     ((p.customer||p.country)?"<div class='trk-pn-cust'>"+(flag?flag+" ":"")+[trkEsc(p.customer),trkEsc(p.country)].filter(Boolean).join(" &middot; ")+"</div>":"")+
-    "<div class='po-panel-acts'><button class='btn-save' onclick='trkOpenEntryModal()'>+ Add update</button><button class='edit-btn' onclick='trkEditProject()'>Edit project</button>"+trkLowBtn(p)+"</div>"+
+    "<div class='po-panel-acts'><button class='btn-save' onclick='trkOpenEntryModal()'>+ Add update</button><button class='edit-btn' onclick='trkEditProject()'>Edit project</button></div>"+trkLowBtn(p)+
     "<div class='po-panel-sec'>Details</div>"+
     info("Office",p.office?"<span class='trk-badge po-of-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+" office</span>":"")+
     info("Solution",trkSolutionBadge(p))+
@@ -1005,8 +1012,8 @@ function trkRenderDetail(){
     "<div class='trk-detail-card'>"+
       "<div class='trk-detail-head'>"+
         "<div class='trk-detail-name'>"+trkDisplayName(p)+" "+trkStatusBadge(p.status)+trkPaymentBadge(p)+(p.lowPriority?trkLowBadge():"")+"</div>"+
-        "<div style='display:flex;gap:8px;flex-shrink:0'>"+trkLowBtn(p)+"<button class='edit-btn' onclick='trkEditProject()'>Edit project</button></div>"+
-      "</div>"+
+        "<button class='edit-btn' onclick='trkEditProject()'>Edit project</button>"+
+      "</div>"+trkLowBtn(p)+
       "<div class='trk-info-grid'>"+
         infoRow("Customer",(p.customer?flag+" "+trkEsc(p.customer):""))+
         infoRow("Country",trkEsc(p.country))+

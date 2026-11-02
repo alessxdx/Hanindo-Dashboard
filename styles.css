@@ -1897,10 +1897,30 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
 .trk-row-low td{opacity:.62}
 .trk-row-low:hover td,.trk-row-low.sel td{opacity:1}
 .trk-low-div td{padding:5px 14px;font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-faint);background:var(--bg-soft);border-top:1px dashed var(--border-strong)}
-.trk-badge.trk-low{background:var(--bg-soft);color:var(--text-muted);border:1px solid var(--border);font-weight:500}
-.trk-low-btn{margin-left:auto}
-.trk-panel .po-panel-acts{flex-wrap:wrap}
-.trk-panel .po-panel-acts button{white-space:nowrap}
+.trk-badge.trk-low{background:var(--bg-soft);color:var(--text-muted);border:1px solid var(--border);font-weight:500;display:inline-flex;align-items:center;gap:4px}
+.trk-low-ico{width:12px;height:12px;flex-shrink:0;vertical-align:-1px}
+.trk-low-div td .trk-low-ico{margin-right:5px}
+.trk-low-sw{
+  display:flex;align-items:center;gap:11px;width:100%;margin-top:12px;
+  padding:9px 12px;border:1px solid var(--border);border-radius:10px;
+  background:var(--bg-soft);cursor:pointer;text-align:left;
+  font-family:inherit;color:var(--text-muted);transition:border-color .12s,background .12s;
+}
+.trk-low-sw:hover{border-color:var(--border-strong)}
+.trk-low-knob{
+  position:relative;flex-shrink:0;width:32px;height:18px;border-radius:999px;
+  background:var(--border-strong);transition:background .15s;
+}
+.trk-low-knob::after{
+  content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s;
+}
+.trk-low-sw.on .trk-low-knob{background:var(--accent)}
+.trk-low-sw.on .trk-low-knob::after{transform:translateX(14px)}
+.trk-low-txt{display:flex;flex-direction:column;gap:1px;min-width:0}
+.trk-low-txt strong{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--text-strong)}
+.trk-low-txt small{font-size:11.5px;line-height:1.35;color:var(--text-muted)}
+.trk-detail-card .trk-low-sw{max-width:420px}
 .trk-r-name{font-weight:500;color:var(--text-strong);line-height:1.35}
 .trk-r-sub{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-muted);margin-top:2px}
 .trk-r-cur{font-size:11px;color:var(--text-muted)}
