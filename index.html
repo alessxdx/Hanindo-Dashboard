@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION="2026-11-02.24";
+var APP_VERSION = "2026-11-02.25";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -363,7 +363,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="form-group tp-cust-only"><label>Contact person</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-contact" placeholder="e.g. Mr. Rahman" readonly onfocus="this.removeAttribute('readonly')"></div>
       <div class="form-group tp-cust-only"><label>Position <span style="font-size:10px;color:#aaa;font-weight:400">(optional)</span></label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-position" placeholder="e.g. Head of Supply Chain" readonly onfocus="this.removeAttribute('readonly')"></div>
       <div class="form-group form-full tp-cust-only"><label>Contact info <span style="font-size:10px;color:#aaa;font-weight:400">(email / phone)</span></label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-contact-info" placeholder="e.g. rahman@example.com, +880 ..." readonly onfocus="this.removeAttribute('readonly')"></div>
-      <div class="form-group form-full"><label>Notes</label><textarea id="tp-notes" placeholder="Background, requirements, competitors&hellip;"></textarea></div>
+      <div class="form-group form-full"><label>Notes</label><textarea id="tp-notes" onkeydown="listKeys(event)" placeholder="Background, requirements, competitors&hellip;"></textarea></div>
     </div>
     <div class="modal-actions">
       <button id="btn-delete-trk-project" class="delete-btn" style="font-size:13px;padding:9px 14px;display:none" onclick="trkDeleteProject()">Delete project</button>
@@ -443,7 +443,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="form-group"><label>Type *</label><select id="te-type" onchange="trkSyncEntryPaymentVis()"><option>Call</option><option>Delivery</option><option>Email</option><option>Invoice</option><option>Meeting</option><option selected>Note</option><option>Payment received</option><option>Purchase order</option><option>Quotation</option><option>Site visit</option><option>WhatsApp</option></select></div>
       <div class="form-group" id="te-payment-wrap" style="display:none"><label>Project payment after this</label><select id="te-payment"><option>Partially paid</option><option>Fully paid</option></select></div>
       <div class="form-group form-full"><label>Title</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="te-title" placeholder="e.g. Meeting with China office re: Dhaka enquiry"></div>
-      <div class="form-group form-full"><label>Details / minutes</label><textarea id="te-details" style="min-height:120px" placeholder="Meeting minutes, quotation summary, agreed next steps&hellip;"></textarea></div>
+      <div class="form-group form-full"><label>Details / minutes</label><textarea id="te-details" onkeydown="listKeys(event)" style="min-height:120px" placeholder="Meeting minutes, quotation summary, agreed next steps&hellip;"></textarea></div>
       <div class="trk-fu-field form-group form-full"><label>Next follow-up for this project <span style="font-size:10px;color:#aaa;font-weight:400">(optional &mdash; when to chase next)</span></label><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="te-followup" type="date" style="flex:1;min-width:140px"><span class="trk-fu-quick"><button type="button" onclick="trkFollowupIn('te-followup',3)">+3d</button><button type="button" onclick="trkFollowupIn('te-followup',7)">+1w</button><button type="button" onclick="trkFollowupIn('te-followup',14)">+2w</button><button type="button" onclick="trkFollowupIn('te-followup',null)">Clear</button></span></div></div>
       <div class="form-group form-full" id="te-drop"><label>Attachments <span style="font-size:10px;color:#aaa;font-weight:400">(PDF, Excel, Word, images&hellip;)</span></label>
         <input id="te-files" type="file" multiple accept=".pdf,.xls,.xlsx,.xlsm,.csv,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg" onchange="trkAddFiles()" class="att-file-input">

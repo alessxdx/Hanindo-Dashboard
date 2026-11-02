@@ -45,6 +45,14 @@ function trkEToDb(e){return{project_id:e.projectId,entry_date:e.date||null,entry
 
 /* ===== helpers ===== */
 function trkEsc(s){return String(s===null||s===undefined?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+/* Multi-line text with Tab indents kept: every 4 leading spaces (or a tab)
+   shifts the line one step right, and wrapped text stays under it */
+function trkLines(s){
+  return String(s||"").split("\n").map(function(l){
+    var ind=/^[ \t]*/.exec(l)[0],lv=Math.ceil(ind.replace(/\t/g,"    ").length/4),t=l.slice(ind.length);
+    return "<div class='txt-ln'"+(lv?" style='padding-left:"+(lv*1.6)+"em'":"")+">"+(t?trkEsc(t):"&nbsp;")+"</div>";
+  }).join("");
+}
 var TRK_MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function trkFmtDate(d){
   if(!d)return"";
@@ -800,7 +808,7 @@ function trkPanelHtml(p,act){
     return "<div class='trk-pn-e'><div class='trk-pn-e-meta'><strong>"+trkFmtDate(e.date)+"</strong> "+trkTypeBadge(e.type)+
         "<a href='#' class='trk-tl-edit' title='Edit' aria-label='Edit entry' onclick='trkEditEntry(event,\""+e._id+"\")'>"+EDIT_ICO+"</a></div>"+
       (e.title?"<div class='trk-pn-e-title'>"+trkEsc(e.title)+"</div>":"")+
-      (e.details?"<div class='trk-pn-e-det'>"+trkEsc(e.details).replace(/\n/g,"<br>")+"</div>":"")+
+      (e.details?"<div class='trk-pn-e-det'>"+trkLines(e.details)+"</div>":"")+
       (atts?"<div class='trk-tl-atts'>"+atts+"</div>":"")+
     "</div>";
   }).join("");
@@ -819,7 +827,7 @@ function trkPanelHtml(p,act){
     info("Expected close",trkPeriodLabel(p))+
     info("Next follow-up",trkActiveFollowup(p,act)?trkFmtDate(trkActiveFollowup(p,act)):"")+
     info("Contact",trkEsc(p.contactName)+(p.contactPosition?" &middot; "+trkEsc(p.contactPosition):"")+(p.contactInfo?"<div class='trk-value-usd'>"+trkEsc(p.contactInfo)+"</div>":""))+
-    (p.notes?"<div class='po-panel-sec'>Description</div><div class='po-panel-note'>"+trkEsc(p.notes)+"</div>":"")+
+    (p.notes?"<div class='po-panel-sec'>Description</div><div class='po-panel-note txt-lines'>"+trkLines(p.notes)+"</div>":"")+
     "<div class='po-panel-sec'>Timeline &middot; "+entries.length+"</div>"+
     (tl||"<div class='trk-r-none' style='font-size:12px'>No updates yet. Add the enquiry, a call or a quotation.</div>")+
   "</aside>";
@@ -1057,7 +1065,7 @@ function trkRenderDetail(){
           (p.contactPosition?" <span class='trk-contact-pos'>&middot; "+trkEsc(p.contactPosition)+"</span>":"")+
           (p.contactInfo?" <span class='trk-value-usd'>"+trkEsc(p.contactInfo)+"</span>":""))+
       "</div>"+
-      (p.notes?"<div class='trk-notes'><div class='trk-notes-label'>Project description</div>"+trkEsc(p.notes).replace(/\n/g,"<br>")+"</div>":"")+
+      (p.notes?"<div class='trk-notes'><div class='trk-notes-label'>Project description</div>"+trkLines(p.notes)+"</div>":"")+
     "</div>";
 
   var tl=entries.map(function(e){
@@ -1068,7 +1076,7 @@ function trkRenderDetail(){
       "<div class='trk-tl-meta'><strong>"+trkFmtDate(e.date)+"</strong> "+trkTypeBadge(e.type)+
         "<a href='#' class='trk-tl-edit' title='Edit' aria-label='Edit entry' onclick='trkEditEntry(event,\""+e._id+"\")'>"+EDIT_ICO+"</a></div>"+
       (e.title?"<div class='trk-tl-title'>"+trkEsc(e.title)+"</div>":"")+
-      (e.details?"<div class='trk-tl-details'>"+trkEsc(e.details).replace(/\n/g,"<br>")+"</div>":"")+
+      (e.details?"<div class='trk-tl-details'>"+trkLines(e.details)+"</div>":"")+
       (atts?"<div class='trk-tl-atts'>"+atts+"</div>":"")+
     "</div></div>";
   }).join("");
