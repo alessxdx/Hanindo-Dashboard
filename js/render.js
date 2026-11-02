@@ -1385,10 +1385,19 @@ function populateModelSelect(){
   }).join("");
 }
 function openModal(){
-  if(currentTab==="customers"||currentTab==="projects"){
+  if(currentTab==="customers"||currentTab==="projects"||currentTab==="groups"){
     // New entries are created as projects (line items + PDF parsing).
     // The transaction modal is still used when editing legacy transactions.
     openProjectModal();
+    // Inside a project group: pre-fill the group and its customer
+    if(currentTab==="groups"&&typeof MD_GROUP_SEL!=="undefined"&&MD_GROUP_SEL){
+      document.getElementById("p-group").value=MD_GROUP_SEL;
+      var gp=PROJECTS.find(function(p){return p.projectGroup===MD_GROUP_SEL;});
+      if(gp){
+        document.getElementById("p-customer").value=gp.customer||"";
+        document.getElementById("p-country").value=gp.country||"";
+      }
+    }
   }
   else if(currentTab==="buying"){
     document.getElementById("modal-buying").removeAttribute("data-edit-idx");
