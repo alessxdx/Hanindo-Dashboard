@@ -2172,8 +2172,11 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
   .buy-row .buy-c-model{grid-column:1;grid-row:1}
   .buy-row .buy-c-price{grid-column:2;grid-row:1;text-align:right}
   .buy-row .buy-c-pn{grid-column:1;grid-row:2}
-  .buy-row .buy-c-sp{grid-column:2;grid-row:2;text-align:right}
-  .buy-row .buy-c-acts{grid-column:1/-1;grid-row:3;width:auto}
+  /* edit / delete sit beside the part number; a special price, when there
+     is one, gets its own line under it (no empty dash line otherwise) */
+  .buy-row .buy-c-sp{grid-column:1/-1;grid-row:3;text-align:right;display:flex;justify-content:flex-end;align-items:baseline;gap:6px}
+  .buy-row .buy-c-sp:has(>.trk-r-none){display:none}
+  .buy-row .buy-c-acts{grid-column:2;grid-row:2;width:auto}
   .buy-row .buy-c-acts .nt-acts{justify-content:flex-end}
 }
 
@@ -2186,8 +2189,8 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
   .sp-row .buy-c-price{grid-column:2;grid-row:1}
   .sp-row .sp-c-cust{grid-column:1;grid-row:2}
   .sp-row .sp-c-terms{grid-column:2;grid-row:2;text-align:right}
-  .sp-row .sp-c-note{grid-column:1/-1;grid-row:3;max-width:none}
-  .sp-row .buy-c-acts{grid-row:4}
+  .sp-row .sp-c-note{grid-column:1;grid-row:3;max-width:none}
+  .sp-row .buy-c-acts{grid-column:2;grid-row:3;align-self:end}
 }
 .sp-by-cust .sp-c-cust{display:none}
 @media (max-width:700px){.sp-row .sp-empty{display:none}}
@@ -2268,19 +2271,17 @@ html{-webkit-tap-highlight-color:transparent}
   /* theme lives under More (Toggle theme), so the page title gets the room */
   .topbar .theme-switcher{display:none}
   .topbar h1{white-space:normal;line-height:1.2;font-size:20px}
-  /* adding is done on the computer; on phones the dashboard is for
-     looking things up, so the "+ Add" row is dropped */
+  /* the "+ Add" row is dropped; on the tabs that can add something its
+     button floats above the tab bar as a round + (same form as the computer) */
   #toolbar{display:none}
-  /* …except the tracker, where projects get logged on the go: a round +
-     floating above the tab bar (it opens the same Add project form) */
-  #toolbar.trk-fab{display:block;height:0;margin:0;padding:0;border:none}
-  #toolbar.trk-fab .btn-add{
+  #toolbar.has-fab{display:block;height:0;margin:0;padding:0;border:none}
+  #toolbar.has-fab .btn-add{
     position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:44;
     width:56px;height:56px;padding:0;border-radius:50%;justify-content:center;
     font-size:0;line-height:0;gap:0;box-shadow:0 6px 18px rgba(16,24,40,.22);
   }
   /* gap:0 above: the hidden label still counted as a flex item and pushed the + left */
-  #toolbar.trk-fab .btn-add svg{width:22px !important;height:22px !important;display:block;flex-shrink:0}
+  #toolbar.has-fab .btn-add svg{width:22px !important;height:22px !important;display:block;flex-shrink:0}
   /* compact stat cards, so the list starts on the first screen */
   .stat-grid{gap:8px;margin:8px 0 16px}
   .stat{padding:10px 12px;border-radius:10px}
@@ -2496,3 +2497,55 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .md-models-table tr.md-spare-head td{padding:16px 10px 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent-text);border-bottom:1px solid var(--divider)}
 .md-models-table tr.md-spare-head td span{margin-left:8px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-muted)}
 .md-models-table tr.md-spare td{color:var(--text)}
+
+/* ===== Phone: behave like an app, not a web page ===== */
+@media (max-width:700px){
+  /* no double-tap zoom or tap delay (pinch still works) */
+  html{touch-action:manipulation}
+  /* iPhone zooms into any field under 16px — keep every field at 16 */
+  input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:16px !important}
+  /* controls don't get selected or pop the copy/share callout on long-press */
+  button,.bn-item,.nav-item,.po-dd-btn,.trk-row,.md-item,.po-row,label{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  /* pressed feedback, like native buttons */
+  button,.trk-row,.md-item,.po-row,.md-doc{transition:opacity .08s,transform .08s}
+  button:active,.trk-row:active,.md-item:active,.po-row:active,.md-doc:active{opacity:.6}
+  #toolbar.has-fab .btn-add:active,.btn-save:active{opacity:1;transform:scale(.95)}
+  /* full-screen forms and panels scroll on their own, never the page behind */
+  .modal-overlay,.modal,.po-panel,.sidebar,.sidebar-nav{overscroll-behavior:contain}
+  /* type-ahead fields (customer, country…) fill the row like the rest */
+  .modal .trk-suggest,.modal .trk-suggest input{width:100%}
+  /* edit / delete icons big enough for a thumb, and always visible */
+  .nt-acts{opacity:1;gap:6px}
+  .nt-ico{width:36px;height:36px}
+  .nt-ico svg{width:17px;height:17px}
+  /* "open full page" means nothing when the panel already fills the screen */
+  .trk-pn-expand{display:none}
+  .trk-pn-expand+.po-panel-x{margin-left:0}
+  .po-panel-x{font-size:28px;min-width:40px;min-height:40px}
+  /* More: a bottom sheet of tiles instead of a side drawer */
+  .sidebar,.sidebar.collapsed{
+    top:auto;left:0;right:0;bottom:0;width:100%;height:auto;max-height:85vh;
+    transform:translateY(105%);transition:transform .22s ease;
+    border-right:none;border-radius:18px 18px 0 0;z-index:60;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .sidebar.mobile-open{transform:translateY(0)}
+  .mobile-overlay{z-index:55}
+  .sidebar .sidebar-head{border-bottom:none;padding:22px 18px 4px;position:relative}
+  .sidebar .sidebar-head::before{content:"";position:absolute;top:8px;left:50%;width:38px;height:4px;margin-left:-19px;border-radius:2px;background:var(--border-strong)}
+  .sidebar .collapse-btn{display:none}
+  .sidebar-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:4px 14px 10px}
+  .sidebar-nav .sidebar-section-label{grid-column:1/-1;padding:10px 4px 0}
+  .sidebar .nav-item,.sidebar.collapsed .nav-item{
+    flex-direction:column;justify-content:center;gap:6px;text-align:center;
+    min-height:76px;padding:10px 4px;margin:0;border-radius:12px;
+    background:var(--bg-soft);font-size:12px;line-height:1.25;
+  }
+  .sidebar .nav-item.active{background:var(--accent-soft);color:var(--accent-text)}
+  .sidebar .nav-icon{width:24px;height:24px}
+  .sidebar .nav-icon svg{width:21px;height:21px}
+  .sidebar .nav-label{white-space:normal;flex:none}
+  .sidebar-foot{border-top:none;padding:0 14px 14px}
+  .sidebar-foot .nav-item,.sidebar.collapsed .sidebar-foot .nav-item{flex-direction:row;min-height:48px;justify-content:center}
+}
+

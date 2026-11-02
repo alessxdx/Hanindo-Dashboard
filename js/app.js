@@ -194,6 +194,37 @@ function closeMobileSidebar(){
   var ov = document.getElementById("mobile-overlay");
   if(ov) ov.classList.remove("show");
 }
+/* Phone back button / swipe-back closes the open form or More sheet first,
+   like an app, instead of leaving the page underneath. Each layer that
+   opens pushes a history entry (same URL); closing it with Cancel / × pops
+   that entry again, unless the form already navigated somewhere else. */
+(function backClosesLayers(){
+  var stack=[], skip=0;
+  var isLayer=function(el){return el.id==="sidebar"||(el.classList&&el.classList.contains("modal-overlay"));};
+  var isOpen=function(el){return el.id==="sidebar"?el.classList.contains("mobile-open"):el.classList.contains("open");};
+  new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      var el=m.target;
+      if(!isLayer(el))return;
+      var i=stack.indexOf(el);
+      if(isOpen(el)&&i===-1){
+        if(!window.matchMedia("(max-width:700px)").matches)return;
+        stack.push(el);
+        history.pushState({cpdLayer:stack.length},"",location.href);
+      }else if(!isOpen(el)&&i>-1){
+        stack.splice(i,1);
+        if(history.state&&history.state.cpdLayer){skip++;history.back();}
+      }
+    });
+  }).observe(document.body,{attributes:true,attributeFilter:["class"],subtree:true});
+  window.addEventListener("popstate",function(){
+    if(skip){skip--;return;}
+    var el=stack.pop();
+    if(!el)return;
+    if(el.id==="sidebar")closeMobileSidebar();
+    else el.classList.remove("open");
+  });
+})();
 (function initSidebar(){
   try {
     if(localStorage.getItem("cpd_sidebar") === "1"){

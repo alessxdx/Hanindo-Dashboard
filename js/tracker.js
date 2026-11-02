@@ -348,8 +348,11 @@ function trkSyncToolbar(){
   var btn=document.querySelector("#toolbar .btn-add");
   if(!btn)return;
   if(TRK_BTN_HTML===null)TRK_BTN_HTML=btn.innerHTML;
-  /* phones hide the toolbar; the tracker keeps its add button as a floating + */
-  document.getElementById("toolbar").classList.toggle("trk-fab",currentTab==="tracker");
+  /* phones hide the toolbar but keep its add button as a floating + on every
+     tab that can add something; the computer's tracker uses its own button */
+  var tb=document.getElementById("toolbar");
+  tb.classList.toggle("trk-fab",currentTab==="tracker");
+  tb.classList.toggle("has-fab",["customers","tracker","po","buying","spares","others"].indexOf(currentTab)>-1);
   if(currentTab==="tracker"){
     if(TRK_SEL&&TRK_VIEW==="cal"){btn.style.display="none";}
     else{btn.style.display="";btn.innerHTML=TRK_BTN_HTML.replace("Add entry","Add project");}
