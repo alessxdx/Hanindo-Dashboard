@@ -18,6 +18,7 @@ var TRK_EXPAND=false;        /* list view: selected project opened full page */
 var TRK_CHIP_ORDER=["Enquiry","Quoted","Other","Won","Lost"];
 var TRK_FSTATUS_DEFAULT=["Enquiry","Quoted","Other","Won"];
 var TRK_FSTATUS=TRK_FSTATUS_DEFAULT.slice(),TRK_FOFFICE="",TRK_FSOL="";
+var TRK_SHOW_LOW=true;       /* Status menu's Low priority item: off hides waiting projects */
 var TRK_Q="";                 /* list search box text */
 var TRK_ATT=[];              /* entry-modal attachment staging */
 
@@ -441,8 +442,9 @@ function trkSetStatusFilter(s){
   renderTracker();
 }
 function trkPickStatus(v){
-  if(v==="__all"){TRK_FSTATUS=TRK_CHIP_ORDER.slice();renderTracker();}
-  else if(v==="__open"){TRK_FSTATUS=TRK_FSTATUS_DEFAULT.slice();renderTracker();}
+  if(v==="__low"){TRK_SHOW_LOW=!TRK_SHOW_LOW;renderTracker();}
+  else if(v==="__all"){TRK_FSTATUS=TRK_CHIP_ORDER.slice();TRK_SHOW_LOW=true;renderTracker();}
+  else if(v==="__open"){TRK_FSTATUS=TRK_FSTATUS_DEFAULT.slice();TRK_SHOW_LOW=true;renderTracker();}
   else trkSetStatusFilter(v);
 }
 function trkSetOfficeFilter(s){TRK_FOFFICE=s;renderTracker();}
@@ -616,10 +618,14 @@ function trkRenderList(bodyOnly){
     var n=cnt(function(p){return p.status===st;});
     return (st==="Other"&&!n)?null:{value:st,label:st==="Other"?"Others":st,count:n};
   }).filter(Boolean);
+  /* waiting (low-priority) projects can be shown or hidden on top of the statuses */
+  var isLowOpen=function(p){return p.lowPriority&&!trkIsDone(p);};
+  stOpts.push({value:"__low",label:"Low priority",count:cnt(isLowOpen),sep:true});
   var stLabel=trkStaleOn()?"Status: any":trkDefaultStatusesOn()?"Status: All but Lost":trkAllStatusesOn()?"All statuses":
     TRK_FSTATUS.length<=2?TRK_FSTATUS.map(function(x){return x==="Other"?"Others":x;}).join(" + "):TRK_FSTATUS.length+" statuses";
-  var statusMenu=uiDropdown({key:"trk-status",multi:true,onPick:"trkPickStatus",cur:trkStaleOn()?[]:TRK_FSTATUS,opts:stOpts,
-    label:stLabel,count:trkStaleOn()?undefined:cnt(function(p){return TRK_FSTATUS.indexOf(p.status)>-1;}),
+  if(!TRK_SHOW_LOW&&!trkStaleOn())stLabel+=" · no Low";
+  var statusMenu=uiDropdown({key:"trk-status",multi:true,onPick:"trkPickStatus",cur:trkStaleOn()?[]:TRK_FSTATUS.concat(TRK_SHOW_LOW?["__low"]:[]),opts:stOpts,
+    label:stLabel,count:trkStaleOn()?undefined:cnt(function(p){return TRK_FSTATUS.indexOf(p.status)>-1&&(TRK_SHOW_LOW||!isLowOpen(p));}),
     foot:[{value:"__all",label:"Show all"},{value:"__open",label:"Hide Lost"}]});
   var fuBtn=(staleN||trkStaleOn())?"<button class='trk-fu-toggle"+(trkStaleOn()?" active":"")+"' onclick='trkSetStatusFilter(\"stale\")' title='Open projects due a follow-up'>&#9200;<span class='trk-fu-txt'> Needs follow-up</span> <span class='po-dd-n'>"+staleN+"</span></button>":"";
 
@@ -647,6 +653,7 @@ function trkRenderList(bodyOnly){
   var q=trkSearchQuery(TRK_Q),hits={};
   var list=TRK_PROJECTS.filter(function(p){
     if(!(trkStaleOn()?trkFollowDue(p,act):(q&&trkDefaultStatusesOn())||TRK_FSTATUS.indexOf(p.status)>-1)||(TRK_FOFFICE&&p.office!==TRK_FOFFICE)||(TRK_FSOL&&p.solution!==TRK_FSOL))return false;
+    if(!TRK_SHOW_LOW&&p.lowPriority&&!trkIsDone(p))return false;
     if(!q)return true;
     var h=trkSearchProject(p,q);
     if(h)hits[p._id]=h;
@@ -759,7 +766,7 @@ function trkRenderList(bodyOnly){
     "</div>";
   /* The menus and List/Calendar fold away behind a Filters button
      (dot = something is narrowing the list). */
-  var narrowed=(!trkStaleOn()&&!trkDefaultStatusesOn())||TRK_FOFFICE||TRK_FSOL||TRK_VIEW==="cal";
+  var narrowed=(!trkStaleOn()&&(!trkDefaultStatusesOn()||!TRK_SHOW_LOW))||TRK_FOFFICE||TRK_FSOL||TRK_VIEW==="cal";
   var filtBtn="<button class='trk-filt-btn"+(narrowed?" on":"")+"' onclick='trkToggleFilters()' aria-expanded='"+TRK_FILT_OPEN+"'>"+
     "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><path d='M4 6h16M7 12h10M10 18h4'/></svg>Filters</button>";
   var addBtn="<button class='btn-add trk-add' onclick='trkOpenAdd()'>"+

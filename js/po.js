@@ -185,7 +185,7 @@ function uiDropdown(cfg){
     "</button>"+
     "<div class='po-dd-menu' role='listbox'"+(multi?" aria-multiselectable='true'":"")+">"+cfg.opts.map(function(o){
       var on=isOn(o.value);
-      return "<button class='po-dd-item"+(on?" active":"")+"' role='option' aria-selected='"+on+"' "+pick(o.value)+">"+
+      return "<button class='po-dd-item"+(on?" active":"")+(o.sep?" po-dd-sep":"")+"' role='option' aria-selected='"+on+"' "+pick(o.value)+">"+
         "<span class='po-dd-check'>"+(on?"&#10003;":"")+"</span>"+dot(o)+"<span class='po-dd-lbl'>"+trkEsc(o.label)+"</span>"+(o.count!==undefined?"<span class='po-dd-n'>"+o.count+"</span>":"")+"</button>";
     }).join("")+
     ((cfg.foot&&cfg.foot.length)?"<div class='po-dd-foot'>"+cfg.foot.map(function(f){return "<button "+pick(f.value,true)+">"+trkEsc(f.label)+"</button>";}).join("")+"</div>":"")+
