@@ -1,7 +1,7 @@
 {
-  "name": "CUSTOM Italy Dashboard",
-  "short_name": "CUSTOM",
-  "description": "Customers, projects, purchase orders and pricing for CUSTOM Italy.",
+  "name": "Hanindo Dashboard",
+  "short_name": "Hanindo",
+  "description": "Customers, projects, purchase orders and pricing for Hanindo.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

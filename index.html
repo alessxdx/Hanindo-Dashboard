@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>CUSTOM Printer Dashboard</title>
+<title>Hanindo Dashboard</title>
 <!-- Installable as a phone/desktop app: Add to Home Screen opens it full screen -->
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="CUSTOM">
+<meta name="apple-mobile-web-app-title" content="Hanindo">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION="2026-11-02.16";
+var APP_VERSION="2026-11-02.18";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -37,8 +37,8 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
   <!-- ===== SIDEBAR ===== -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-head">
-      <div class="sidebar-logo">C</div>
-      <div class="sidebar-title">CUSTOM Italy</div>
+      <img class="sidebar-logo" src="icons/hanindo-logo.png" alt="Hanindo logo">
+      <div class="sidebar-title">Hanindo</div>
       <button class="collapse-btn" onclick="toggleSidebar()" title="Collapse sidebar" aria-label="Toggle sidebar">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
@@ -137,7 +137,6 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
           <button class="theme-swatch" data-theme-choice="light" onclick="setThemeChoice('light')" title="Light" aria-label="Light theme"></button>
           <button class="theme-swatch" data-theme-choice="dark" onclick="setThemeChoice('dark')" title="Dark" aria-label="Dark theme"></button>
         </div>
-        <img class="logo-img" id="brand-logo" alt="CUSTOM logo">
       </div>
     </header>
 

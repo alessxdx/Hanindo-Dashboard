@@ -114,10 +114,7 @@ body{
   border-bottom:1px solid var(--divider);
 }
 .sidebar-logo{
-  width:28px;height:28px;border-radius:6px;
-  background:var(--accent);
-  color:#fff;display:flex;align-items:center;justify-content:center;
-  font-weight:700;font-size:12px;letter-spacing:.04em;
+  width:32px;height:32px;display:block;object-fit:contain;
   flex-shrink:0;
 }
 .sidebar-title{
@@ -204,8 +201,6 @@ body{
   transition:background .12s,color .12s;
 }
 .icon-btn:hover{background:var(--bg-hover);color:var(--text-strong)}
-.logo-img{height:36px;width:auto;object-fit:contain;opacity:.95;margin-left:8px}
-:root[data-theme="dark"] .logo-img{filter:brightness(0) invert(1);opacity:.85}
 
 .content-wrap{padding:20px 36px 60px;flex:1}
 
@@ -689,7 +684,6 @@ details.others-sec:not([open]) > summary{border-bottom:none}
   .topbar h1{font-size:20px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .topbar-actions{flex-shrink:0}
   .form-grid{grid-template-columns:1fr}
-  .logo-img{height:28px}
 
   /* Bigger tap targets */
   .nav-item{padding:10px 12px;font-size:14px}

@@ -499,14 +499,6 @@ async function finishInlineEdit(){
 }
 
 /* ============================================================
-   Load brand logo from base64 into top-right
-   ============================================================ */
-(function setBrandLogo(){
-  var img = document.getElementById("brand-logo");
-  if(img && window.__CUSTOM_LOGO__) img.src = window.__CUSTOM_LOGO__;
-})();
-
-/* ============================================================
    URL ROUTING — #tab or #tab/<selection>
    Every view gets its own address (e.g. #tracker, #tracker/<project id>,
    #groups/<group name>) so the browser back/forward buttons walk
