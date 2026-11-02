@@ -73,42 +73,6 @@
   --badge-cash-bg: #431a07; --badge-cash-fg: #f0a068;
   --scroll-thumb: #404040;
 }
-:root[data-theme="navy"]{
-  --bg: #0d1b2e;
-  --bg-sidebar: #112240;
-  --bg-hover: #1b2f4d;
-  --bg-soft: #16243b;
-  --bg-input: #16243b;
-  --bg-modal: #142238;
-  --bg-stat: #112240;
-  --bg-row-stripe: #10203a;
-  --bg-accent-soft: #1c3350;
-  --text: #dbe4f0;
-  --text-muted: #b8c5d9;
-  --text-faint: #94a4bb;
-  --text-strong: #ffffff;
-  --border: #223350;
-  --border-strong: #2e4568;
-  --divider: #1c2c47;
-  --accent: #4da3ff;
-  --accent-hover: #6cb5ff;
-  --accent-soft: #16294a;
-  --accent-text: #7db4ff;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
-  --shadow-md: 0 2px 8px rgba(0,0,0,.4);
-  --shadow-lg: 0 6px 24px rgba(0,0,0,.5);
-  --badge-po-bg: #143a30; --badge-po-fg: #6ec9a8;
-  --badge-qt-bg: #1a2b4a; --badge-qt-fg: #8fb3ec;
-  --badge-ls-bg: #3d1f1f; --badge-ls-fg: #e88b8b;
-  --badge-term-bg: #1b2f4d; --badge-term-fg: #c9d6e8;
-  --badge-w-bg: #1b2f4d; --badge-w-fg: #c9d6e8;
-  --badge-special-bg: #3a2e10; --badge-special-fg: #e6c769;
-  --badge-group-bg: #23345a; --badge-group-fg: #7db4ff; --badge-group-bd: #345080;
-  --badge-order-bg: #2a2050; --badge-order-fg: #b7a4f7;
-  --badge-inv-bg: #451527; --badge-inv-fg: #f0a3c8;
-  --badge-cash-bg: #431a07; --badge-cash-fg: #f0a068;
-  --scroll-thumb: #2e4568;
-}
 
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -812,10 +776,6 @@ details.others-sec:not([open]) > summary{border-bottom:none}
 }
 
 /* Custom mode-only adjustments */
-.theme-icon-sun,.theme-icon-moon{display:none}
-:root[data-theme="light"] .theme-icon-moon{display:block}
-:root[data-theme="dark"] .theme-icon-sun{display:block}
-:root[data-theme="navy"] .theme-icon-moon{display:block}
 
 /* ==========  THEME SWITCHER (topbar)  ========== */
 .theme-switcher{
@@ -832,7 +792,6 @@ details.others-sec:not([open]) > summary{border-bottom:none}
 .theme-swatch:hover{transform:scale(1.12)}
 .theme-swatch.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .theme-swatch[data-theme-choice="light"]{background:#ffffff}
-.theme-swatch[data-theme-choice="navy"]{background:#0d1b2e}
 .theme-swatch[data-theme-choice="dark"]{background:#191919}
 
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -1397,7 +1356,7 @@ details.others-sec:not([open]) > summary{border-bottom:none}
   --cal-hot-bg:#fee2e2;--cal-hot-fg:#991b1b;--cal-hot-dot:#dc2626;
   display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start;
 }
-:root[data-theme="dark"] .trk-cal,:root[data-theme="navy"] .trk-cal{
+:root[data-theme="dark"] .trk-cal{
   --cal-fresh-bg:#14352a;--cal-fresh-fg:#7ee2b0;
   --cal-warm-bg:#3d2f10;--cal-warm-fg:#fcd27a;
   --cal-hot-bg:#42191b;--cal-hot-fg:#fca5a5;
@@ -1772,7 +1731,7 @@ details.others-sec:not([open]) > summary{border-bottom:none}
    PRICING CALCULATOR (js/pricing.js)
    ============================================================ */
 .pr-wrap{--pr-good:#0f6b58;--pr-bad:#b91c1c;--pr-mid:#92400e}
-:root[data-theme="dark"] .pr-wrap,:root[data-theme="navy"] .pr-wrap{--pr-good:#6ec9a8;--pr-bad:#f19c9c;--pr-mid:#f2c46d}
+:root[data-theme="dark"] .pr-wrap{--pr-good:#6ec9a8;--pr-bad:#f19c9c;--pr-mid:#f2c46d}
 .pr-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px 18px;box-shadow:var(--shadow-sm);min-width:0}
 .pr-banner{font-size:12.5px;color:var(--badge-special-fg);background:var(--badge-special-bg);border-radius:8px;padding:10px 14px;margin-bottom:14px;line-height:1.5}
 .pr-calc{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:14px;align-items:start;margin-bottom:14px}

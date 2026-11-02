@@ -55,7 +55,7 @@ function navTo(tab, sel){
 }
 
 /* ===== THEME ===== */
-var THEME_ORDER = ["light","navy","dark"];
+/* white or black only (the navy theme and the sidebar toggle were retired) */
 function applyTheme(t){
   document.documentElement.setAttribute("data-theme", t);
   document.body.setAttribute("data-theme", t);
@@ -65,11 +65,6 @@ function applyTheme(t){
   });
   if(typeof applyAccent==="function")applyAccent();
 }
-function toggleTheme(){
-  var cur = document.documentElement.getAttribute("data-theme") || "light";
-  var idx = THEME_ORDER.indexOf(cur);
-  applyTheme(THEME_ORDER[(idx + 1) % THEME_ORDER.length]);
-}
 function setThemeChoice(t){ applyTheme(t); }
 
 /* ===== APP COLOUR =====
@@ -77,7 +72,7 @@ function setThemeChoice(t){ applyTheme(t); }
    from three palettes (saved per browser, like the theme). The --accent
    tokens are derived from the swatch for the current background: in
    light it is darkened just enough for white button text to stay
-   readable (pastels keep their softness in the tints), on dark/navy it
+   readable (pastels keep their softness in the tints), on dark it
    is lightened until it stands out. "Original" = the stylesheet teal. */
 var ACCENT_SETS = [
   {name:"Classic", colors:[["Original","#0e7c86"],["Viridian","#2a6457"],["Harbor","#3a6585"],["Midnight","#283a6b"],["Terracotta","#b85a37"],["Aubergine","#5a3264"],["Stone","#7d6b55"]]},
@@ -106,7 +101,7 @@ function accentTokens(hex,theme){
       "--accent-text":accentHex(accentPush(acc,K,W,4.8)),
       "--accent-soft":accentHex(accentMix(base,W,0.86)),"--bg-accent-soft":accentHex(accentMix(base,W,0.82))};
   }
-  var bg=theme==="navy"?accentRgb("#0d1b2e"):accentRgb("#191919");
+  var bg=accentRgb("#191919");
   var lit=accentPush(base,W,bg,5);
   return {"--accent":accentHex(lit),"--accent-hover":accentHex(accentMix(lit,W,0.18)),
     "--accent-text":accentHex(accentMix(lit,W,0.18)),
@@ -149,7 +144,7 @@ function openAccentPicker(){
   // Always start light per user preference; if user toggled this session, respect it
   var saved = null;
   try { saved = localStorage.getItem("cpd_theme"); } catch(e){}
-  applyTheme(saved || "light");
+  applyTheme(saved === "dark" ? "dark" : "light");
 })();
 applyAccent();
 

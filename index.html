@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION="2026-11-02.3";
+var APP_VERSION="2026-11-02.4";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -120,13 +120,6 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
         </span>
         <span class="nav-label sidebar-foot-label">App colour</span>
       </button>
-      <button class="nav-item" onclick="toggleTheme()" title="Toggle theme">
-        <span class="nav-icon">
-          <svg class="theme-icon-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          <svg class="theme-icon-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>
-        </span>
-        <span class="nav-label sidebar-foot-label">Toggle theme</span>
-      </button>
     </div>
   </aside>
 
@@ -142,7 +135,6 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="topbar-actions">
         <div class="theme-switcher" id="theme-switcher" role="group" aria-label="Background theme">
           <button class="theme-swatch" data-theme-choice="light" onclick="setThemeChoice('light')" title="Light" aria-label="Light theme"></button>
-          <button class="theme-swatch" data-theme-choice="navy" onclick="setThemeChoice('navy')" title="Navy" aria-label="Navy theme"></button>
           <button class="theme-swatch" data-theme-choice="dark" onclick="setThemeChoice('dark')" title="Dark" aria-label="Dark theme"></button>
         </div>
         <img class="logo-img" id="brand-logo" alt="CUSTOM logo">
