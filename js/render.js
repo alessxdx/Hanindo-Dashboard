@@ -915,10 +915,10 @@ function renderOthers(){
     return m?`<div class="nt-day"><b>${m[1]}</b><span>${m[2]}</span><i>${m[3]}</i></div>`:`<div class="nt-day nt-day-txt">${esc(d||"")}</div>`;
   };
   const update=x=>{const o=x.o,i=x.i;return `<div class="nt-upd">${dateBlock(o.date)}
-    <div class="nt-body"><div class="nt-text">${esc(o.desc)}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
+    <div class="nt-body"><div class="nt-text">${fmtInline(esc(o.desc))}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
     <div class="nt-acts">${btn("edit","Edit",`editOther(${i})`)}${btn("del","Delete",`deleteOtherQuick(${i})`)}</div></div>`;};
   const record=x=>{const o=x.o,i=x.i;return `<div class="nt-rec">
-    <div class="nt-body"><div class="nt-title">${esc(o.desc)}${o.date?`<span class="nt-when">${esc(o.date)}</span>`:""}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
+    <div class="nt-body"><div class="nt-title">${fmtInline(esc(o.desc))}${o.date?`<span class="nt-when">${esc(o.date)}</span>`:""}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
     <div class="nt-amt">${esc(o.value)}</div>
     <div class="nt-acts">${btn("edit","Edit",`editOther(${i})`)}${btn("trash","Remove",`deleteOther(${i})`)}</div></div>`;};
   const term=x=>{const o=x.o,i=x.i,parts=String(o.desc).split(/\s+[—–-]\s+/);return `<div class="nt-term">
@@ -929,8 +929,8 @@ function renderOthers(){
     <div class="nt-card nt-compose">
       <textarea id="others-quick" rows="6" placeholder="Write an update… start a line with - or 1. for a list" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();postOtherQuick();}else listKeys(event)" oninput="listInput(event)"></textarea>
       <div class="nt-compose-foot">
-        <div class="nt-tools"><button type="button" class="nt-tool" title="Bulleted list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','•')">• List</button><button type="button" class="nt-tool" title="Numbered list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','1.')">1. List</button>
-        <span class="nt-hint">Enter new line · Tab indent · Ctrl+Enter to post</span></div>
+        <div class="nt-tools">${FMT_TOOLS('others-quick')}<button type="button" class="nt-tool" title="Bulleted list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','•')">• List</button><button type="button" class="nt-tool" title="Numbered list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','1.')">1. List</button>
+        <span class="nt-hint">Enter new line · Tab indent · Ctrl+B/I/U · Ctrl+Enter to post</span></div>
         <button class="btn-save" onclick="postOtherQuick()">Post update</button></div>
     </div>
     <div class="nt-card">${head("Updates",updates.length,"newest first")}
@@ -963,6 +963,8 @@ function editText(ta,from,to,text){
 function listKeys(e){
   const ta=e.target,v=ta.value,s=ta.selectionStart,end=ta.selectionEnd;
   const ls=v.lastIndexOf("\n",s-1)+1;
+  const fk=(e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&FMT_KEYS[e.key.toLowerCase()];
+  if(fk){e.preventDefault();toggleWrap(ta,fk);return;}
   if(e.key==="Enter"&&!e.shiftKey&&s===end){
     const m=LIST_RE.exec(v.slice(ls,(v.indexOf("\n",s)+1||v.length+1)-1));
     if(!m)return;
@@ -981,6 +983,33 @@ function listKeys(e){
     else ta.setSelectionRange(ls,ls+out.length);
   }
 }
+/* Bold / italic / underline are stored as **x**, *x* and __x__ in the
+   plain text (Ctrl+B / I / U or the B I U buttons), and fmtInline shows
+   them formatted. Toggling again on already-wrapped text takes the marks off. */
+const FMT_KEYS={b:"**",i:"*",u:"__"};
+function toggleWrap(ta,mk){
+  if(typeof ta==="string")ta=document.getElementById(ta);
+  if(!ta)return;
+  const v=ta.value,s=ta.selectionStart,end=ta.selectionEnd,n=mk.length;
+  // a lone "*" must not count half of a "**" bold mark
+  const has=(a,b)=>v.slice(a,b)===mk&&(mk!=="*"||(v[a-1]!=="*"&&v[b]!=="*"));
+  if(s>=n&&has(s-n,s)&&has(end,end+n)){
+    editText(ta,s-n,end+n,v.slice(s,end));ta.setSelectionRange(s-n,end-n);return;
+  }
+  const sel=v.slice(s,end);
+  if(sel.length>2*n&&sel.startsWith(mk)&&sel.endsWith(mk)){
+    editText(ta,s,end,sel.slice(n,-n));ta.setSelectionRange(s,end-2*n);return;
+  }
+  editText(ta,s,end,mk+sel+mk);ta.setSelectionRange(s+n,end+n);
+}
+/* Takes already-escaped text and turns the marks into tags */
+function fmtInline(h){
+  return String(h)
+    .replace(/\*\*(\S(?:[^\n]*?\S)?)\*\*/g,"<strong>$1</strong>")
+    .replace(/__(\S(?:[^\n]*?\S)?)__/g,"<u>$1</u>")
+    .replace(/\*(\S(?:[^*\n]*?\S)?)\*/g,"<em>$1</em>");
+}
+const FMT_TOOLS=id=>`<span class="fmt-tools"><button type="button" class="nt-tool fmt-b" title="Bold (Ctrl+B)" onmousedown="event.preventDefault()" onclick="toggleWrap('${id}','**')">B</button><button type="button" class="nt-tool fmt-i" title="Italic (Ctrl+I)" onmousedown="event.preventDefault()" onclick="toggleWrap('${id}','*')">I</button><button type="button" class="nt-tool fmt-u" title="Underline (Ctrl+U)" onmousedown="event.preventDefault()" onclick="toggleWrap('${id}','__')">U</button></span>`;
 /* Runs on input rather than keydown so phone keyboards (no key names) get it too */
 function listInput(e){
   const ta=e.target,s=ta.selectionStart;

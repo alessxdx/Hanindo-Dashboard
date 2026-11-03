@@ -52,7 +52,7 @@ function trkLines(s){
     var ind=/^[ \t]*/.exec(l)[0],lv=Math.ceil(ind.replace(/\t/g,"    ").length/4),t=l.slice(ind.length);
     // "a." / "b)" sub-points typed without an indent still sit under the numbered point above
     if(!lv&&/^[a-z][.)]\s/.test(t))lv=1;
-    return "<div class='txt-ln'"+(lv?" style='padding-left:"+(lv*1.6)+"em'":"")+">"+(t?trkEsc(t):"&nbsp;")+"</div>";
+    return "<div class='txt-ln'"+(lv?" style='padding-left:"+(lv*1.6)+"em'":"")+">"+(t?fmtInline(trkEsc(t)):"&nbsp;")+"</div>";
   }).join("");
 }
 var TRK_MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
