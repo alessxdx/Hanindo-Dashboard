@@ -48,7 +48,7 @@ function trkEsc(s){return String(s===null||s===undefined?"":s).replace(/&/g,"&am
 /* Multi-line text with Tab indents kept: every 4 leading spaces (or a tab)
    shifts the line one step right, and wrapped text stays under it */
 function trkLines(s){
-  return String(s||"").split("\n").map(function(l){
+  return fmtSpan(s).split("\n").map(function(l){
     var ind=/^[ \t]*/.exec(l)[0],lv=Math.ceil(ind.replace(/\t/g,"    ").length/4),t=l.slice(ind.length);
     // "a." / "b)" sub-points typed without an indent still sit under the numbered point above
     if(!lv&&/^[a-z][.)]\s/.test(t))lv=1;

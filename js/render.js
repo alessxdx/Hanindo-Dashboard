@@ -915,7 +915,7 @@ function renderOthers(){
     return m?`<div class="nt-day"><b>${m[1]}</b><span>${m[2]}</span><i>${m[3]}</i></div>`:`<div class="nt-day nt-day-txt">${esc(d||"")}</div>`;
   };
   const update=x=>{const o=x.o,i=x.i;return `<div class="nt-upd">${dateBlock(o.date)}
-    <div class="nt-body"><div class="nt-text">${fmtInline(esc(o.desc))}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
+    <div class="nt-body"><div class="nt-text">${fmtInline(esc(fmtSpan(o.desc)))}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
     <div class="nt-acts">${btn("edit","Edit",`editOther(${i})`)}${btn("del","Delete",`deleteOtherQuick(${i})`)}</div></div>`;};
   const record=x=>{const o=x.o,i=x.i;return `<div class="nt-rec">
     <div class="nt-body"><div class="nt-title">${fmtInline(esc(o.desc))}${o.date?`<span class="nt-when">${esc(o.date)}</span>`:""}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
@@ -1020,9 +1020,16 @@ function toggleWrap(ta,mk){
 /* Takes already-escaped text and turns the marks into tags */
 function fmtInline(h){
   return String(h)
-    .replace(/\*\*(\S(?:[^\n]*?\S)?)\*\*/g,"<strong>$1</strong>")
-    .replace(/__(\S(?:[^\n]*?\S)?)__/g,"<u>$1</u>")
-    .replace(/\*(\S(?:[^*\n]*?\S)?)\*/g,"<em>$1</em>");
+    .replace(/\*\*([^\s*](?:[^\n]*?[^\s*])??)\*\*/g,"<strong>$1</strong>")
+    .replace(/__([^\s_](?:[^\n]*?[^\s_])??)__/g,"<u>$1</u>")
+    .replace(/\*([^\s*](?:[^*\n]*?[^\s*])??)\*/g,"<em>$1</em>");
+}
+/* Marks only render inside one line, so a **...** or __...__ pair that
+   opens on one line and closes on a later one is split into a pair per
+   line (on the raw text, before escaping) */
+function fmtSpan(s){
+  return String(s||"").replace(/(\*\*|__)(?=\S)([^]*?)\1/g,(m,mk,body)=>!body.includes("\n")?m:
+    body.split("\n").map(l=>{const x=/^(\s*)(.*?)(\s*)$/.exec(l);return x[2]?x[1]+mk+x[2]+mk+x[3]:l;}).join("\n"));
 }
 /* The box itself stays plain text, so while a box with B I U buttons is
    being edited and has marks in it, a preview under it shows the result */
