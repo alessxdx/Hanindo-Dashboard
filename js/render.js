@@ -990,7 +990,22 @@ const FMT_KEYS={b:"**",i:"*",u:"__"};
 function toggleWrap(ta,mk){
   if(typeof ta==="string")ta=document.getElementById(ta);
   if(!ta)return;
-  const v=ta.value,s=ta.selectionStart,end=ta.selectionEnd,n=mk.length;
+  const v=ta.value,n=mk.length;
+  let s=ta.selectionStart,end=ta.selectionEnd;
+  // a selection that swept up the line break or spaces around it still marks just the words
+  while(s<end&&/\s/.test(v[s]))s++;
+  while(end>s&&/\s/.test(v[end-1]))end--;
+  // marks only work inside one line, so a multi-line selection marks each line on its own
+  if(v.slice(s,end).includes("\n")){
+    const parts=v.slice(s,end).split("\n").map(l=>{
+      const m=/^(\s*(?:(?:•|[-*]|\d+[.)]|[a-z][.)]|[ivx]+[.)])\s+)?)(.*?)(\s*)$/i.exec(l);
+      return {pre:m[1],t:m[2],post:m[3]};
+    });
+    const on=x=>x.t.length>2*n&&x.t.startsWith(mk)&&x.t.endsWith(mk);
+    const undo=parts.every(x=>!x.t||on(x));
+    const out=parts.map(x=>x.pre+(!x.t?"":undo?x.t.slice(n,-n):mk+x.t+mk)+x.post).join("\n");
+    editText(ta,s,end,out);ta.setSelectionRange(s,s+out.length);return;
+  }
   // a lone "*" must not count half of a "**" bold mark
   const has=(a,b)=>v.slice(a,b)===mk&&(mk!=="*"||(v[a-1]!=="*"&&v[b]!=="*"));
   if(s>=n&&has(s-n,s)&&has(end,end+n)){
@@ -1009,6 +1024,21 @@ function fmtInline(h){
     .replace(/__(\S(?:[^\n]*?\S)?)__/g,"<u>$1</u>")
     .replace(/\*(\S(?:[^*\n]*?\S)?)\*/g,"<em>$1</em>");
 }
+/* The box itself stays plain text, so while a box with B I U buttons is
+   being edited and has marks in it, a preview under it shows the result */
+function fmtPreview(ta){
+  if(!ta||ta.tagName!=="TEXTAREA")return;
+  const box=ta.closest(".form-group,.nt-compose");
+  if(!box||!box.querySelector(".fmt-tools"))return;
+  let pv=box.querySelector(".fmt-preview");
+  if(!pv){pv=document.createElement("div");pv.className="fmt-preview";ta.after(pv);}
+  const marked=document.activeElement===ta&&/\*|__/.test(ta.value);
+  pv.style.display=marked?"":"none";
+  if(marked)pv.innerHTML="<div class='fmt-preview-h'>Preview</div>"+trkLines(ta.value);
+}
+document.addEventListener("input",e=>fmtPreview(e.target));
+document.addEventListener("focusin",e=>fmtPreview(e.target));
+document.addEventListener("focusout",e=>setTimeout(()=>fmtPreview(e.target)));
 const FMT_TOOLS=id=>`<span class="fmt-tools"><button type="button" class="nt-tool fmt-b" title="Bold (Ctrl+B)" onmousedown="event.preventDefault()" onclick="toggleWrap('${id}','**')">B</button><button type="button" class="nt-tool fmt-i" title="Italic (Ctrl+I)" onmousedown="event.preventDefault()" onclick="toggleWrap('${id}','*')">I</button><button type="button" class="nt-tool fmt-u" title="Underline (Ctrl+U)" onmousedown="event.preventDefault()" onclick="toggleWrap('${id}','__')">U</button></span>`;
 /* Runs on input rather than keydown so phone keyboards (no key names) get it too */
 function listInput(e){
