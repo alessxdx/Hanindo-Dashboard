@@ -938,6 +938,7 @@ function renderOthers(){
     ${records.length?`<div class="nt-card">${head("Records",records.length,"amounts and breakdowns")}${records.map(record).join("")}</div>`:""}
     ${terms.length?`<details class="nt-card nt-terms"><summary>${head("Shipping terms",terms.length,"Incoterms reference")}</summary><div class="nt-term-grid">${terms.map(term).join("")}</div></details>`:""}
   </div>`;
+  if(typeof richify==="function")richify(document.getElementById("others-quick"));
 }
 async function postOtherQuick(){
   const el=document.getElementById("others-quick"),text=el.value.trim();
@@ -984,12 +985,14 @@ function listKeys(e){
   }
 }
 /* Bold / italic / underline are stored as **x**, *x* and __x__ in the
-   plain text (Ctrl+B / I / U or the B I U buttons), and fmtInline shows
-   them formatted. Toggling again on already-wrapped text takes the marks off. */
+   plain text, and fmtInline shows them formatted. The boxes that have
+   B I U buttons are rich editors (richtext.js) that write those marks;
+   toggleWrap only adds them by hand if a box is still a plain textarea. */
 const FMT_KEYS={b:"**",i:"*",u:"__"};
 function toggleWrap(ta,mk){
   if(typeof ta==="string")ta=document.getElementById(ta);
   if(!ta)return;
+  if(ta._rich){richFormat(ta._rich,mk);return;}
   const v=ta.value,n=mk.length;
   let s=ta.selectionStart,end=ta.selectionEnd;
   // a selection that swept up the line break or spaces around it still marks just the words
@@ -1031,21 +1034,6 @@ function fmtSpan(s){
   return String(s||"").replace(/(\*\*|__)(?=\S)([^]*?)\1/g,(m,mk,body)=>!body.includes("\n")?m:
     body.split("\n").map(l=>{const x=/^(\s*)(.*?)(\s*)$/.exec(l);return x[2]?x[1]+mk+x[2]+mk+x[3]:l;}).join("\n"));
 }
-/* The box itself stays plain text, so while a box with B I U buttons is
-   being edited and has marks in it, a preview under it shows the result */
-function fmtPreview(ta){
-  if(!ta||ta.tagName!=="TEXTAREA")return;
-  const box=ta.closest(".form-group,.nt-compose");
-  if(!box||!box.querySelector(".fmt-tools"))return;
-  let pv=box.querySelector(".fmt-preview");
-  if(!pv){pv=document.createElement("div");pv.className="fmt-preview";ta.after(pv);}
-  const marked=document.activeElement===ta&&/\*|__/.test(ta.value);
-  pv.style.display=marked?"":"none";
-  if(marked)pv.innerHTML="<div class='fmt-preview-h'>Preview</div>"+trkLines(ta.value);
-}
-document.addEventListener("input",e=>fmtPreview(e.target));
-document.addEventListener("focusin",e=>fmtPreview(e.target));
-document.addEventListener("focusout",e=>setTimeout(()=>fmtPreview(e.target)));
 const FMT_TOOLS=id=>`<span class="fmt-tools"><button type="button" class="nt-tool fmt-b" title="Bold (Ctrl+B)" onmousedown="event.preventDefault()" onclick="toggleWrap('${id}','**')">B</button><button type="button" class="nt-tool fmt-i" title="Italic (Ctrl+I)" onmousedown="event.preventDefault()" onclick="toggleWrap('${id}','*')">I</button><button type="button" class="nt-tool fmt-u" title="Underline (Ctrl+U)" onmousedown="event.preventDefault()" onclick="toggleWrap('${id}','__')">U</button></span>`;
 /* Runs on input rather than keydown so phone keyboards (no key names) get it too */
 function listInput(e){
@@ -1058,6 +1046,7 @@ function listInput(e){
    they already are one */
 function toggleList(id,kind){
   const ta=document.getElementById(id);if(!ta)return;
+  if(ta._rich){richToggleList(ta._rich,kind);return;}
   const v=ta.value,s=ta.selectionStart,end=ta.selectionEnd;
   const ls=v.lastIndexOf("\n",s-1)+1,le=(v.indexOf("\n",end)+1||v.length+1)-1;
   const lines=v.slice(ls,le).split("\n"),same=m=>m&&(m[2]==="•")===(kind==="•");
