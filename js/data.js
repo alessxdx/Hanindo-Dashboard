@@ -31,6 +31,7 @@ let OTHERS=[
   {date:"",desc:"EXW \u2014 Ex Works",value:"Shipping term",sub:"Seller makes goods available at their premises. Buyer bears all transport costs, export & import clearance. Minimum obligation for seller."},
   {date:"",desc:"CIF \u2014 Cost, Insurance & Freight",value:"Shipping term",sub:"Seller pays freight & insurance to destination port. Risk transfers to buyer once goods are loaded on vessel."},
   {date:"",desc:"FOB \u2014 Free On Board",value:"Shipping term",sub:"Seller delivers on board vessel at origin port. Risk & cost transfer to buyer from that point."},
+  {date:"",desc:"FOT — Free On Truck",value:"Shipping term",sub:"Inland logistics term. Seller is responsible for the goods, including the cost of loading them onto the buyer's designated truck, until they are safely loaded."},
   {date:"",desc:"CIP \u2014 Carriage & Insurance Paid To",value:"Shipping term",sub:"Seller pays freight & insurance to named destination. Risk transfers when goods handed to first carrier."},
   {date:"",desc:"CPT \u2014 Carriage Paid To",value:"Shipping term",sub:"Seller pays freight only (no insurance) to named destination. Risk transfers at first carrier handover."},
 ];

@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-03.4";
+var APP_VERSION = "2026-11-06.1";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -189,7 +189,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="form-group"><label>Unit price *</label><input id="f-price" type="number" placeholder="e.g. 1080"></div>
       <div class="form-group"><label>Currency *</label><select id="f-currency"><option value="USD">USD</option><option value="SGD">SGD</option><option value="RMB">RMB</option><option value="IDR">IDR</option><option value="EUR">EUR</option></select></div>
       <div class="form-group"><label>Buying price (USD)</label><input id="f-bp" type="number" placeholder="e.g. 287.59"><span class="form-hint">For margin calculation</span></div>
-      <div class="form-group"><label>Shipping terms</label><select id="f-terms"><option value="">None</option><option value="DDP">DDP</option><option value="DAP">DAP</option><option value="EXW">EXW</option><option value="CIF">CIF</option><option value="FOB">FOB</option><option value="CIP">CIP</option><option value="CPT">CPT</option></select></div>
+      <div class="form-group"><label>Shipping terms</label><select id="f-terms"><option value="">None</option><option value="DDP">DDP</option><option value="DAP">DAP</option><option value="EXW">EXW</option><option value="CIF">CIF</option><option value="FOB">FOB</option><option value="FOT">FOT</option><option value="CIP">CIP</option><option value="CPT">CPT</option></select></div>
       <div class="form-group"><label>Warranty</label><select id="f-warranty"><option value="">Unknown / N/A</option><option value="1Y">1 Year</option><option value="2Y">2 Years</option><option value="3Y">3 Years</option><option value="5Y">5 Years</option></select></div>
       <div class="form-group form-full"><label>Notes</label><textarea id="f-notes" placeholder="One note per line."></textarea><span class="form-hint">Press Enter for multiple notes</span></div>
       <div class="form-group form-full"><label>PDF documents <span style="font-size:10px;color:#aaa;font-weight:400">(quotation, PO, tax invoice… tag each one)</span></label>
@@ -260,7 +260,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="form-group"><label>Unit price *</label><input id="sp-price" type="number" placeholder="e.g. 98"></div>
       <div class="form-group"><label>Currency</label><select id="sp-currency"><option value="USD">USD</option><option value="SGD">SGD</option><option value="IDR">IDR</option><option value="EUR">EUR</option></select></div>
       <div class="form-group form-full"><label>Customer ref</label><input id="sp-customer" placeholder="e.g. Aboitiz" list="sp-customer-list"><datalist id="sp-customer-list"></datalist></div>
-      <div class="form-group"><label>Shipping terms</label><select id="sp-terms"><option value="">None</option><option value="DDP">DDP</option><option value="DAP">DAP</option><option value="EXW">EXW</option><option value="CIF">CIF</option><option value="FOB">FOB</option></select></div>
+      <div class="form-group"><label>Shipping terms</label><select id="sp-terms"><option value="">None</option><option value="DDP">DDP</option><option value="DAP">DAP</option><option value="EXW">EXW</option><option value="CIF">CIF</option><option value="FOB">FOB</option><option value="FOT">FOT</option></select></div>
       <div class="form-group form-full"><label>Note</label><input id="sp-note" placeholder="e.g. Bohol & Laguindingan project"></div>
     </div>
     <div class="modal-actions">
@@ -294,7 +294,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="form-group form-full"><label>Project name *</label><input id="p-project" placeholder="e.g. Bohol Airport"></div>
       <div class="form-group form-full"><label>Project group <span style="font-size:10px;color:#aaa;font-weight:400">(optional — links related entries)</span></label><input id="p-group" placeholder="e.g. Bohol Airport" list="project-group-list"></div>
       <div class="form-group"><label>Currency *</label><select id="p-currency" onchange="pjRecalc()"><option value="USD">USD</option><option value="SGD">SGD</option><option value="RMB">RMB</option><option value="IDR">IDR</option><option value="EUR">EUR</option></select></div>
-      <div class="form-group"><label>Shipping terms</label><select id="p-terms"><option value="">None</option><option value="DDP">DDP</option><option value="DAP">DAP</option><option value="EXW">EXW</option><option value="CIF">CIF</option><option value="FOB">FOB</option><option value="CIP">CIP</option><option value="CPT">CPT</option></select></div>
+      <div class="form-group"><label>Shipping terms</label><select id="p-terms"><option value="">None</option><option value="DDP">DDP</option><option value="DAP">DAP</option><option value="EXW">EXW</option><option value="CIF">CIF</option><option value="FOB">FOB</option><option value="FOT">FOT</option><option value="CIP">CIP</option><option value="CPT">CPT</option></select></div>
       <div class="form-group"><label>Warranty</label><select id="p-warranty"><option value="">Unknown / N/A</option><option value="1Y">1 Year</option><option value="2Y">2 Years</option><option value="3Y">3 Years</option><option value="5Y">5 Years</option></select></div>
     </div>
     <div class="pj-items">
