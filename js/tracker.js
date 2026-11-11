@@ -34,11 +34,14 @@ var TRK_CLOSED_STATUSES=["Won","Lost"];
 var TRK_OFFICES=["China","Indonesia","Singapore"];
 
 /* ===== converters ===== */
-function dbToTrkP(r){return{_id:r.id,name:r.name||"",customer:r.customer||"",country:r.country||"",office:r.office||"",status:r.status||"Enquiry",payment:r.payment||"",solution:r.solution||"",products:Array.isArray(r.products)?r.products:[],estValue:(r.est_value===null||r.est_value===undefined)?null:Number(r.est_value),currency:r.currency||"USD",expectedDate:r.expected_date||"",expectedPeriod:r.expected_period||"",contactName:r.contact_name||"",contactPosition:r.contact_position||"",contactInfo:r.contact_info||"",notes:r.notes||"",nextFollowup:r.next_followup||"",lowPriority:!!r.low_priority,createdAt:r.created_at||""};}
+function dbToTrkP(r){return{_id:r.id,name:r.name||"",customer:r.customer||"",country:r.country||"",office:r.office||"",status:r.status||"Enquiry",payment:r.payment||"",solution:r.solution||"",products:Array.isArray(r.products)?r.products:[],estValue:(r.est_value===null||r.est_value===undefined)?null:Number(r.est_value),currency:r.currency||"USD",expectedDate:r.expected_date||"",expectedPeriod:r.expected_period||"",contactName:r.contact_name||"",contactPosition:r.contact_position||"",contactInfo:r.contact_info||"",extraContacts:Array.isArray(r.extra_contacts)?r.extra_contacts:[],notes:r.notes||"",nextFollowup:r.next_followup||"",lowPriority:!!r.low_priority,createdAt:r.created_at||""};}
 var TRK_HAS_FU=true;
 /* low_priority is set only by its own toggle (never by the project form) */
 var TRK_HAS_LOW=true;
-function trkPToDb(p){var r=trkPToDbBase(p);if(TRK_HAS_FU)r.next_followup=p.nextFollowup||null;return r;}
+/* extra_contacts (jsonb [{name,position,info}]) holds every contact after
+   the first; saves leave it out until the column exists */
+var TRK_HAS_XC=true;
+function trkPToDb(p){var r=trkPToDbBase(p);if(TRK_HAS_FU)r.next_followup=p.nextFollowup||null;if(TRK_HAS_XC)r.extra_contacts=(p.extraContacts&&p.extraContacts.length)?p.extraContacts:null;return r;}
 function trkPToDbBase(p){return{name:p.name,customer:p.customer||null,country:p.country||null,office:p.office||null,status:p.status,payment:p.payment||null,solution:p.solution||null,products:p.products||[],est_value:(p.estValue===null||isNaN(p.estValue))?null:p.estValue,currency:p.currency||"USD",expected_date:p.expectedDate||null,expected_period:p.expectedPeriod||null,contact_name:p.contactName||null,contact_position:p.contactPosition||null,contact_info:p.contactInfo||null,notes:p.notes||null};}
 function dbToTrkE(r){return{_id:r.id,projectId:r.project_id,date:r.entry_date||"",type:r.entry_type||"Note",title:r.title||"",details:r.details||"",attachments:Array.isArray(r.attachments)?r.attachments:[],createdAt:r.created_at||""};}
 function trkEToDb(e){return{project_id:e.projectId,entry_date:e.date||null,entry_type:e.type,title:e.title||null,details:e.details||null,attachments:e.attachments||[]};}
@@ -327,6 +330,7 @@ async function trkLoad(force){
   TRK_HAS_FU=!res[0].length||("next_followup" in res[0][0]);
   document.querySelectorAll(".trk-fu-field").forEach(function(el){el.style.display=TRK_HAS_FU?"":"none";});
   TRK_HAS_LOW=!res[0].length||("low_priority" in res[0][0]);
+  TRK_HAS_XC=!res[0].length||("extra_contacts" in res[0][0]);
   TRK_LOADED=true;
   return true;
 }
@@ -510,7 +514,7 @@ function trkSearchFields(p){
     trkSearchField("Status",[p.status,p.payment].filter(Boolean).join(" · "),true),
     trkSearchField("Solution",p.solution,true,"",true),
     trkSearchField("Products",(p.products||[]).join(", "),true,"",true),
-    trkSearchField("Contact",[p.contactName,p.contactPosition,p.contactInfo].filter(Boolean).join(" · "),false,"",true),
+    trkSearchField("Contact",trkAllContacts(p).map(function(c){return [c.name,c.position,c.info].filter(Boolean).join(" · ");}).join(" | "),false,"",true),
     trkSearchField("Notes",p.notes,false),
     trkSearchField("Value",p.estValue!==null?p.estValue.toLocaleString()+" "+p.currency:"",true,p.estValue!==null?String(p.estValue):""),
     trkSearchField("Expected",trkPeriodLabel(p),true,trkDateWords(p.expectedDate)+" "+(p.expectedPeriod||"")),
@@ -828,7 +832,7 @@ function trkPanelHtml(p,act){
     info("Value",p.estValue!==null?trkValueHtml(p):"")+
     info("Expected close",trkPeriodLabel(p))+
     info("Next follow-up",trkActiveFollowup(p,act)?trkFmtDate(trkActiveFollowup(p,act)):"")+
-    info("Contact",trkEsc(p.contactName)+(p.contactPosition?" &middot; "+trkEsc(p.contactPosition):"")+(p.contactInfo?"<div class='trk-value-usd'>"+trkEsc(p.contactInfo)+"</div>":""))+
+    info(trkAllContacts(p).length>1?"Contacts":"Contact",trkAllContacts(p).map(function(c){return "<div class='trk-xc-show'>"+trkEsc(c.name)+(c.position?" &middot; "+trkEsc(c.position):"")+(c.info?"<div class='trk-value-usd'>"+trkEsc(c.info)+"</div>":"")+"</div>";}).join(""))+
     (p.notes?"<div class='po-panel-sec'>Description</div><div class='po-panel-note txt-lines'>"+trkLines(p.notes)+"</div>":"")+
     "<div class='po-panel-sec'>Timeline &middot; "+entries.length+"</div>"+
     (tl||"<div class='trk-r-none' style='font-size:12px'>No updates yet. Add the enquiry, a call or a quotation.</div>")+
@@ -1063,9 +1067,9 @@ function trkRenderDetail(){
         infoRow("Estimated value",p.estValue!==null?trkValueHtml(p):"")+
         infoRow("Expected close",trkPeriodLabel(p))+
         infoRow("Next follow-up",trkActiveFollowup(p)?trkFollowBadge(trkFollow(p))||trkFmtDate(p.nextFollowup):"")+
-        infoRow("Contact",trkEsc(p.contactName)+
-          (p.contactPosition?" <span class='trk-contact-pos'>&middot; "+trkEsc(p.contactPosition)+"</span>":"")+
-          (p.contactInfo?" <span class='trk-value-usd'>"+trkEsc(p.contactInfo)+"</span>":""))+
+        infoRow(trkAllContacts(p).length>1?"Contacts":"Contact",trkAllContacts(p).map(function(c){return "<div class='trk-xc-show'>"+trkEsc(c.name)+
+          (c.position?" <span class='trk-contact-pos'>&middot; "+trkEsc(c.position)+"</span>":"")+
+          (c.info?" <span class='trk-value-usd'>"+trkEsc(c.info)+"</span>":"")+"</div>";}).join(""))+
       "</div>"+
       (p.notes?"<div class='trk-notes'><div class='trk-notes-label'>Project description</div>"+trkLines(p.notes)+"</div>":"")+
     "</div>";
@@ -1685,6 +1689,35 @@ function trkSetKind(k){
     :"e.g. Biman — 50× TK180 — boarding pass printers";
   if(other)trkSyncPaymentVis("Other"); /* payment row is Won-only */
 }
+/* ===== extra contacts ===== */
+var TRK_XC=[];
+/* main contact first, then the extras; empty ones left out */
+function trkAllContacts(p){
+  var all=[{name:p.contactName,position:p.contactPosition,info:p.contactInfo}].concat(p.extraContacts||[]);
+  return all.filter(function(c){return c&&(c.name||c.info||c.position);});
+}
+function trkRenderContacts(){
+  var el=document.getElementById("tp-xc-list");
+  if(!el)return;
+  var attrs=" autocomplete='off' data-1p-ignore data-lpignore='true' data-bwignore data-form-type='other'";
+  el.innerHTML=TRK_XC.map(function(c,i){
+    return "<div class='trk-xc-row'>"+
+      "<div class='trk-xc-head'><span>Contact "+(i+2)+"</span><button type='button' class='trk-xc-del' title='Remove this contact' onclick='trkRemoveContact("+i+")'>Remove</button></div>"+
+      "<div class='trk-xc-grid'>"+
+        "<input"+attrs+" data-xc='"+i+"' data-k='name' placeholder='Contact person' value='"+trkEsc(c.name)+"' oninput='trkXcInput(this)'>"+
+        "<input"+attrs+" data-xc='"+i+"' data-k='position' placeholder='Position (optional)' value='"+trkEsc(c.position)+"' oninput='trkXcInput(this)'>"+
+        "<input"+attrs+" class='trk-xc-info' data-xc='"+i+"' data-k='info' placeholder='Email / phone' value='"+trkEsc(c.info)+"' oninput='trkXcInput(this)'>"+
+      "</div></div>";
+  }).join("");
+}
+function trkXcInput(inp){var c=TRK_XC[+inp.getAttribute("data-xc")];if(c)c[inp.getAttribute("data-k")]=inp.value;}
+function trkAddContact(){
+  TRK_XC.push({name:"",position:"",info:""});
+  trkRenderContacts();
+  var ins=document.querySelectorAll("#tp-xc-list input[data-k='name']");
+  if(ins.length)ins[ins.length-1].focus();
+}
+function trkRemoveContact(i){TRK_XC.splice(i,1);trkRenderContacts();}
 function trkOpenProjectModal(){
   var m=document.getElementById("modal-trk-project");
   m.removeAttribute("data-edit-id");
@@ -1693,6 +1726,7 @@ function trkOpenProjectModal(){
   m.querySelectorAll("input,textarea").forEach(function(el){el.value="";});
   trkInitProjectSuggests();
   TRK_PROD=[];trkRenderProducts();
+  TRK_XC=[];trkRenderContacts();
   TRK_NAME_AUTO="";
   trkSetKind("Customer");
   document.getElementById("tp-office").value="";
@@ -1784,6 +1818,8 @@ function trkEditProject(){
   document.getElementById("tp-contact").value=p.contactName;
   document.getElementById("tp-position").value=p.contactPosition;
   document.getElementById("tp-contact-info").value=p.contactInfo;
+  TRK_XC=(p.extraContacts||[]).map(function(c){return {name:c.name||"",position:c.position||"",info:c.info||""};});
+  trkRenderContacts();
   document.getElementById("tp-notes").value=p.notes;
   document.getElementById("tp-followup").value=trkActiveFollowup(p);
   trkFollowupMin(document.getElementById("tp-followup"));
@@ -1830,6 +1866,7 @@ async function trkSaveProject(){
     contactName:other?"":document.getElementById("tp-contact").value.trim(),
     contactPosition:other?"":document.getElementById("tp-position").value.trim(),
     contactInfo:other?"":document.getElementById("tp-contact-info").value.trim(),
+    extraContacts:other?[]:TRK_XC.map(function(c){return {name:(c.name||"").trim(),position:(c.position||"").trim(),info:(c.info||"").trim()};}).filter(function(c){return c.name||c.info;}),
     notes:document.getElementById("tp-notes").value.trim(),
     nextFollowup:document.getElementById("tp-followup").value||""
   };

@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-06.1";
+var APP_VERSION = "2026-11-11.1";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -363,6 +363,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="form-group tp-cust-only"><label>Contact person</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-contact" placeholder="e.g. Mr. Rahman" readonly onfocus="this.removeAttribute('readonly')"></div>
       <div class="form-group tp-cust-only"><label>Position <span style="font-size:10px;color:#aaa;font-weight:400">(optional)</span></label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-position" placeholder="e.g. Head of Supply Chain" readonly onfocus="this.removeAttribute('readonly')"></div>
       <div class="form-group form-full tp-cust-only"><label>Contact info <span style="font-size:10px;color:#aaa;font-weight:400">(email / phone)</span></label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-contact-info" placeholder="e.g. rahman@example.com, +880 ..." readonly onfocus="this.removeAttribute('readonly')"></div>
+      <div class="form-group form-full tp-cust-only trk-xc-wrap"><div id="tp-xc-list"></div><button type="button" class="trk-xc-add" onclick="trkAddContact()">+ Add another contact</button></div>
       <div class="form-group form-full"><label class="fmt-label"><span>Project description</span><span class="fmt-tools"><button type="button" class="nt-tool fmt-b" title="Bold (Ctrl+B)" onmousedown="event.preventDefault()" onclick="toggleWrap('tp-notes','**')">B</button><button type="button" class="nt-tool fmt-i" title="Italic (Ctrl+I)" onmousedown="event.preventDefault()" onclick="toggleWrap('tp-notes','*')">I</button><button type="button" class="nt-tool fmt-u" title="Underline (Ctrl+U)" onmousedown="event.preventDefault()" onclick="toggleWrap('tp-notes','__')">U</button></span></label><textarea id="tp-notes" onkeydown="listKeys(event)" style="min-height:260px" placeholder="Background, requirements, competitors&hellip;"></textarea></div>
     </div>
     <div class="modal-actions">
