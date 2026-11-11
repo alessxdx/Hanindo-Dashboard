@@ -734,7 +734,7 @@ function trkRenderList(bodyOnly){
       "<td class='trk-c-of'>"+(p.office?"<span class='trk-badge po-of-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+"</span>":"")+"</td>"+
       "<td class='trk-c-val num'>"+(p.estValue!==null?p.estValue.toLocaleString()+" <span class='trk-r-cur'>"+trkEsc(p.currency)+"</span>":"<span class='trk-r-none'>&mdash;</span>")+"</td>"+
       "<td class='trk-c-last'>"+(last?"<div>"+trkFmtDate(last.date)+"</div><div class='trk-r-sub'>"+trkEsc(last.type)+(last.title?" &mdash; "+trkEsc(last.title):"")+"</div>":"<span class='trk-r-none'>No activity yet</span>")+"</td>"+
-      "<td class='trk-c-fu'>"+(trkFollowBadge(trkFollow(p,act))||(p.lowPriority&&!done?trkLowBadge():""))+"</td>"+
+      "<td class='trk-c-fu'>"+(inParked?trkSolutionBadge(p):(trkFollowBadge(trkFollow(p,act))||(p.lowPriority&&!done?trkLowBadge():"")))+"</td>"+
     "</tr>";
   }
   var COLS=6;
@@ -745,8 +745,11 @@ function trkRenderList(bodyOnly){
   function isParked(p){return trkIsDone(p)||isLow(p);}
   /* a parked row keeps a stripe in its solution's colour, since it
      sits in a shared section rather than under its solution band */
+  /* in the Low priority / Done sections the last column names the
+     solution instead (the section already says low priority / done) */
+  var inParked=false;
   function parkedRowHtml(p){
-    var h=rowHtml(p);
+    inParked=true;var h=rowHtml(p);inParked=false;
     return p.solution?h.replace("<tr class='trk-row","<tr style='--sol:"+trkSolutionColor(p.solution)+"' class='trk-row trk-row-parked"):h;
   }
   function sec(kind,items,label,ico){

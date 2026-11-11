@@ -1935,6 +1935,8 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
 .trk-band .trk-sol-dot{display:inline-block;width:10px;height:10px;margin-right:8px;vertical-align:0;background:var(--sol)}
 .trk-band .po-grp-name{color:color-mix(in srgb,var(--sol,var(--text-strong)) 70%,var(--text-strong))}
 .trk-low-div{cursor:pointer;user-select:none}
+/* sticks like the solution bars, so it takes over from the last one */
+.trk-low-div td{position:sticky;top:37px;z-index:1}
 .trk-row-parked td:first-child{box-shadow:inset 3px 0 0 var(--sol)}
 .trk-row-parked.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 .trk-low-div:hover td{filter:brightness(.97)}
@@ -2007,6 +2009,8 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
   .trk-list thead{display:none}
   .trk-band{display:block}
   .trk-band td{display:block;position:sticky;top:0}
+  .trk-low-div{display:block}
+  .trk-low-div td{display:block;top:0}
   .trk-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;border-bottom:1px solid var(--border);padding:10px 12px}
   .trk-row td{border:none;padding:0}
   .trk-row .trk-c-proj{grid-column:1;grid-row:1/3}
