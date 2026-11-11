@@ -535,7 +535,15 @@ function syncRoute(){
   if(ROUTE_APPLYING) return;
   var s = routeState(), p = parseHash();
   if(p.tab === s.tab && p.sel === (s.sel || "")) return;
-  location.hash = "#" + s.tab + (s.sel ? "/" + encodeURIComponent(s.sel) : "");
+  var h = "#" + s.tab + (s.sel ? "/" + encodeURIComponent(s.sel) : "");
+  /* switching from one item straight to another on the same page
+     (project → project) replaces the step, so Back returns to the
+     list instead of walking through every item clicked */
+  if(p.tab === s.tab && p.sel && s.sel){
+    history.replaceState(null, "", location.pathname + location.search + h);
+    return;
+  }
+  location.hash = h;
 }
 
 function applyRoute(){
