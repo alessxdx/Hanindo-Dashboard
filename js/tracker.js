@@ -34,7 +34,7 @@ var TRK_CLOSED_STATUSES=["Won","Lost"];
 var TRK_OFFICES=["China","Indonesia","Singapore"];
 
 /* ===== converters ===== */
-function dbToTrkP(r){return{_id:r.id,name:r.name||"",customer:r.customer||"",country:r.country||"",office:r.office||"",status:r.status||"Enquiry",payment:r.payment||"",solution:r.solution||"",products:Array.isArray(r.products)?r.products:[],estValue:(r.est_value===null||r.est_value===undefined)?null:Number(r.est_value),currency:r.currency||"USD",expectedDate:r.expected_date||"",expectedPeriod:r.expected_period||"",contactName:r.contact_name||"",contactPosition:r.contact_position||"",contactInfo:r.contact_info||"",extraContacts:Array.isArray(r.extra_contacts)?r.extra_contacts:[],notes:r.notes||"",nextFollowup:r.next_followup||"",lowPriority:!!r.low_priority,createdAt:r.created_at||""};}
+function dbToTrkP(r){return{_id:r.id,name:r.name||"",customer:r.customer||"",country:r.country||"",office:r.office||"",status:r.status||"Enquiry",payment:r.payment||"",solution:r.solution||"",products:Array.isArray(r.products)?r.products:[],estValue:(r.est_value===null||r.est_value===undefined)?null:Number(r.est_value),currency:r.currency||"USD",expectedDate:r.expected_date||"",expectedPeriod:r.expected_period||"",contactName:r.contact_name||"",contactPosition:r.contact_position||"",contactInfo:r.contact_info||"",extraContacts:Array.isArray(r.extra_contacts)?r.extra_contacts:[],notes:r.notes||"",nextFollowup:r.next_followup||"",lowPriority:!!r.low_priority,done:!!r.done,createdAt:r.created_at||""};}
 var TRK_HAS_FU=true;
 /* low_priority is set only by its own toggle (never by the project form) */
 var TRK_HAS_LOW=true;
@@ -104,8 +104,8 @@ function trkPaymentBadge(p){
 function trkIsDelivered(p){
   return !!p._id&&TRK_ENTRIES.some(function(e){return e.projectId===p._id&&e.type==="Delivery";});
 }
-/* Won, fully paid and delivered = nothing left to do. */
-function trkIsDone(p){return p.status==="Won"&&p.payment==="Fully paid"&&trkIsDelivered(p);}
+/* Done = nothing left to do. Set by hand with the Done switch (done column). */
+function trkIsDone(p){return !!(p&&p.done);}
 /* ===== solution / product-type tag =====
    One small tag saying WHAT the project is about — Custom (printers),
    Posiva, Fire fighting… Free text with type-ahead so a new category
@@ -225,8 +225,31 @@ var TRK_LOW_ICO="<svg class='trk-low-ico' viewBox='0 0 24 24' fill='none' stroke
 function trkLowBadge(){return "<span class='trk-badge trk-low' title='Low priority — just waiting, no follow-up reminders'>"+TRK_LOW_ICO+"Low priority</span>";}
 /* an on/off switch with a one-line explanation, so it reads as a
    setting rather than a stray link */
+var TRK_DONE_ICO="<span class='trk-done-ico'>&#10003;</span>";
+function trkDoneBadge(){return "<span class='trk-badge trk-done-b'>"+TRK_DONE_ICO+"Done</span>";}
 function trkLowBtn(p){
   if(!TRK_HAS_LOW)return"";
+  return "<div class='trk-sw-row'>"+trkLowSw(p)+
+    "<button class='trk-low-sw trk-done-sw"+(p.done?" on":"")+"' role='switch' aria-checked='"+(p.done?"true":"false")+"' onclick='trkToggleDone(\""+p._id+"\")'>"+
+      "<span class='trk-low-knob'></span>"+
+      "<span class='trk-low-txt'><strong>"+TRK_DONE_ICO+"Done</strong>"+
+        "<small>"+(p.done?"Finished &mdash; moved to the Done section":"Nothing left to do? Move it to the Done section")+"</small></span>"+
+    "</button></div>";
+}
+async function trkToggleDone(id){
+  var p=TRK_PROJECTS.find(function(x){return x._id===id;});
+  if(!p)return;
+  var v=!p.done;
+  showLoad("Saving...");
+  try{
+    var r=await fetch(SB_URL+"/rest/v1/tracker_projects?id=eq."+p._id,{method:"PATCH",headers:sbH(),body:JSON.stringify({done:v})});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    p.done=v;
+  }catch(err){hideLoad();alert("Save failed: "+err.message);return;}
+  hideLoad();
+  renderTracker();
+}
+function trkLowSw(p){
   return "<button class='trk-low-sw"+(p.lowPriority?" on":"")+"' role='switch' aria-checked='"+(p.lowPriority?"true":"false")+"' onclick='trkToggleLow(\""+p._id+"\")'>"+
     "<span class='trk-low-knob'></span>"+
     "<span class='trk-low-txt'><strong>"+TRK_LOW_ICO+"Low priority</strong>"+
@@ -683,7 +706,7 @@ function trkRenderList(bodyOnly){
     if(q&&hits[a._id].score!==hits[b._id].score)return hits[b._id].score-hits[a._id].score;
     /* the follow-up list puts the longest-forgotten first */
     if(trkStaleOn())return trkFollowDue(b,act).days-trkFollowDue(a,act).days;
-    /* completed projects (won, paid, delivered) go to the very bottom */
+    /* projects marked Done go to the very bottom */
     var xa=trkIsDone(a)?1:0,xb=trkIsDone(b)?1:0;
     if(xa!==xb)return xa-xb;
     var ca=TRK_CLOSED_STATUSES.indexOf(a.status)>-1?1:0;
@@ -719,20 +742,30 @@ function trkRenderList(bodyOnly){
   function isLow(p){return p&&p.lowPriority&&!trkIsDone(p);}
   /* live rows first, then "Low priority" and "Done" sections; each
      section folds behind its divider (the selected project stays shown) */
+  function isParked(p){return trkIsDone(p)||isLow(p);}
+  /* a parked row keeps a stripe in its solution's colour, since it
+     sits in a shared section rather than under its solution band */
+  function parkedRowHtml(p){
+    var h=rowHtml(p);
+    return p.solution?h.replace("<tr class='trk-row","<tr style='--sol:"+trkSolutionColor(p.solution)+"' class='trk-row trk-row-parked"):h;
+  }
+  function sec(kind,items,label,ico){
+    if(!items.length)return"";
+    var open=TRK_SEC_OPEN[kind];
+    return "<tr class='trk-low-div trk-sec-"+kind+(open?" open":"")+"' onclick='trkToggleSection(\""+kind+"\")' title='"+(open?"Hide":"Show")+" these projects'><td colspan='"+COLS+"'>"+
+      "<span class='trk-sec-chev'>&#9656;</span>"+ico+label+"<span class='trk-low-n'>"+items.length+"</span>"+
+      "<span class='trk-sec-hint'>"+(open?"hide":"show")+"</span></td></tr>"+
+      items.filter(function(p){return open||p._id===TRK_SEL;}).map(parkedRowHtml).join("");
+  }
+  /* the Low priority and Done sections, once, at the very bottom */
+  function parkedSections(arr){
+    return sec("low",arr.filter(isLow),"Low priority &middot; waiting",TRK_LOW_ICO)+
+      sec("done",arr.filter(trkIsDone),"Done","<span class='trk-sec-check'>&#10003;</span>");
+  }
+  /* live rows first, then the folding Low priority / Done sections
+     (the selected project stays shown when folded) */
   function rowsWithLowDiv(arr){
-    var live=[],low=[],done=[];
-    arr.forEach(function(p){(trkIsDone(p)?done:isLow(p)?low:live).push(p);});
-    function sec(kind,items,label,ico){
-      if(!items.length)return"";
-      var open=TRK_SEC_OPEN[kind];
-      return "<tr class='trk-low-div trk-sec-"+kind+(open?" open":"")+"' onclick='trkToggleSection(\""+kind+"\")' title='"+(open?"Hide":"Show")+" these projects'><td colspan='"+COLS+"'>"+
-        "<span class='trk-sec-chev'>&#9656;</span>"+ico+label+"<span class='trk-low-n'>"+items.length+"</span>"+
-        "<span class='trk-sec-hint'>"+(open?"hide":"show")+"</span></td></tr>"+
-        items.filter(function(p){return open||p._id===TRK_SEL;}).map(rowHtml).join("");
-    }
-    return live.map(rowHtml).join("")+
-      sec("low",low,"Low priority &middot; waiting",TRK_LOW_ICO)+
-      sec("done",done,"Done &middot; won, paid &amp; delivered","<span class='trk-sec-check'>&#10003;</span>");
+    return arr.filter(function(p){return !isParked(p);}).map(rowHtml).join("")+parkedSections(arr);
   }
 
   /* ===== solution bands =====
@@ -752,12 +785,16 @@ function trkRenderList(bodyOnly){
     });
     order=order.concat(extra.sort(trkAlpha));
     order.push(""); /* untagged bucket last */
+    var parked=[];
     rows=order.map(function(x){
       var grp=list.filter(function(p){return (p.solution||"")===x;});
+      /* low priority / done leave the band for the shared sections below */
+      grp.forEach(function(p){if(isParked(p))parked.push(p);});
+      grp=grp.filter(function(p){return !isParked(p);});
       if(!grp.length)return"";
       /* Inside a sector the newest entry wins outright — closed
          projects don't sink here, per the user's preference — except
-         completed ones (won, paid, delivered), which go to the bottom. */
+         projects marked Done, which go to the bottom. */
       grp.sort(function(a,b){
         var xa=trkIsDone(a)?2:a.lowPriority?1:0,xb=trkIsDone(b)?2:b.lowPriority?1:0;
         if(xa!==xb)return xa-xb;
@@ -771,8 +808,8 @@ function trkRenderList(bodyOnly){
       return "<tr class='trk-band'><td colspan='"+COLS+"' style='--sol:"+col+";box-shadow:inset 4px 0 0 "+col+",inset 0 -1px 0 var(--border)'>"+
         "<span class='trk-sol-dot'></span><span class='po-grp-name'>"+(x?trkEsc(x):"No tag yet")+"</span><span class='po-grp-n'>"+grp.length+"</span>"+
         (due?"<span class='trk-band-due'>&#9200; "+due+" need follow-up</span>":"")+
-      "</td></tr>"+rowsWithLowDiv(grp);
-    }).join("");
+      "</td></tr>"+grp.map(rowHtml).join("");
+    }).join("")+parkedSections(parked);
   }
   var selP=TRK_SEL?TRK_PROJECTS.find(function(x){return x._id===TRK_SEL;}):null;
   var cards=rows?"<div class='po-split trk-split"+(selP?" has-sel":"")+"'>"+
@@ -840,7 +877,7 @@ function trkPanelHtml(p,act){
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkDisplayName(p)+"</span>"+
       "<button class='trk-pn-expand' title='Open full page' aria-label='Open full page' onclick='trkExpand()'>&#x2922;</button>"+
       "<button class='po-panel-x' aria-label='Close' onclick='trkBack()'>&times;</button></div>"+
-    "<div class='po-panel-meta'>"+trkStatusBadge(p.status)+trkPaymentBadge(p)+trkFollowBadge(trkFollow(p,act))+(p.lowPriority?trkLowBadge():"")+"</div>"+
+    "<div class='po-panel-meta'>"+trkStatusBadge(p.status)+trkPaymentBadge(p)+trkFollowBadge(trkFollow(p,act))+(p.done?trkDoneBadge():p.lowPriority?trkLowBadge():"")+"</div>"+
     ((p.customer||p.country)?"<div class='trk-pn-cust'>"+(flag?flag+" ":"")+[trkEsc(p.customer),trkEsc(p.country)].filter(Boolean).join(" &middot; ")+"</div>":"")+
     "<div class='po-panel-acts'><button class='btn-save' onclick='trkOpenEntryModal()'>+ Add update</button><button class='edit-btn' onclick='trkEditProject()'>Edit project</button></div>"+trkLowBtn(p)+
     "<div class='po-panel-sec'>Details</div>"+
@@ -1072,7 +1109,7 @@ function trkRenderDetail(){
     "<button class='trk-back' onclick='trkBack()'>&larr; All projects</button>"+
     "<div class='trk-detail-card'>"+
       "<div class='trk-detail-head'>"+
-        "<div class='trk-detail-name'>"+trkDisplayName(p)+" "+trkStatusBadge(p.status)+trkPaymentBadge(p)+(p.lowPriority?trkLowBadge():"")+"</div>"+
+        "<div class='trk-detail-name'>"+trkDisplayName(p)+" "+trkStatusBadge(p.status)+trkPaymentBadge(p)+(p.done?trkDoneBadge():p.lowPriority?trkLowBadge():"")+"</div>"+
         "<button class='edit-btn' onclick='trkEditProject()'>Edit project</button>"+
       "</div>"+trkLowBtn(p)+
       "<div class='trk-info-grid'>"+
@@ -1873,6 +1910,7 @@ async function trkSaveProject(){
     status:other?"Other":(prev&&prev.status!=="Other"?prev.status:"Enquiry"),
     payment:prev?(prev.payment||""):"",
     lowPriority:prev?!!prev.lowPriority:false,
+    done:prev?!!prev.done:false,
     products:other?[]:TRK_PROD.slice(),
     estValue:(other||valRaw==="")?null:parseFloat(valRaw),
     currency:document.getElementById("tp-currency").value,
