@@ -116,7 +116,7 @@ var TRK_SOLUTION_COLORS={
   "Custom":"#1d4ed8",        /* blue */
   "Posiva":"#7c3aed",        /* violet */
   "Fire fighting":"#dc2626", /* red, obviously */
-  "Automotive":"#0f766e",    /* teal — workshop equipment */
+  "Automotive":"#d97706",    /* amber — workshop equipment */
   "Others":"#6b7280"         /* gray — the catch-all bucket */
 };
 function trkSolutionColor(s){
@@ -214,6 +214,13 @@ function trkFollowBadge(f){
    Quiet nag) and shows a grey badge. One click on/off, from the panel
    or the full page. */
 /* hourglass icon (the sleep emoji rendered as a blurry squiggle) */
+/* fold state of the Low priority / Done sections — folded by default */
+var TRK_SEC_OPEN=(function(){try{return {low:localStorage.getItem("cpd_trk_low_open")==="1",done:localStorage.getItem("cpd_trk_done_open")==="1"};}catch(e){return {low:false,done:false};}})();
+function trkToggleSection(kind){
+  TRK_SEC_OPEN[kind]=!TRK_SEC_OPEN[kind];
+  try{localStorage.setItem("cpd_trk_"+kind+"_open",TRK_SEC_OPEN[kind]?"1":"0");}catch(e){}
+  renderTracker();
+}
 var TRK_LOW_ICO="<svg class='trk-low-ico' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 2h12M6 22h12M7 2v4l5 6-5 6v4M17 2v4l-5 6 5 6v4'/></svg>";
 function trkLowBadge(){return "<span class='trk-badge trk-low' title='Low priority — just waiting, no follow-up reminders'>"+TRK_LOW_ICO+"Low priority</span>";}
 /* an on/off switch with a one-line explanation, so it reads as a
@@ -710,12 +717,22 @@ function trkRenderList(bodyOnly){
   var COLS=6;
   /* rows with a thin divider above each run of low-priority rows */
   function isLow(p){return p&&p.lowPriority&&!trkIsDone(p);}
+  /* live rows first, then "Low priority" and "Done" sections; each
+     section folds behind its divider (the selected project stays shown) */
   function rowsWithLowDiv(arr){
-    return arr.map(function(p,i){
-      if(!isLow(p)||isLow(arr[i-1]))return rowHtml(p);
-      var n=0;while(isLow(arr[i+n]))n++;
-      return "<tr class='trk-low-div'><td colspan='"+COLS+"'>"+TRK_LOW_ICO+"Low priority &middot; waiting<span class='trk-low-n'>"+n+"</span></td></tr>"+rowHtml(p);
-    }).join("");
+    var live=[],low=[],done=[];
+    arr.forEach(function(p){(trkIsDone(p)?done:isLow(p)?low:live).push(p);});
+    function sec(kind,items,label,ico){
+      if(!items.length)return"";
+      var open=TRK_SEC_OPEN[kind];
+      return "<tr class='trk-low-div trk-sec-"+kind+(open?" open":"")+"' onclick='trkToggleSection(\""+kind+"\")' title='"+(open?"Hide":"Show")+" these projects'><td colspan='"+COLS+"'>"+
+        "<span class='trk-sec-chev'>&#9656;</span>"+ico+label+"<span class='trk-low-n'>"+items.length+"</span>"+
+        "<span class='trk-sec-hint'>"+(open?"hide":"show")+"</span></td></tr>"+
+        items.filter(function(p){return open||p._id===TRK_SEL;}).map(rowHtml).join("");
+    }
+    return live.map(rowHtml).join("")+
+      sec("low",low,"Low priority &middot; waiting",TRK_LOW_ICO)+
+      sec("done",done,"Done &middot; won, paid &amp; delivered","<span class='trk-sec-check'>&#10003;</span>");
   }
 
   /* ===== solution bands =====
@@ -750,8 +767,9 @@ function trkRenderList(bodyOnly){
         return (b.createdAt||"").localeCompare(a.createdAt||"");
       });
       var due=grp.filter(function(p){return trkFollowDue(p,act);}).length;
-      return "<tr class='trk-band'><td colspan='"+COLS+"' style='box-shadow:inset 3px 0 0 "+(x?trkSolutionColor(x):"var(--border-strong)")+",inset 0 -1px 0 var(--border)'>"+
-        "<span class='po-grp-name'>"+(x?trkEsc(x):"No tag yet")+"</span><span class='po-grp-n'>"+grp.length+"</span>"+
+      var col=x?trkSolutionColor(x):"var(--border-strong)";
+      return "<tr class='trk-band'><td colspan='"+COLS+"' style='--sol:"+col+";box-shadow:inset 4px 0 0 "+col+",inset 0 -1px 0 var(--border)'>"+
+        "<span class='trk-sol-dot'></span><span class='po-grp-name'>"+(x?trkEsc(x):"No tag yet")+"</span><span class='po-grp-n'>"+grp.length+"</span>"+
         (due?"<span class='trk-band-due'>&#9200; "+due+" need follow-up</span>":"")+
       "</td></tr>"+rowsWithLowDiv(grp);
     }).join("");

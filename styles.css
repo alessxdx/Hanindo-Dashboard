@@ -1906,7 +1906,7 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
 .trk-list th{position:sticky;top:0;background:var(--bg-stat);z-index:2;box-shadow:inset 0 -1px 0 var(--border)}
 .trk-split .po-table-wrap{overflow:clip}
 .trk-band td{
-  background:var(--accent-soft);color:var(--text-strong);
+  background:color-mix(in srgb,var(--sol,var(--accent)) 13%,var(--bg-stat));color:var(--text-strong);
   padding-top:10px;padding-bottom:10px;position:sticky;top:37px;z-index:1;
 }
 .trk-band-due{
@@ -1932,6 +1932,18 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
 .trk-badge.trk-low{background:var(--bg-soft);color:var(--text-muted);border:1px solid var(--border);font-weight:500;display:inline-flex;align-items:center;gap:4px}
 .trk-low-ico{width:12px;height:12px;flex-shrink:0;vertical-align:-1px}
 .trk-low-div td .trk-low-ico{margin-right:5px}
+.trk-band .trk-sol-dot{display:inline-block;width:10px;height:10px;margin-right:8px;vertical-align:0;background:var(--sol)}
+.trk-band .po-grp-name{color:color-mix(in srgb,var(--sol,var(--text-strong)) 70%,var(--text-strong))}
+.trk-low-div{cursor:pointer;user-select:none}
+.trk-low-div:hover td{filter:brightness(.97)}
+.trk-sec-chev{display:inline-block;width:12px;margin-right:4px;font-size:11px;transition:transform .15s}
+.trk-low-div.open .trk-sec-chev{transform:rotate(90deg)}
+.trk-sec-hint{float:right;font-weight:500;text-transform:none;letter-spacing:0;font-size:11.5px;opacity:.75}
+.trk-sec-check{display:inline-block;margin-right:6px;font-size:12px}
+.trk-sec-done td{color:#067647;background:#ecfdf3;box-shadow:inset 4px 0 0 #067647;border-top-color:#abefc6;border-bottom-color:#abefc6}
+.trk-sec-done .trk-low-n{background:#067647}
+[data-theme="dark"] .trk-sec-done td{color:#75e0a7;background:#053321;box-shadow:inset 4px 0 0 #75e0a7;border-top-color:#085d3a;border-bottom-color:#085d3a}
+[data-theme="dark"] .trk-sec-done .trk-low-n{background:#75e0a7}
 .trk-low-sw{
   display:flex;align-items:center;gap:11px;width:100%;margin-top:12px;
   padding:9px 12px;border:1px solid var(--border);border-radius:10px;
