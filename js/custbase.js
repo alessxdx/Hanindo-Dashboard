@@ -311,17 +311,31 @@ function cbPanelHtml(c){
     });
   });
   var sols=Object.keys(c.solutions).sort().map(function(s){return trkSolutionBadge({solution:s});}).join(" ");
+  /* a project opens in place (its key facts and latest updates); the
+     tracker is one click further, not where every click goes */
   var projBtn=function(p,k){
     var u=p.estValue!==null?trkEsc(p.estValue.toLocaleString())+" "+trkEsc(p.currency):"";
-    return "<button class='cb-proj' onclick='navTo(\"tracker\","+JSON.stringify(p._id).replace(/'/g,"&#39;")+")'>"+
+    var row=function(label,html){return html?"<div class='trk-pn-row'><span>"+label+"</span><div>"+html+"</div></div>":"";};
+    var ents=typeof trkEntriesFor==="function"?trkEntriesFor(p._id):[];
+    var tl=ents.slice(0,3).map(function(e){
+      return "<div class='trk-pn-e'><div class='trk-pn-e-meta'><strong>"+trkFmtDate(e.date)+"</strong> "+trkTypeBadge(e.type)+"</div>"+
+        (e.title?"<div class='trk-pn-e-title'>"+trkEsc(e.title)+"</div>":"")+
+        (e.details?"<div class='trk-pn-e-det'>"+trkLines(e.details)+"</div>":"")+"</div>";
+    }).join("");
+    return "<details class='cb-projd'><summary class='cb-proj'>"+
       "<span class='cb-proj-name'>"+trkDisplayName(p)+"</span>"+
       "<span class='cb-proj-meta'>"+trkStatusBadge(p.status)+trkPaymentBadge(p)+(p.lowPriority&&k==="ongoing"?trkLowBadge():"")+
         (p.solution?trkSolutionBadge(p):"")+"</span>"+
       "<span class='cb-proj-foot'><span>"+(p._cbLast?trkFmtDate(p._cbLast):"")+"</span><span>"+u+"</span></span>"+
-    "</button>";
+    "</summary><div class='cb-projd-body'>"+
+      row("Products",trkProductChips(p))+
+      row("Value",p.estValue!==null?trkValueHtml(p):"")+
+      row("Expected close",trkPeriodLabel(p))+
+      (p.notes?"<div class='po-panel-sec'>Description</div><div class='po-panel-note txt-lines'>"+trkLines(p.notes)+"</div>":"")+
+      (tl?"<div class='po-panel-sec'>Latest updates"+(ents.length>3?" &middot; 3 of "+ents.length:"")+"</div>"+tl:"")+
+      "<button class='cb-split-open' onclick='navTo(\"tracker\","+JSON.stringify(p._id).replace(/'/g,"&#39;")+")'>Open in Project Tracker &rsaquo;</button>"+
+    "</div></details>";
   };
-  /* tracker projects that are the locations of one split PO (BQuik's 4
-     stores) fold into one card, so the list matches the one PO */
   var pg=cbProjGroups(c),pGroups=pg.groups,inGroup=pg.inGroup;
   var pGroupHtml=function(gr,k){
     var sp=gr.sp,po=typeof pgSharedPo==="function"?pgSharedPo(sp.g):"";
