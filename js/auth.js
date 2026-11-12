@@ -13,7 +13,7 @@
    true in the same release that switches row-level security on; from
    then on the site shows the sign-in screen until someone signs in.
    ============================================================ */
-var SB_AUTH_REQUIRED=false;
+var SB_AUTH_REQUIRED=true;
 /* All of the owner's GitHub Pages sites share one browser storage
    (alessxdx.github.io), and another of them keeps its own Supabase session
    under "sb_session" — so this site's key names the project, and a stored
