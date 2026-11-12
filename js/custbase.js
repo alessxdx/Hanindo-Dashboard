@@ -134,6 +134,12 @@ function cbCustomers(){
   S.projs.forEach(function(p){addSale(p,"projs");});
   out.forEach(function(c){
     c.projects.sort(function(a,b){return (b._cbLast||"").localeCompare(a._cbLast||"");});
+    /* a project group (BQuik's 4 stores on one PO) is one project in the
+       outcome counts too, under its most active status */
+    cbProjGroups(c).groups.forEach(function(g){
+      g.ps.forEach(function(p){c.n[cbCat(p)]--;});
+      c.n[g.cat]++;
+    });
     var closed=c.n.won+c.n.done+c.n.lost;
     c.winRate=closed?Math.round((c.n.won+c.n.done)/closed*100):null;
     /* the tracker's country leads; sales countries are added after it */
