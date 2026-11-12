@@ -102,11 +102,11 @@ function renderCustBase(){
     var pills=CB_CATS.map(function(x){
       return c.n[x.k]?"<span class='cb-pill cb-"+x.k+"' title='"+x.label.replace("&middot;","·")+"'>"+c.n[x.k]+" "+(x.k==="won"?"won":x.k)+"</span>":"";
     }).join("");
-    var offices=Object.keys(c.offices).sort().join(", ");
-    if(offices===c.country)offices="";
-    // the country is in the band above, so the line under the name only needs anything that differs
+    // under the name: the solution types bought / quoted (Custom, Posiva, Fire...);
+    // the country is in the band above and the office is understood from it
     var other=Object.keys(c.countries).filter(function(k){return k!==c.country;});
-    var sub=[offices?trkEsc(offices)+" office":"",other.length?"also "+other.map(trkEsc).join(", "):""].filter(Boolean).join(" &middot; ");
+    var sols=Object.keys(c.solutions).sort().map(function(s){return trkSolutionBadge({solution:s});}).join("");
+    var sub=sols+(other.length?"<span>also "+other.map(trkEsc).join(", ")+"</span>":"");
     return "<tr class='po-row cb-row"+(c.key===CB_SEL?" sel":"")+"' onclick='cbOpen("+JSON.stringify(c.key).replace(/'/g,"&#39;")+")'>"+
       "<td><div class='cb-name'>"+trkEsc(c.name)+"</div>"+(sub?"<div class='cb-sub'>"+sub+"</div>":"")+"</td>"+
       "<td class='num cb-c-n'>"+c.projects.length+"</td>"+
