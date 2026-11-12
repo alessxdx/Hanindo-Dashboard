@@ -397,7 +397,7 @@ function prUpdateCmp(c,p,keepInput){
       "<div class='pr-foot'>Each deal is compared with the prices for <i>its own</i> quantity tier, at today’s buying cost. Non-USD prices use today’s exchange rate. Bundled prices (warranty, mounting kits) will read high.</div>";
   }
   var head="<div class='pr-cmp-head'><div><div class='pr-res-title'>What customers paid</div>"+
-    "<div class='pr-res-meta'>Past quotations and POs from By Customer</div></div>"+
+    "<div class='pr-res-meta'>Past quotations and POs from Customer Base</div></div>"+
     "<label class='pr-match'><span>Match items containing</span><input id='pr-match' value=\""+prEsc(q)+"\" oninput='prMatchInput(this.value)' title='All words must appear in the item name. Prefix a word with - to exclude it.'></label></div>";
   if(keepInput&&document.getElementById("pr-match")){
     var bodyEl=document.getElementById("pr-cmp-body");

@@ -165,7 +165,7 @@ function toggleSidebar(){
    Four main pages plus "More" (the full sidebar; Pricing lives there). Icons are copied from
    the sidebar so the two never drift apart; tapping one clicks the
    matching sidebar item, so routing stays in one place. */
-var BN_TABS=[["tracker","Tracker"],["customers","Customers"],["po","POs"],["buying","Buying"]];
+var BN_TABS=[["tracker","Tracker"],["custbase","Customers"],["po","POs"],["buying","Buying"]];
 function buildBottomNav(){
   var nav=document.getElementById("bottom-nav");
   if(!nav)return;
@@ -528,6 +528,8 @@ function parseHash(){
   try { tab = decodeURIComponent(tab); } catch(e){}
   try { sel = decodeURIComponent(sel); } catch(e){}
   /* no page in the address (plain site link, home-screen icon) opens the tracker */
+  /* By Customer was merged into Customer Base: old links land there */
+  if(tab === "customers"){ tab = "custbase"; sel = sel && typeof cbKey === "function" ? cbKey(sel.split("__")[0]) : ""; }
   if(!TAB_TITLES[tab]){ tab = "tracker"; sel = ""; }
   return { tab: tab, sel: sel };
 }
@@ -573,9 +575,12 @@ renderTracker = function(){ _routeRenderTracker(); syncRoute(); };
 
 window.addEventListener("hashchange", applyRoute);
 (function initRoute(){
-  var p = parseHash();
-  if(p.tab !== "customers" || p.sel) applyRoute();
-  else history.replaceState(null, "", location.pathname + location.search + "#customers");
+  applyRoute();
+  /* an old #customers link: show the Customer Base address instead */
+  if(/^#customers/.test(location.hash)){
+    var s = routeState();
+    history.replaceState(null, "", location.pathname + location.search + "#" + s.tab + (s.sel ? "/" + encodeURIComponent(s.sel) : ""));
+  }
 })();
 
 loadFromDB();

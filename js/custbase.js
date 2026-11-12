@@ -176,6 +176,11 @@ function renderCustBase(){
       ctyKeys.map(function(k){return {value:k,label:k||"No country",count:ctyN[k]||0};}))})+
     "</div>");
   var sel=CB_SEL?all.filter(function(c){return c.key===CB_SEL;})[0]:null;
+  if(!sel)CB_FULL=false;
+  if(CB_FULL){
+    content.innerHTML="<button class='trk-back' onclick='cbToggleFull()'>&larr; All customers</button>"+cbPanelHtml(sel);
+    return;
+  }
   var row=function(c){
     var pills=CB_CATS.map(function(x){
       return c.n[x.k]?"<span class='cb-pill cb-"+x.k+"' title='"+x.label.replace("&middot;","·")+"'>"+c.n[x.k]+" "+(x.k==="won"?"won":x.k)+"</span>":"";
@@ -282,8 +287,8 @@ function cbPanelHtml(c){
     "<div class='cb-hist-head'>PO &amp; quotation history</div><div class='cb-hist'>"+buildMdDetail(c.sales.name,{embedded:true,country:c.sales.country})+"</div>":"";
   return "<aside class='po-panel cb-panel"+(hasSales?" cb-panel-wide":"")+(CB_FULL?" cb-full":"")+"'><div class='cb-full-in'>"+
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(c.name)+"</span>"+
-      "<button class='cb-full-btn' title='"+(CB_FULL?"Back to the side panel (Esc)":"View this customer full screen")+"' onclick='cbToggleFull()'>"+(CB_FULL?"&#x2923; Exit full screen":"&#x2922; Full screen")+"</button>"+
-      "<button class='po-panel-x' aria-label='Close' onclick='cbOpen(\"\")'>&times;</button></div>"+
+      (CB_FULL?"":"<button class='trk-pn-expand' title='Open full page' aria-label='Open full page' onclick='cbToggleFull()'>&#x2922;</button>"+
+      "<button class='po-panel-x' aria-label='Close' onclick='cbOpen(\"\")'>&times;</button>")+"</div>"+
     (c.country?"<div class='trk-pn-cust'>"+trkFlag(c.country,16)+" "+Object.keys(c.countries).map(trkEsc).join(", ")+"</div>":"")+
     "<div class='cb-kpis'>"+
       "<div><b>"+(c.revenue?cbMoney(c.revenue):"&mdash;")+"</b><span>revenue</span></div>"+
@@ -305,12 +310,10 @@ function cbToggleCountry(k){
   try{localStorage.setItem("cb_shut",JSON.stringify(m));}catch(e){}
   renderCustBase();
 }
-/* full-screen customer view: the panel covers the page; Esc or the button goes back */
+/* expanded customer: the panel opens as a full page in the main area,
+   like an expanded tracker project; "All customers" goes back to the list */
 var CB_FULL=false;
-function cbToggleFull(){CB_FULL=!CB_FULL;renderCustBase();}
-document.addEventListener("keydown",function(e){
-  if(e.key==="Escape"&&CB_FULL&&currentTab==="custbase"&&!document.querySelector(".modal.open,.modal-overlay.open")){CB_FULL=false;renderCustBase();}
-});
+function cbToggleFull(){CB_FULL=!CB_FULL;renderCustBase();window.scrollTo(0,0);}
 function cbOpen(key){if(!key)CB_FULL=false;CB_SEL=key||"";renderCustBase();if(typeof syncRoute==="function")syncRoute();}
 function cbPickFilter(v){CB_FILTER=v;renderCustBase();}
 function cbPickSol(v){CB_SOL=v;renderCustBase();}

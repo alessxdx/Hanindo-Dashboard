@@ -8,7 +8,7 @@ function bStatus(s){
 function bTerm(t){const m={DDP:"b-ddp",DAP:"b-dap",EXW:"b-exw"};return`<span class="badge ${m[t]||"b-exw"}">${t}</span>`;}
 function bWarranty(w){if(!w)return"";const m={"5Y":"b-5y","3Y":"b-3y","2Y":"b-2y","1Y":"b-1y"};return`<span class="badge ${m[w]||"b-1y"}">${w} warranty</span>`;}
 
-let currentTab="customers",expandedCards={},expandedRows={};
+let currentTab="tracker",expandedCards={},expandedRows={};
 /* pencil used in place of the word "Edit" on row / entry edit buttons */
 var EDIT_ICO='<svg class="edit-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/></svg>';
 
@@ -1445,7 +1445,7 @@ function populateModelSelect(){
   }).join("");
 }
 function openModal(){
-  if(currentTab==="customers"||currentTab==="projects"||currentTab==="groups"){
+  if(currentTab==="customers"||currentTab==="custbase"||currentTab==="projects"||currentTab==="groups"){
     // New entries are created as projects (line items + PDF parsing).
     // The transaction modal is still used when editing legacy transactions.
     openProjectModal();

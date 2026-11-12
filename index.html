@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-12.10";
+var APP_VERSION = "2026-11-12.11";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -73,13 +73,6 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8" y2="11.01"/><line x1="12" y1="11" x2="12" y2="11.01"/><line x1="16" y1="11" x2="16" y2="11.01"/><line x1="8" y1="15" x2="8" y2="15.01"/><line x1="12" y1="15" x2="12" y2="15.01"/><line x1="16" y1="15" x2="16" y2="18"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
         </span>
         <span class="nav-label">Pricing Calculator</span>
-      </button>
-
-      <button class="nav-item active" data-tab="customers" onclick="setTab(this)">
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </span>
-        <span class="nav-label">By Customer</span>
       </button>
 
       <button class="nav-item" data-tab="custbase" onclick="setTab(this)">
@@ -138,7 +131,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <button class="icon-btn menu-toggle" onclick="openMobileSidebar()" aria-label="Open menu">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <h1 id="page-title">By Customer</h1>
+      <h1 id="page-title">Project Tracker</h1>
       <div class="topbar-actions">
         <div class="theme-switcher" id="theme-switcher" role="group" aria-label="Background theme">
           <button class="theme-swatch" data-theme-choice="light" onclick="setThemeChoice('light')" title="Light" aria-label="Light theme"></button>

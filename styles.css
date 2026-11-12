@@ -2649,12 +2649,8 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .cb-pill.cb-po{background:#ecfdf3;color:#067647;border-color:#abefc6}
 :root[data-theme="dark"] .cb-pill.cb-po{background:#053321;color:#75e0a7;border-color:#085d3a}
 .cb-hist-head{margin:22px 0 10px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-strong)}
-/* full-screen customer view */
-.cb-full-btn{margin-left:auto;flex-shrink:0;border:1px solid var(--border);background:var(--bg-stat);color:var(--text);font:inherit;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;cursor:pointer;white-space:nowrap}
-.cb-full-btn:hover{border-color:var(--border-strong);background:var(--bg-hover);color:var(--text-strong)}
-@media (max-width:980px){.cb-full-btn{display:none}} /* the panel already fills a phone screen */
-.cb-panel.cb-full{position:fixed;inset:0;z-index:150;max-height:none;border-radius:0;border:none;padding:24px 24px 40px;overflow-y:auto;background:var(--bg)}
-.cb-panel.cb-full .cb-full-in{max-width:1080px;margin:0 auto}
+/* expanded customer: the panel as a page in the main area */
+.cb-panel.cb-full{position:static;max-height:none;overflow:visible;padding:22px 26px 30px;border-radius:12px}
 .cb-panel.cb-full .po-panel-no{font-size:22px}
 .cb-panel.cb-full .cb-kpis{max-width:640px}
 .cb-panel.cb-full .cb-kpis b{font-size:19px}
