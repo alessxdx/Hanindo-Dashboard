@@ -1203,6 +1203,8 @@ function trkOpenViewer(url,name){
     body.innerHTML="<div class='empty'>Loading image&hellip;</div>";
     (typeof sbFileObjectUrl==="function"?sbFileObjectUrl(url):Promise.resolve(url)).then(function(src){
       body.innerHTML="<img src='"+trkEsc(src)+"' alt='"+trkEsc(name)+"' style='max-width:100%;height:auto;display:block;margin:0 auto'>";
+    }).catch(function(e){
+      body.innerHTML="<div class='empty'>Couldn&rsquo;t show this image: "+trkEsc(e.message)+". Try reloading the page, or use Open in new tab.</div>";
     });
   }else if(/\.(xlsx|xlsm|xls|csv)$/.test(n)){
     body.innerHTML="<div class='empty'>Loading spreadsheet&hellip;</div>";

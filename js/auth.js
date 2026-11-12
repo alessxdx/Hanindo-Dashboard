@@ -191,7 +191,10 @@ document.addEventListener("click",function(ev){
 async function sbFileObjectUrl(url){
   if(!sbDocPath(url))return url;
   var r=await fetch(url);
-  return r.ok?URL.createObjectURL(await r.blob()):url;
+  /* one retry with a fresh sign-in before giving up */
+  if(!r.ok&&(await sbRefresh()))r=await fetch(url);
+  if(!r.ok)throw new Error("the file could not be loaded ("+r.status+")");
+  return URL.createObjectURL(await r.blob());
 }
 
 /* a request refused for an expired / missing sign-in: refresh once, else
