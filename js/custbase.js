@@ -40,15 +40,9 @@ function cbSales(){
   if(typeof resolveDeals!=="function"||typeof TX==="undefined")return {txs:[],projs:[]};
   try{return resolveDeals();}catch(e){return {txs:[],projs:[]};}
 }
-/* The sales records have no solution field. These are Custom printer
-   sales (confirmed by the user, 12 Nov 2026): everything in China and
-   Singapore, plus Aboitiz and SITA. Others stay untagged until known. */
-var CB_SALES_CUSTOM_COUNTRIES=["China","Singapore"];
-var CB_SALES_CUSTOM_KEYS=["aboitiz","sita"];
-function cbSalesIsCustom(c){
-  var base=c.key.split(" ")[0];
-  return CB_SALES_CUSTOM_COUNTRIES.indexOf(c.country)>-1||CB_SALES_CUSTOM_KEYS.indexOf(c.key)>-1||CB_SALES_CUSTOM_KEYS.indexOf(base)>-1&&!!c.sales.country;
-}
+/* The sales records have no solution field. They are all Custom printer
+   sales (confirmed by the user for every sales customer, 12 Nov 2026). */
+function cbSalesIsCustom(c){return true;}
 function cbIso(ms){if(!ms)return "";var d=new Date(ms);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 
 /* one record per customer, from the tracker and the sales records together */
