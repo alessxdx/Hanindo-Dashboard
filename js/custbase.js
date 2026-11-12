@@ -281,7 +281,7 @@ function renderCustBase(){
     // under the name: the solution types bought / quoted (Custom, Posiva, Fire...);
     // the country is in the band above and the office is understood from it
     var sub=Object.keys(c.solutions).sort().map(function(s){return trkSolutionBadge({solution:s});}).join("");
-    return "<tr class='po-row cb-row"+(c.key===CB_SEL?" sel":"")+"' onclick='cbRowClick("+JSON.stringify(c.key).replace(/'/g,"&#39;")+")'>"+
+    return "<tr class='po-row cb-row"+(c.key===CB_SEL?" sel":"")+"' data-key='"+trkEsc(c.key)+"' onclick='cbRowClick("+JSON.stringify(c.key).replace(/'/g,"&#39;")+")'>"+
       "<td><div class='cb-name'>"+trkEsc(c.name)+"</div>"+(sub?"<div class='cb-sub'>"+sub+"</div>":"")+"</td>"+
       "<td class='num cb-c-n'>"+(cbUnits(c).units.length||"<span class='po-dim'>&mdash;</span>")+"</td>"+
       "<td><div class='cb-pills'>"+pills+"</div></td>"+
@@ -507,7 +507,19 @@ function cbRowClick(key){
   if(key&&key===CB_SEL){CB_FULL=true;renderCustBase();window.scrollTo(0,0);return;}
   cbOpen(key);
 }
-function cbOpen(key){if(!key)CB_FULL=false;CB_SEL=key||"";renderCustBase();if(typeof syncRoute==="function")syncRoute();}
+/* opening or closing the side panel narrows or widens the list, so names
+   wrap and rows change height; keep the clicked row where it was on screen */
+function cbRowTop(key){
+  var r=key&&document.querySelector(".cb-row[data-key='"+key+"']"); /* keys are only a-z, 0-9 and spaces (cbKey) */
+  return r?r.getBoundingClientRect().top:null;
+}
+function cbOpen(key){
+  var anchor=key||CB_SEL,t0=cbRowTop(anchor);
+  if(!key)CB_FULL=false;CB_SEL=key||"";renderCustBase();
+  var t1=cbRowTop(anchor);
+  if(t0!==null&&t1!==null&&Math.abs(t1-t0)>1)window.scrollBy(0,t1-t0);
+  if(typeof syncRoute==="function")syncRoute();
+}
 function cbPickFilter(v){CB_FILTER=v;renderCustBase();}
 function cbPickSol(v){CB_SOL=v;renderCustBase();}
 function cbPickCountry(v){CB_COUNTRY=v;renderCustBase();}
