@@ -345,10 +345,10 @@ function mdDocsHtml(deals){
 /* opts.embedded: drawn inside the Customer Base panel, which has its own
    name header and close button */
 function buildMdDetail(key,opts){
-  var embedded=!!(opts&&opts.embedded);
+  var embedded=!!(opts&&opts.embedded),only=opts&&opts.country; /* only: one country's records */
   var R=resolveDeals();
-  var txs=R.txs.filter(function(t){return t.customer===key;});
-  var projs=R.projs.filter(function(p){return p.customer===key;});
+  var txs=R.txs.filter(function(t){return t.customer===key&&(!only||t.country===only);});
+  var projs=R.projs.filter(function(p){return p.customer===key&&(!only||p.country===only);});
   if(!txs.length&&!projs.length)return "<div class='md-empty'>No entries for this customer.</div>";
   var ref=txs[0]||projs[0];
   var name=ref.customer,country=ref.country;

@@ -40,6 +40,15 @@ function cbSales(){
   if(typeof resolveDeals!=="function"||typeof TX==="undefined")return {txs:[],projs:[]};
   try{return resolveDeals();}catch(e){return {txs:[],projs:[]};}
 }
+/* The sales records have no solution field. These are Custom printer
+   sales (confirmed by the user, 12 Nov 2026): everything in China and
+   Singapore, plus Aboitiz and SITA. Others stay untagged until known. */
+var CB_SALES_CUSTOM_COUNTRIES=["China","Singapore"];
+var CB_SALES_CUSTOM_KEYS=["aboitiz","sita"];
+function cbSalesIsCustom(c){
+  var base=c.key.split(" ")[0];
+  return CB_SALES_CUSTOM_COUNTRIES.indexOf(c.country)>-1||CB_SALES_CUSTOM_KEYS.indexOf(c.key)>-1||CB_SALES_CUSTOM_KEYS.indexOf(base)>-1&&!!c.sales.country;
+}
 function cbIso(ms){if(!ms)return "";var d=new Date(ms);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 
 /* one record per customer, from the tracker and the sales records together */
@@ -68,10 +77,17 @@ function cbCustomers(){
   });
   /* sales records join the same company; the first sales name is what
      buildMdDetail looks the history up by */
-  var S=cbSales(),salesCty={};
+  var S=cbSales(),salesCty={},allSales=S.txs.concat(S.projs);
+  /* a sales-only company bought in several countries (SITA: Indonesia and
+     Philippines) is listed once per country, as "SITA Indonesia" etc. */
+  var spread={};
+  allSales.forEach(function(e){var k=cbKey(e.customer);if(k&&e.country)(spread[k]=spread[k]||{})[e.country]=1;});
   function addSale(e,kind){
     var k=cbKey(e.customer);if(!k)return;
-    var c=rec(k,e.customer);
+    var split=!by[k]&&spread[k]&&Object.keys(spread[k]).length>1;
+    if(split&&e.country)k=k+" "+cbKey(e.country);
+    var c=rec(k,split&&e.country?e.customer+" "+e.country:e.customer);
+    if(split&&e.country)c.sales.country=e.country;
     if(!c.sales.name)c.sales.name=e.customer;
     if(e.customer!==c.sales.name)return; /* a second spelling: its history stays on By Customer */
     c.sales[kind].push(e);
@@ -89,6 +105,7 @@ function cbCustomers(){
     Object.keys(salesCty[c.key]||{}).forEach(function(k){c.countries[k]=1;});
     c.country=Object.keys(c.countries)[0]||"";
     var sx=c.sales;
+    if((sx.txs.length||sx.projs.length)&&cbSalesIsCustom(c))c.solutions.Custom=1;
     if(sx.txs.length||sx.projs.length){
       c.pos=mdCountSt(sx.txs,"PO")+mdCountSt(sx.projs,"PO");
       c.quotes=sx.txs.concat(sx.projs).filter(function(e){return e.status==="Quotation";}).length;
@@ -173,9 +190,7 @@ function renderCustBase(){
       (c.quotes&&!c.projects.length?"<span class='cb-pill cb-ongoing' title='Open quotations in the sales records'>"+c.quotes+" quote"+(c.quotes===1?"":"s")+"</span>":"");
     // under the name: the solution types bought / quoted (Custom, Posiva, Fire...);
     // the country is in the band above and the office is understood from it
-    var other=Object.keys(c.countries).filter(function(k){return k!==c.country;});
-    var sols=Object.keys(c.solutions).sort().map(function(s){return trkSolutionBadge({solution:s});}).join("");
-    var sub=sols+(other.length?"<span>also "+other.map(trkEsc).join(", ")+"</span>":"");
+    var sub=Object.keys(c.solutions).sort().map(function(s){return trkSolutionBadge({solution:s});}).join("");
     return "<tr class='po-row cb-row"+(c.key===CB_SEL?" sel":"")+"' onclick='cbOpen("+JSON.stringify(c.key).replace(/'/g,"&#39;")+")'>"+
       "<td><div class='cb-name'>"+trkEsc(c.name)+"</div>"+(sub?"<div class='cb-sub'>"+sub+"</div>":"")+"</td>"+
       "<td class='num cb-c-n'>"+(c.projects.length||"<span class='po-dim'>&mdash;</span>")+"</td>"+
@@ -270,9 +285,10 @@ function cbPanelHtml(c){
   /* the By Customer history (revenue, printers by model, every order and
      document), drawn by the same code that page uses */
   var history=hasSales&&typeof buildMdDetail==="function"?
-    "<div class='cb-hist-head'>PO &amp; quotation history</div><div class='cb-hist'>"+buildMdDetail(c.sales.name,{embedded:true})+"</div>":"";
-  return "<aside class='po-panel cb-panel"+(hasSales?" cb-panel-wide":"")+"'>"+
+    "<div class='cb-hist-head'>PO &amp; quotation history</div><div class='cb-hist'>"+buildMdDetail(c.sales.name,{embedded:true,country:c.sales.country})+"</div>":"";
+  return "<aside class='po-panel cb-panel"+(hasSales?" cb-panel-wide":"")+(CB_FULL?" cb-full":"")+"'><div class='cb-full-in'>"+
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(c.name)+"</span>"+
+      "<button class='cb-full-btn' title='"+(CB_FULL?"Back to the side panel (Esc)":"View this customer full screen")+"' onclick='cbToggleFull()'>"+(CB_FULL?"&#x2923; Exit full screen":"&#x2922; Full screen")+"</button>"+
       "<button class='po-panel-x' aria-label='Close' onclick='cbOpen(\"\")'>&times;</button></div>"+
     (c.country?"<div class='trk-pn-cust'>"+trkFlag(c.country,16)+" "+Object.keys(c.countries).map(trkEsc).join(", ")+"</div>":"")+
     "<div class='cb-kpis'>"+
@@ -283,7 +299,7 @@ function cbPanelHtml(c){
     details+
     secs+
     history+
-  "</aside>";
+  "</div></aside>";
 }
 
 /* folded country bands are remembered on this device */
@@ -295,7 +311,13 @@ function cbToggleCountry(k){
   try{localStorage.setItem("cb_shut",JSON.stringify(m));}catch(e){}
   renderCustBase();
 }
-function cbOpen(key){CB_SEL=key||"";renderCustBase();if(typeof syncRoute==="function")syncRoute();}
+/* full-screen customer view: the panel covers the page; Esc or the button goes back */
+var CB_FULL=false;
+function cbToggleFull(){CB_FULL=!CB_FULL;renderCustBase();}
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape"&&CB_FULL&&currentTab==="custbase"&&!document.querySelector(".modal.open,.modal-overlay.open")){CB_FULL=false;renderCustBase();}
+});
+function cbOpen(key){if(!key)CB_FULL=false;CB_SEL=key||"";renderCustBase();if(typeof syncRoute==="function")syncRoute();}
 function cbPickFilter(v){CB_FILTER=v;renderCustBase();}
 function cbPickSol(v){CB_SOL=v;renderCustBase();}
 function cbPickCountry(v){CB_COUNTRY=v;renderCustBase();}
