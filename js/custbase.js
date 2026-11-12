@@ -112,21 +112,13 @@ function renderCustBase(){
   if(CB_SOL&&solKeys.indexOf(CB_SOL)<0)solKeys.push(CB_SOL);
   var ctyKeys=Object.keys(ctyN).sort(function(a,b){if(!a!==!b)return a?-1:1;return ctyN[b]-ctyN[a]||a.localeCompare(b);});
   if(CB_COUNTRY&&ctyKeys.indexOf(CB_COUNTRY)<0)ctyKeys.push(CB_COUNTRY);
-  var chip=function(fn,v,cur,inner,n){
-    return "<button class='trk-chip cb-chip"+(v===cur?" active":"")+"' onclick='"+fn+"("+JSON.stringify(v).replace(/'/g,"&#39;")+")'>"+inner+
-      (n!==undefined?"<span class='cb-chip-n'>"+n+"</span>":"")+"</button>";
-  };
-  var chips=
-    "<div class='cb-chips'>"+
-      "<div class='cb-chip-row'><span class='cb-chip-lbl'>Solution</span><div class='cb-chip-set'>"+
-        chip("cbPickSol","",CB_SOL,"All")+
-        solKeys.map(function(s){return chip("cbPickSol",s,CB_SOL,"<span class='trk-sol-dot' style='background:"+trkSolutionColor(s)+"'></span>"+trkEsc(s),solN[s]||0);}).join("")+
-      "</div></div>"+
-      "<div class='cb-chip-row'><span class='cb-chip-lbl'>Country</span><div class='cb-chip-set'>"+
-        chip("cbPickCountry","",CB_COUNTRY,"All")+
-        ctyKeys.map(function(k){return chip("cbPickCountry",k,CB_COUNTRY,(k?trkFlag(k,14)+" "+trkEsc(k):"No country"),ctyN[k]||0);}).join("")+
-      "</div></div>"+
-    "</div>";
+  var chips="";
+  toolbar=toolbar.replace(/<\/div>$/,
+    uiDropdown({key:"cb-sol",onPick:"cbPickSol",cur:CB_SOL,opts:[{value:"",label:"All solutions"}].concat(
+      solKeys.map(function(s){return {value:s,label:s,count:solN[s]||0,color:trkSolutionColor(s)};}))})+
+    uiDropdown({key:"cb-country",onPick:"cbPickCountry",cur:CB_COUNTRY,opts:[{value:"",label:"All countries"}].concat(
+      ctyKeys.map(function(k){return {value:k,label:k||"No country",count:ctyN[k]||0};}))})+
+    "</div>");
   var sel=CB_SEL?all.filter(function(c){return c.key===CB_SEL;})[0]:null;
   var row=function(c){
     var pills=CB_CATS.map(function(x){
@@ -248,8 +240,8 @@ function cbToggleCountry(k){
 }
 function cbOpen(key){CB_SEL=key||"";renderCustBase();if(typeof syncRoute==="function")syncRoute();}
 function cbPickFilter(v){CB_FILTER=v;renderCustBase();}
-function cbPickSol(v){CB_SOL=(v&&v===CB_SOL)?"":v;renderCustBase();}
-function cbPickCountry(v){CB_COUNTRY=(v&&v===CB_COUNTRY)?"":v;renderCustBase();}
+function cbPickSol(v){CB_SOL=v;renderCustBase();}
+function cbPickCountry(v){CB_COUNTRY=v;renderCustBase();}
 function cbSearchInput(v){
   CB_Q=v;
   clearTimeout(CB_Q_T);
