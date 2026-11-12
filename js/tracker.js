@@ -401,16 +401,16 @@ function trkSyncToolbar(){
      tab that can add something; the computer's tracker uses its own button */
   var tb=document.getElementById("toolbar");
   tb.classList.toggle("trk-fab",currentTab==="tracker");
-  tb.classList.toggle("has-fab",["custbase","tracker","po","buying","spares","others"].indexOf(currentTab)>-1);
-  if(currentTab==="today"){btn.style.display="none";return;} /* Today only reads */
+  tb.classList.toggle("has-fab",["tracker","po","buying","spares","others"].indexOf(currentTab)>-1);
+  /* Today only reads; Customer Base is built from the tracker's projects
+     (a new customer appears as soon as a project for it is added there) */
+  if(currentTab==="today"||currentTab==="custbase"){btn.style.display="none";return;}
   if(currentTab==="tracker"){
     if(TRK_SEL&&TRK_VIEW==="cal"){btn.style.display="none";}
     else{btn.style.display="";btn.innerHTML=TRK_BTN_HTML.replace("Add entry","Add project");}
   }else{
-    /* on Customer Base the button adds a sales record (PO / quotation),
-       the job By Customer's Add entry used to do */
     btn.style.display="";
-    btn.innerHTML=currentTab==="custbase"?TRK_BTN_HTML.replace("Add entry","Add sales entry"):TRK_BTN_HTML;
+    btn.innerHTML=TRK_BTN_HTML;
   }
 }
 
