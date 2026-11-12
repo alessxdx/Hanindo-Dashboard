@@ -2756,3 +2756,6 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .cb-projd[open]>summary.cb-proj{border-bottom-left-radius:0;border-bottom-right-radius:0;border-color:var(--border-strong);background:var(--bg-hover)}
 .cb-projd-body{border:1px solid var(--border-strong);border-top:0;border-radius:0 0 8px 8px;padding:4px 11px 10px}
 .cb-projd-body .po-panel-sec{margin-top:10px}
+/* inside Customer Base the order already sits under its group, so the
+   order card's own link to the group page is left out */
+.cb-ord .od-group{display:none}
