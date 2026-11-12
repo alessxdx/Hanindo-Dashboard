@@ -48,13 +48,40 @@ function cbSalesIsCustom(c){return !Object.keys(c.solutions).length;}
 /* this customer's split POs: project groups whose entries all carry the
    same PO file (pgKind "loc"), with just this customer's entries */
 var CB_GROUPS_CACHE=null;
-function cbSplitPos(sx){
+/* this customer's project groups with more than one entry. kind "loc" =
+   one PO over several locations (BQuik); "proj" = one project/location with
+   several POs (Singapore Airlines). all=false keeps only the "loc" ones. */
+function cbSplitPos(sx,all){
   if(typeof computeProjectGroups!=="function"||typeof pgKind!=="function")return [];
   var mine=sx.txs.concat(sx.projs);
-  return (CB_GROUPS_CACHE||[]).filter(function(g){return pgKind(g).kind==="loc";}).map(function(g){
+  return (CB_GROUPS_CACHE||[]).map(function(g){
     var entries=g.txs.concat(g.projs).filter(function(e){return mine.indexOf(e)>-1;});
-    return {g:g,entries:entries};
-  }).filter(function(x){return x.entries.length>1;});
+    return {g:g,kind:pgKind(g),entries:entries};
+  }).filter(function(x){return x.entries.length>1&&(all||x.kind.kind==="loc");});
+}
+function cbDocCount(parts){
+  var es=parts.map(function(x){return x.p||x.t;});
+  var po=es.filter(function(e){return e.status==="PO";}).length,qt=es.filter(function(e){return e.status==="Quotation";}).length;
+  return [po?po+" PO"+(po!==1?"s":""):"",qt?qt+" quote"+(qt!==1?"s":""):""].filter(Boolean).join(", ")||es.length+" entries";
+}
+/* tracker projects that belong to one project group (BQuik's 4 stores on
+   one split PO) fold into one; count = projects with each group as one */
+function cbProjGroups(c){
+  var pGroups=[],inGroup={};
+  if(c.sales.txs.length||c.sales.projs.length){
+    cbSplitPos(c.sales,true).forEach(function(sp){
+      var keys=(sp.kind.kind==="loc"?sp.kind.parts:[sp.g.name]).map(function(x){return String(x).toLowerCase();}).filter(Boolean);
+      var ps=c.projects.filter(function(p){
+        var n=String(p.name||"").toLowerCase();
+        return !inGroup[p._id]&&keys.some(function(k){return n.indexOf(k)>-1;});
+      });
+      if(ps.length<2)return;
+      ps.forEach(function(p){inGroup[p._id]=1;});
+      var cat=CB_CATS.filter(function(x){return ps.some(function(p){return cbCat(p)===x.k;});})[0].k;
+      pGroups.push({sp:sp,ps:ps,cat:cat});
+    });
+  }
+  return {groups:pGroups,inGroup:inGroup,count:c.projects.length-Object.keys(inGroup).length+pGroups.length};
 }
 function cbIso(ms){if(!ms)return "";var d=new Date(ms);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 
@@ -214,7 +241,7 @@ function renderCustBase(){
     var sub=Object.keys(c.solutions).sort().map(function(s){return trkSolutionBadge({solution:s});}).join("");
     return "<tr class='po-row cb-row"+(c.key===CB_SEL?" sel":"")+"' onclick='cbRowClick("+JSON.stringify(c.key).replace(/'/g,"&#39;")+")'>"+
       "<td><div class='cb-name'>"+trkEsc(c.name)+"</div>"+(sub?"<div class='cb-sub'>"+sub+"</div>":"")+"</td>"+
-      "<td class='num cb-c-n'>"+(c.projects.length||"<span class='po-dim'>&mdash;</span>")+"</td>"+
+      "<td class='num cb-c-n'>"+(cbProjGroups(c).count||"<span class='po-dim'>&mdash;</span>")+"</td>"+
       "<td><div class='cb-pills'>"+pills+"</div></td>"+
       "<td class='num cb-c-val'>"+(c.revenue?"<span class='po-amt'>"+cbMoney(c.revenue)+"</span>":"<span class='po-dim'>&mdash;</span>")+"</td>"+
       "<td class='cb-c-last po-dim'>"+(c.last?trkFmtDate(c.last):"")+"</td>"+
@@ -278,19 +305,39 @@ function cbPanelHtml(c){
     });
   });
   var sols=Object.keys(c.solutions).sort().map(function(s){return trkSolutionBadge({solution:s});}).join(" ");
+  var projBtn=function(p,k){
+    var u=p.estValue!==null?trkEsc(p.estValue.toLocaleString())+" "+trkEsc(p.currency):"";
+    return "<button class='cb-proj' onclick='navTo(\"tracker\","+JSON.stringify(p._id).replace(/'/g,"&#39;")+")'>"+
+      "<span class='cb-proj-name'>"+trkDisplayName(p)+"</span>"+
+      "<span class='cb-proj-meta'>"+trkStatusBadge(p.status)+trkPaymentBadge(p)+(p.lowPriority&&k==="ongoing"?trkLowBadge():"")+
+        (p.solution?trkSolutionBadge(p):"")+"</span>"+
+      "<span class='cb-proj-foot'><span>"+(p._cbLast?trkFmtDate(p._cbLast):"")+"</span><span>"+u+"</span></span>"+
+    "</button>";
+  };
+  /* tracker projects that are the locations of one split PO (BQuik's 4
+     stores) fold into one card, so the list matches the one PO */
+  var pg=cbProjGroups(c),pGroups=pg.groups,inGroup=pg.inGroup;
+  var pGroupHtml=function(gr,k){
+    var sp=gr.sp,po=typeof pgSharedPo==="function"?pgSharedPo(sp.g):"";
+    var cur={};gr.ps.forEach(function(p){if(p.estValue!==null)cur[p.currency]=(cur[p.currency]||0)+p.estValue;});
+    var tot=Object.keys(cur).map(function(x){return trkEsc(cur[x].toLocaleString())+" "+trkEsc(x);}).join(" + ");
+    var st={};gr.ps.forEach(function(p){st[p.status]=(st[p.status]||0)+1;});
+    var mix=Object.keys(st).map(function(x){return st[x]+" "+trkEsc(x.toLowerCase());}).join(", ");
+    return "<details class='cb-ord cb-ord-split cb-pgrp'><summary>"+
+      "<span class='cb-ord-chev'>&#9656;</span>"+
+      "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(sp.g.name)+(po?" <span class='cb-ord-po'>PO "+trkEsc(po)+"</span>":"")+"</span>"+
+        "<span class='cb-ord-sub'>"+(sp.kind.kind==="loc"?"&#128205; 1 PO &middot; "+gr.ps.length+" locations":"&#128279; 1 project &middot; "+gr.ps.length+" entries")+" &middot; "+mix+"</span></span>"+
+      "<span class='cb-ord-tot'>"+tot+"</span>"+
+    "</summary><div class='cb-split-body'>"+gr.ps.map(function(p){return projBtn(p,k);}).join("")+"</div></details>";
+  };
+  var projCount=pg.count;
   var secs=CB_CATS.map(function(x){
-    var ps=c.projects.filter(function(p){return cbCat(p)===x.k;});
-    if(!ps.length)return"";
-    return "<div class='po-panel-sec cb-sec cb-sec-"+x.k+"'>"+x.label+" &middot; "+ps.length+"</div>"+
-      ps.map(function(p){
-        var u=p.estValue!==null?trkEsc(p.estValue.toLocaleString())+" "+trkEsc(p.currency):"";
-        return "<button class='cb-proj' onclick='navTo(\"tracker\","+JSON.stringify(p._id).replace(/'/g,"&#39;")+")'>"+
-          "<span class='cb-proj-name'>"+trkDisplayName(p)+"</span>"+
-          "<span class='cb-proj-meta'>"+trkStatusBadge(p.status)+trkPaymentBadge(p)+(p.lowPriority&&x.k==="ongoing"?trkLowBadge():"")+
-            (p.solution?trkSolutionBadge(p):"")+"</span>"+
-          "<span class='cb-proj-foot'><span>"+(p._cbLast?trkFmtDate(p._cbLast):"")+"</span><span>"+u+"</span></span>"+
-        "</button>";
-      }).join("");
+    var ps=c.projects.filter(function(p){return cbCat(p)===x.k&&!inGroup[p._id];});
+    var gs=pGroups.filter(function(g){return g.cat===x.k;});
+    if(!ps.length&&!gs.length)return"";
+    return "<div class='po-panel-sec cb-sec cb-sec-"+x.k+"'>"+x.label+" &middot; "+(ps.length+gs.length)+"</div>"+
+      gs.map(function(g){return pGroupHtml(g,x.k);}).join("")+
+      ps.map(function(p){return projBtn(p,x.k);}).join("");
   }).join("");
   var info=function(label,html){return html?"<div class='trk-pn-row'><span>"+label+"</span><div>"+html+"</div></div>":"";};
   var details=
@@ -307,7 +354,7 @@ function cbPanelHtml(c){
   }).sort(function(a,b){return a.name.localeCompare(b.name);}):[];
   /* split POs (one PO file over several locations) show as ONE order in
      the list; the other groups keep a one-line link above the orders */
-  var splits=hasSales?cbSplitPos(c.sales):[];
+  var splits=hasSales?cbSplitPos(c.sales,true):[];
   var splitOf=function(e){return splits.filter(function(x){return x.entries.indexOf(e)>-1;})[0];};
   var groupsHtml=groups.filter(function(g){return !splits.some(function(x){return x.g.name===g.name;});}).map(function(g){
     var k=pgKind(g),units=pgUnits(g);
@@ -355,14 +402,16 @@ function cbPanelHtml(c){
         return head+"<details class='cb-ord cb-ord-split'><summary>"+
           "<span class='cb-ord-chev'>&#9656;</span>"+
           "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(g.name)+(po?" <span class='cb-ord-po'>PO "+trkEsc(po)+"</span>":"")+"</span>"+
-            "<span class='cb-ord-sub'>"+trkEsc(e0.displayDate||e0.date||"")+" &middot; &#128205; 1 PO split over "+d.parts.length+" locations</span></span>"+
+            "<span class='cb-ord-sub'>"+trkEsc(e0.displayDate||e0.date||"")+" &middot; "+(d.split.kind.kind==="loc"?"&#128205; 1 PO split over "+d.parts.length+" locations":"&#128279; 1 project &middot; "+cbDocCount(d.parts))+"</span></span>"+
           bStatus(e0.status)+
           "<span class='cb-ord-tot'>"+money(tot,cur)+"</span>"+
         "</summary>"+
         "<div class='cb-split-body'>"+d.parts.map(function(x){
           var e=x.p||x.t;
           return "<details class='cb-ord cb-ord-loc'><summary><span class='cb-ord-chev'>&#9656;</span>"+
-            "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(shortTitle(e))+"</span></span>"+
+            "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(shortTitle(e))+"</span>"+
+              (d.split.kind.kind==="loc"?"":"<span class='cb-ord-sub'>"+trkEsc(e.displayDate||e.date||"")+"</span>")+"</span>"+
+            (d.split.kind.kind==="loc"?"":bStatus(e.status))+
             "<span class='cb-ord-tot'>"+money(dealTotal(x),e.currency)+"</span></summary>"+mdOrderCard(x)+"</details>";
         }).join("")+
         "<button class='cb-split-open' onclick='openProjectGroup("+JSON.stringify(g.name).replace(/'/g,"&#39;")+")'>Open the group page &rsaquo;</button></div>"+
@@ -388,7 +437,7 @@ function cbPanelHtml(c){
 
   /* tabs: only one list shows at a time, so the page stays short */
   var tabs=[];
-  if(c.projects.length)tabs.push({k:"projects",label:"Projects",n:c.projects.length,html:secs});
+  if(c.projects.length)tabs.push({k:"projects",label:"Projects",n:projCount,html:secs});
   if(items.length)tabs.push({k:"orders",label:"Orders",n:items.length,html:
     (groupsHtml?"<div class='cb-grplines'>"+groupsHtml+"</div>":"")+modelsHtml+ordersHtml});
   if(docCount)tabs.push({k:"docs",label:"Documents",n:docCount,html:docsHtml});
@@ -409,7 +458,7 @@ function cbPanelHtml(c){
     "<div class='cb-kpis'>"+
       "<div><b>"+(c.revenue?cbMoney(c.revenue):"&mdash;")+"</b><span>revenue</span></div>"+
       "<div><b>"+(c.pos||"&mdash;")+"</b><span>confirmed PO"+(c.pos===1?"":"s")+"</span></div>"+
-      "<div><b>"+(c.projects.length||"&mdash;")+"</b><span>tracker projects</span></div>"+
+      "<div><b>"+(projCount||"&mdash;")+"</b><span>tracker project"+(projCount===1?"":"s")+"</span></div>"+
     "</div>"+
     details+
     tabsHtml+
