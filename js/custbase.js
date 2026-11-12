@@ -281,6 +281,20 @@ function cbPanelHtml(c){
     }).join(""));
   if(details)details="<div class='po-panel-sec'>Details</div>"+details;
   var hasSales=c.sales.txs.length||c.sales.projs.length;
+  /* this customer's project groups (one PO over several sites, or one
+     project with several POs); a card opens the group page */
+  var groups=hasSales&&typeof computeProjectGroups==="function"?computeProjectGroups().filter(function(g){
+    return g.txs.concat(g.projs).some(function(e){return e.customer===c.sales.name&&(!c.sales.country||e.country===c.sales.country);});
+  }).sort(function(a,b){return a.name.localeCompare(b.name);}):[];
+  var groupsHtml=groups.length?"<div class='po-panel-sec'>Project groups &middot; "+groups.length+"</div>"+groups.map(function(g){
+    var k=pgKind(g),units=pgUnits(g);
+    return "<button class='cb-proj cb-group' onclick='openProjectGroup("+JSON.stringify(g.name).replace(/'/g,"&#39;")+")'>"+
+      "<span class='cb-proj-name'>&#128279; "+trkEsc(g.name)+(units?" <span class='pg-units'>("+units+")</span>":"")+"</span>"+
+      "<span class='cb-proj-meta'><span class='pg-kind pg-kind-"+k.kind+"'>"+(k.kind==="loc"?"&#128205; ":"&#128196; ")+k.label+"</span></span>"+
+      "<span class='cb-group-parts'>"+k.parts.map(function(x){return "<span class='pg-part'>"+trkEsc(x)+"</span>";}).join("")+"</span>"+
+      "<span class='cb-proj-foot'><span>Group total</span><span class='cb-group-tot'>"+pgTotalsCompact(mdGroupTotals(g.txs,g.projs))+"</span></span>"+
+    "</button>";
+  }).join(""):"";
   /* the By Customer history (revenue, printers by model, every order and
      document), drawn by the same code that page uses */
   var history=hasSales&&typeof buildMdDetail==="function"?
@@ -297,6 +311,7 @@ function cbPanelHtml(c){
     "</div>"+
     details+
     secs+
+    groupsHtml+
     history+
   "</div></aside>";
 }

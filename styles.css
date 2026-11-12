@@ -2648,6 +2648,10 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 @media (min-width:1280px){.po-split.has-sel:has(.cb-panel-wide){grid-template-columns:minmax(0,1fr) 480px}}
 .cb-pill.cb-po{background:#ecfdf3;color:#067647;border-color:#abefc6}
 :root[data-theme="dark"] .cb-pill.cb-po{background:#053321;color:#75e0a7;border-color:#085d3a}
+.cb-group-parts{display:flex;flex-wrap:wrap;gap:4px}
+.cb-group-parts .pg-part{margin:0}
+.cb-group-tot{font-weight:700;color:var(--text-strong);text-align:right}
+.cb-group-tot .pg-amt{display:inline}
 .cb-hist-head{margin:22px 0 10px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-strong)}
 /* expanded customer: the panel as a page in the main area */
 .cb-panel.cb-full{position:static;max-height:none;overflow:visible;padding:22px 26px 30px;border-radius:12px}

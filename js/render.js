@@ -1450,7 +1450,7 @@ function openModal(){
     // The transaction modal is still used when editing legacy transactions.
     openProjectModal();
     // Inside a project group: pre-fill the group and its customer
-    if(currentTab==="groups"&&typeof MD_GROUP_SEL!=="undefined"&&MD_GROUP_SEL){
+    if(typeof MD_GROUP_SEL!=="undefined"&&MD_GROUP_SEL){
       document.getElementById("p-group").value=MD_GROUP_SEL;
       var gp=PROJECTS.find(function(p){return p.projectGroup===MD_GROUP_SEL;});
       if(gp){

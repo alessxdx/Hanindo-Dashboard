@@ -31,12 +31,16 @@ function navTo(tab, sel){
   document.querySelectorAll(".nav-item[data-tab]").forEach(function(b){
     b.classList.toggle("active", b.dataset.tab === tab);
   });
+  /* Project Groups was folded into Customer Base: a group page
+     (#groups/<name>) opens there, and plain #groups shows the customer list */
+  var isGroup = tab === "groups";
+  if(isGroup){ tab = "custbase"; document.querySelectorAll(".nav-item[data-tab]").forEach(function(b){ b.classList.toggle("active", b.dataset.tab === tab); }); }
   currentTab = tab;
-  MD_GROUP_SEL = (tab === "groups" && sel) ? sel : null;
+  MD_GROUP_SEL = (isGroup && sel) ? sel : null;
   /* Re-clicking the tracker tab returns to its list view; leaving it
      restores the customer stat row the tracker replaced. */
   if(typeof TRK_SEL !== "undefined") TRK_SEL = (tab === "tracker" && sel) ? sel : null;
-  if(typeof CB_SEL !== "undefined") CB_SEL = (tab === "custbase" && sel) ? sel : "";
+  if(typeof CB_SEL !== "undefined") CB_SEL = (tab === "custbase" && sel && !isGroup) ? sel : "";
   if(typeof MD_SEL !== "undefined" && tab === "customers"){ MD_SEL = sel || null; MD_SEL_ROUTED = !!sel; }
   if(currentTab !== "tracker" && currentTab !== "po" && currentTab !== "pricing" && currentTab !== "custbase" && typeof renderStats === "function") renderStats();
   /* restore the toolbar add button's label/visibility when leaving tracker */
@@ -530,6 +534,8 @@ function parseHash(){
   /* no page in the address (plain site link, home-screen icon) opens the tracker */
   /* By Customer was merged into Customer Base: old links land there */
   if(tab === "customers"){ tab = "custbase"; sel = sel && typeof cbKey === "function" ? cbKey(sel.split("__")[0]) : ""; }
+  /* so was Project Groups: its list is now the customer list */
+  if(tab === "groups" && !sel) tab = "custbase";
   if(!TAB_TITLES[tab]){ tab = "tracker"; sel = ""; }
   return { tab: tab, sel: sel };
 }
@@ -577,7 +583,7 @@ window.addEventListener("hashchange", applyRoute);
 (function initRoute(){
   applyRoute();
   /* an old #customers link: show the Customer Base address instead */
-  if(/^#customers/.test(location.hash)){
+  if(/^#customers|^#groups$/.test(location.hash)){
     var s = routeState();
     history.replaceState(null, "", location.pathname + location.search + "#" + s.tab + (s.sel ? "/" + encodeURIComponent(s.sel) : ""));
   }
