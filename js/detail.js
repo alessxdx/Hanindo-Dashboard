@@ -413,10 +413,13 @@ function buildMdDetail(key,opts){
       "<div class='md-kpi'><div class='md-kpi-l'>Printers</div><div class='md-money-line'>"+totalPo.toLocaleString()+" <span class='md-kpi-u'>ordered</span></div>"+
         (totalQt?"<div class='md-kpi-s'>"+totalQt.toLocaleString()+" more quoted</div>":"")+"</div>"+
     "</div>")+
+    /* embedded: the printer table only for Custom printer customers that
+       have printer quantities (store equipment etc. has none) */
+    (embedded&&(!opts.models||!(modelKeys.length||spareKeys.length))?"":
     "<div class='md-section'>"+
       "<div class='md-section-title'>Printers by model</div>"+
       modelsTable+
-    "</div>"+
+    "</div>")+
     fxBlock+
     "<div class='md-section md-orders'>"+
       "<div class='md-section-title md-orders-head'>Orders &amp; quotations <span class='nt-n'>"+deals.length+"</span>"+

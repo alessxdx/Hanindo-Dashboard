@@ -40,9 +40,11 @@ function cbSales(){
   if(typeof resolveDeals!=="function"||typeof TX==="undefined")return {txs:[],projs:[]};
   try{return resolveDeals();}catch(e){return {txs:[],projs:[]};}
 }
-/* The sales records have no solution field. They are all Custom printer
-   sales (confirmed by the user for every sales customer, 12 Nov 2026). */
-function cbSalesIsCustom(c){return true;}
+/* The sales records have no solution field. A customer the tracker has
+   tagged keeps the tracker's tags (BQuik: Automotive only); one with no
+   tag there is a Custom printer customer (confirmed by the user for every
+   sales-only customer, 12 Nov 2026). */
+function cbSalesIsCustom(c){return !Object.keys(c.solutions).length;}
 function cbIso(ms){if(!ms)return "";var d=new Date(ms);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 
 /* one record per customer, from the tracker and the sales records together */
@@ -272,9 +274,6 @@ function cbPanelHtml(c){
   }).join("");
   var info=function(label,html){return html?"<div class='trk-pn-row'><span>"+label+"</span><div>"+html+"</div></div>":"";};
   var details=
-    info("Win rate",c.winRate===null?"":c.winRate+"% <span class='po-dim'>of closed projects</span>")+
-    info("Office",Object.keys(c.offices).sort().map(function(o){return "<span class='trk-badge trk-office po-of-"+poOfficeSlug(o)+"'>"+trkEsc(o)+"</span>";}).join(" "))+
-    info("Solutions",sols)+
     info("Open pipeline",c.openUSD?cbMoney(c.openUSD)+" <span class='po-dim'>USD est.</span>":"")+
     info(contacts.length>1?"Contacts":"Contact",contacts.map(function(x){
       return "<div class='trk-xc-show'>"+trkEsc(x.name)+(x.position?" &middot; "+trkEsc(x.position):"")+(x.info?"<div class='trk-value-usd'>"+trkEsc(x.info)+"</div>":"")+"</div>";
@@ -298,12 +297,13 @@ function cbPanelHtml(c){
   /* the By Customer history (revenue, printers by model, every order and
      document), drawn by the same code that page uses */
   var history=hasSales&&typeof buildMdDetail==="function"?
-    "<div class='cb-hist-head'>PO &amp; quotation history</div><div class='cb-hist'>"+buildMdDetail(c.sales.name,{embedded:true,country:c.sales.country})+"</div>":"";
+    "<div class='cb-hist-head'>PO &amp; quotation history</div><div class='cb-hist'>"+buildMdDetail(c.sales.name,{embedded:true,country:c.sales.country,models:!!c.solutions.Custom})+"</div>":"";
   return "<aside class='po-panel cb-panel"+(hasSales?" cb-panel-wide":"")+(CB_FULL?" cb-full":"")+"'><div class='cb-full-in'>"+
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(c.name)+"</span>"+
       (CB_FULL?"":"<button class='trk-pn-expand' title='Open full page' aria-label='Open full page' onclick='cbToggleFull()'>&#x2922;</button>"+
       "<button class='po-panel-x' aria-label='Close' onclick='cbOpen(\"\")'>&times;</button>")+"</div>"+
     (c.country?"<div class='trk-pn-cust'>"+trkFlag(c.country,16)+" "+Object.keys(c.countries).map(trkEsc).join(", ")+"</div>":"")+
+    (sols?"<div class='cb-pn-sols'>"+sols+"</div>":"")+
     "<div class='cb-kpis'>"+
       "<div><b>"+(c.revenue?cbMoney(c.revenue):"&mdash;")+"</b><span>revenue</span></div>"+
       "<div><b>"+(c.pos||"&mdash;")+"</b><span>confirmed POs</span></div>"+
