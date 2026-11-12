@@ -1159,6 +1159,9 @@ details.others-sec:not([open]) > summary{border-bottom:none}
 .trk-tl-title{font-size:17px;font-weight:600;color:var(--text-strong);margin-top:6px}
 .trk-tl-details{font-size:16px;color:var(--text);line-height:1.7;margin-top:6px}
 .txt-ln{min-height:1em;overflow-wrap:anywhere}
+.txt-li{display:flex;gap:.4em;margin-left:16px}
+.txt-li>.txt-mk{flex:none;min-width:1.3em}
+.txt-li>span:last-child{min-width:0;flex:1}
 .po-panel-note.txt-lines{white-space:normal}
 .trk-tl-atts{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
 .trk-att{

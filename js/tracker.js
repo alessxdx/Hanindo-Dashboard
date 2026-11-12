@@ -55,7 +55,11 @@ function trkLines(s){
     var ind=/^[ \t]*/.exec(l)[0],lv=Math.ceil(ind.replace(/\t/g,"    ").length/4),t=l.slice(ind.length);
     // "a." / "b)" sub-points typed without an indent still sit under the numbered point above
     if(!lv&&/^[a-z][.)]\s/.test(t))lv=1;
-    return "<div class='txt-ln'"+(lv?" style='padding-left:"+(lv*1.6)+"em'":"")+">"+(t?fmtInline(trkEsc(t)):"&nbsp;")+"</div>";
+    var st=lv?" style='padding-left:"+(lv*1.6)+"em'":"";
+    // "1." / "•" / "a)" lines hang, so wrapped text lines up under the text like in an email
+    var mk=/^(•|\d+[.)]|[a-z][.)])\s+(\S[^]*)$/.exec(t);
+    if(mk)return "<div class='txt-ln txt-li'"+st+"><span class='txt-mk'>"+trkEsc(mk[1])+"</span><span>"+fmtInline(trkEsc(mk[2]))+"</span></div>";
+    return "<div class='txt-ln'"+st+">"+(t?fmtInline(trkEsc(t)):"&nbsp;")+"</div>";
   }).join("");
 }
 var TRK_MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
