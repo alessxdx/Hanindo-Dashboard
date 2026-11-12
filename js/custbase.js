@@ -190,7 +190,7 @@ function renderCustBase(){
     // under the name: the solution types bought / quoted (Custom, Posiva, Fire...);
     // the country is in the band above and the office is understood from it
     var sub=Object.keys(c.solutions).sort().map(function(s){return trkSolutionBadge({solution:s});}).join("");
-    return "<tr class='po-row cb-row"+(c.key===CB_SEL?" sel":"")+"' onclick='cbOpen("+JSON.stringify(c.key).replace(/'/g,"&#39;")+")'>"+
+    return "<tr class='po-row cb-row"+(c.key===CB_SEL?" sel":"")+"' onclick='cbRowClick("+JSON.stringify(c.key).replace(/'/g,"&#39;")+")'>"+
       "<td><div class='cb-name'>"+trkEsc(c.name)+"</div>"+(sub?"<div class='cb-sub'>"+sub+"</div>":"")+"</td>"+
       "<td class='num cb-c-n'>"+(c.projects.length||"<span class='po-dim'>&mdash;</span>")+"</td>"+
       "<td><div class='cb-pills'>"+pills+"</div></td>"+
@@ -329,6 +329,12 @@ function cbToggleCountry(k){
    like an expanded tracker project; "All customers" goes back to the list */
 var CB_FULL=false;
 function cbToggleFull(){CB_FULL=!CB_FULL;renderCustBase();window.scrollTo(0,0);}
+/* a row click opens the side panel; clicking the open customer again
+   expands it to the full page (as in the tracker) */
+function cbRowClick(key){
+  if(key&&key===CB_SEL){CB_FULL=true;renderCustBase();window.scrollTo(0,0);return;}
+  cbOpen(key);
+}
 function cbOpen(key){if(!key)CB_FULL=false;CB_SEL=key||"";renderCustBase();if(typeof syncRoute==="function")syncRoute();}
 function cbPickFilter(v){CB_FILTER=v;renderCustBase();}
 function cbPickSol(v){CB_SOL=v;renderCustBase();}
