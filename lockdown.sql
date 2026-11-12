@@ -29,6 +29,11 @@ create policy documents_delete on storage.objects for delete to authenticated us
 
 select tablename, policyname, roles from pg_policies where schemaname = 'public' order by tablename;
 
+-- Step 2 (run 2026-11-12, after the site learned to fetch files with the sign-in):
+-- PDFs private. update storage.buckets set public = false where id = 'documents';
+-- drop policy if exists documents_select on storage.objects;
+-- create policy documents_select on storage.objects for select to authenticated using (bucket_id = 'documents');
+
 -- ===== EMERGENCY UNDO (opens every table to the public key again) =====
 -- do $$ declare t text; begin
 --   for t in select tablename from pg_tables where schemaname = 'public' loop
