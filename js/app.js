@@ -8,6 +8,7 @@
 
 /* page title strings per tab */
 var TAB_TITLES = {
+  today: "Today",
   customers: "By Customer",
   custbase: "Customer Base",
   groups: "Project Groups",
@@ -42,7 +43,7 @@ function navTo(tab, sel){
   if(typeof TRK_SEL !== "undefined") TRK_SEL = (tab === "tracker" && sel) ? sel : null;
   if(typeof CB_SEL !== "undefined") CB_SEL = (tab === "custbase" && sel && !isGroup) ? sel : "";
   if(typeof MD_SEL !== "undefined" && tab === "customers"){ MD_SEL = sel || null; MD_SEL_ROUTED = !!sel; }
-  if(currentTab !== "tracker" && currentTab !== "po" && currentTab !== "pricing" && currentTab !== "custbase" && typeof renderStats === "function") renderStats();
+  if(currentTab !== "tracker" && currentTab !== "po" && currentTab !== "pricing" && currentTab !== "custbase" && currentTab !== "today" && typeof renderStats === "function") renderStats();
   /* restore the toolbar add button's label/visibility when leaving tracker */
   if(typeof trkSyncToolbar === "function") trkSyncToolbar();
   var title = document.getElementById("page-title");
@@ -169,7 +170,7 @@ function toggleSidebar(){
    Four main pages plus "More" (the full sidebar; Pricing lives there). Icons are copied from
    the sidebar so the two never drift apart; tapping one clicks the
    matching sidebar item, so routing stays in one place. */
-var BN_TABS=[["tracker","Tracker"],["custbase","Customers"],["po","POs"],["buying","Buying"]];
+var BN_TABS=[["today","Today"],["tracker","Tracker"],["custbase","Customers"],["po","POs"]];
 function buildBottomNav(){
   var nav=document.getElementById("bottom-nav");
   if(!nav)return;
@@ -531,12 +532,12 @@ function parseHash(){
   var sel = i === -1 ? "" : raw.slice(i + 1);
   try { tab = decodeURIComponent(tab); } catch(e){}
   try { sel = decodeURIComponent(sel); } catch(e){}
-  /* no page in the address (plain site link, home-screen icon) opens the tracker */
+  /* no page in the address (plain site link, home-screen icon) opens Today */
   /* By Customer was merged into Customer Base: old links land there */
   if(tab === "customers"){ tab = "custbase"; sel = sel && typeof cbKey === "function" ? cbKey(sel.split("__")[0]) : ""; }
   /* so was Project Groups: its list is now the customer list */
   if(tab === "groups" && !sel) tab = "custbase";
-  if(!TAB_TITLES[tab]){ tab = "tracker"; sel = ""; }
+  if(!TAB_TITLES[tab]){ tab = "today"; sel = ""; }
   return { tab: tab, sel: sel };
 }
 
@@ -581,7 +582,12 @@ renderTracker = function(){ _routeRenderTracker(); syncRoute(); };
 
 window.addEventListener("hashchange", applyRoute);
 (function initRoute(){
-  applyRoute();
+  /* always go through navTo once, even when the address names the page
+     the app starts on (a plain link opens Today), so the sidebar item and
+     the toolbar match the page */
+  var p = parseHash();
+  ROUTE_APPLYING = true;
+  try { navTo(p.tab, p.sel || null); } finally { ROUTE_APPLYING = false; }
   /* an old #customers link: show the Customer Base address instead */
   if(/^#customers|^#groups$/.test(location.hash)){
     var s = routeState();

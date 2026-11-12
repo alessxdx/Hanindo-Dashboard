@@ -402,6 +402,7 @@ function trkSyncToolbar(){
   var tb=document.getElementById("toolbar");
   tb.classList.toggle("trk-fab",currentTab==="tracker");
   tb.classList.toggle("has-fab",["customers","custbase","groups","tracker","po","buying","spares","others"].indexOf(currentTab)>-1);
+  if(currentTab==="today"){btn.style.display="none";return;} /* Today only reads */
   if(currentTab==="tracker"){
     if(TRK_SEL&&TRK_VIEW==="cal"){btn.style.display="none";}
     else{btn.style.display="";btn.innerHTML=TRK_BTN_HTML.replace("Add entry","Add project");}
