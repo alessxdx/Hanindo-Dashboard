@@ -297,7 +297,7 @@ function mdOrderCard(d){
         "<div class='od-name-main'>"+esc(short||"Untitled")+"</div>"+
         "<div class='od-meta'>"+(date?"<span>"+esc(date)+"</span>":"")+bStatus(status)+
           (multi&&(p||t).country?"<span class='od-cty'>"+flagImg((p||t).country,14)+esc((p||t).country)+"</span>":"")+
-          (units?"<span class='od-units'>"+num(units)+" printer"+(units!==1?"s":"")+"</span>":"")+terms+"</div></div>"+
+          (units?"<span class='od-units'>"+num(units)+" "+mdUnitWord(printers.map(function(l){return l.name;}),units)+"</span>":"")+terms+"</div></div>"+
       "<div class='od-total'>"+num(total)+" <span class='trk-r-cur'>"+esc(cur)+"</span>"+fxEqSpan(total,cur)+"</div>"+
     "</div>"+
     (lines.length?"<div class='od-lines'>"+lineHead+printers.map(lineHtml).join("")+
@@ -612,6 +612,15 @@ function pgKind(g){
   var docs=[pos?pos+" PO"+(pos!==1?"s":""):"",qt?qt+" quote"+(qt!==1?"s":""):""].filter(Boolean).join(", ")||all.length+" entries";
   return {kind:"proj",label:"1 project · "+docs,parts:parts};
 }
+/* the word for main-product units: "printers" only when they are printers
+   (a known model or a printer-like name), "scanners" when all are scanners,
+   otherwise "units" (wheel balancers, extinguishers, other businesses) */
+function mdUnitWord(names,n){
+  var models=(typeof getModelList==="function"?getModelList():[]).map(function(m){return String(m).toLowerCase();});
+  var isPrinter=function(x){x=String(x||"").toLowerCase();return /printer|\b(tk|kpm|vkp|tg|kx|k)\d/.test(x)||models.some(function(m){return m&&x.indexOf(m)>-1;});};
+  var w=names.length&&names.every(function(x){return /scanner/i.test(x);})?"scanner":names.some(isPrinter)?"printer":"unit";
+  return w+(n!==1?"s":"");
+}
 /* Units in a group, so its size shows at a glance next to the name:
    printer line items only (warranty, SLA, installation and accessory
    lines are typed "other"), TPH consumables left out as elsewhere.
@@ -632,8 +641,7 @@ function pgUnits(g){
     var q=parseInt(t.qty,10);if(q>0){n+=q;names.push(nm);}
   });
   if(!n)return "";
-  var scan=names.length&&names.every(function(x){return /scanner/i.test(x);});
-  return n.toLocaleString()+" "+(scan?"scanner":"printer")+(n!==1?"s":"");
+  return n.toLocaleString()+" "+mdUnitWord(names,n);
 }
 /* the PO number every entry of a one-PO group shares, from its name */
 function pgSharedPo(g){

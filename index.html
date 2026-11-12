@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-12.25";
+var APP_VERSION = "2026-11-12.26";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -147,8 +147,8 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
             <option value="Lose">Lost quote</option>
           </select>
           <select id="fsort" onchange="renderCustomers()">
-            <option value="name">Sort: Aâ€“Z</option>
-            <option value="name-desc">Sort: Zâ€“A</option>
+            <option value="name">Sort: A–Z</option>
+            <option value="name-desc">Sort: Z–A</option>
             <option value="po-desc">Sort: Most POs</option>
             <option value="recent">Sort: Most recent</option>
           </select>
@@ -175,7 +175,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="form-group"><label>Date</label><input id="f-date" placeholder="e.g. 15 Jan 2026"></div>
       <div class="form-group"><label>Status *</label><select id="f-status"><option value="PO">PO Confirmed</option><option value="Quotation">Quotation</option><option value="Lose">Lost Quote</option></select></div>
       <div class="form-group form-full"><label>Project name</label><input id="f-project" placeholder="e.g. Changi Airport T3"></div>
-      <div class="form-group form-full"><label>Project group <span style="font-size:10px;color:#aaa;font-weight:400">(optional â€” links related entries with a toggle)</span></label><input id="f-project-group" placeholder="e.g. Bohol Airport" list="project-group-list"><datalist id="project-group-list"></datalist></div>
+      <div class="form-group form-full"><label>Project group <span style="font-size:10px;color:#aaa;font-weight:400">(optional — links related entries with a toggle)</span></label><input id="f-project-group" placeholder="e.g. Bohol Airport" list="project-group-list"><datalist id="project-group-list"></datalist></div>
       <div class="form-group form-full"><label style="display:flex;justify-content:space-between;align-items:center">Model * <button type="button" onclick="openManageModels()" style="font-size:10px;color:#1a3a4a;background:#e8f0f4;border:1px solid #c8d8e0;border-radius:4px;padding:2px 8px;cursor:pointer;font-family:Montserrat,sans-serif;font-weight:500">+ Manage list</button></label><select id="f-model" onchange="autoFillPN()" style="font-family:'Montserrat',sans-serif;font-size:13px;padding:9px 11px;border:1px solid #e0e0e0;border-radius:8px;color:#222;background:#fff;width:100%"><option value="">-- Select model --</option></select></div>
       <div class="form-group form-full"><label>Part number</label><input id="f-pn" placeholder="e.g. 911HL020600733" style="font-family:'DM Mono',monospace"></div>
       <div class="form-group"><label>Quantity</label><input id="f-qty" placeholder="e.g. 50 units"></div>
@@ -185,7 +185,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="form-group"><label>Shipping terms</label><select id="f-terms"><option value="">None</option><option value="DDP">DDP</option><option value="DAP">DAP</option><option value="EXW">EXW</option><option value="CIF">CIF</option><option value="FOB">FOB</option><option value="FOT">FOT</option><option value="CIP">CIP</option><option value="CPT">CPT</option></select></div>
       <div class="form-group"><label>Warranty</label><select id="f-warranty"><option value="">Unknown / N/A</option><option value="1Y">1 Year</option><option value="2Y">2 Years</option><option value="3Y">3 Years</option><option value="5Y">5 Years</option></select></div>
       <div class="form-group form-full"><label>Notes</label><textarea id="f-notes" placeholder="One note per line."></textarea><span class="form-hint">Press Enter for multiple notes</span></div>
-      <div class="form-group form-full"><label>PDF documents <span style="font-size:10px;color:#aaa;font-weight:400">(quotation, PO, tax invoiceâ€¦ tag each one)</span></label>
+      <div class="form-group form-full"><label>PDF documents <span style="font-size:10px;color:#aaa;font-weight:400">(quotation, PO, tax invoice… tag each one)</span></label>
       <input id="f-pdf" type="file" accept="application/pdf" multiple onchange="txAddFiles()" class="att-file-input">
       <div class="att-list" id="f-pdf-current"></div>
       <button type="button" class="att-add" onclick="document.getElementById('f-pdf').click()">&#43; Add document</button></div>
@@ -201,8 +201,8 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="form-group form-full"><label>Part number</label><input id="b-pn" placeholder="e.g. 911HL011200733" style="font-family:'DM Mono',monospace"></div>
       <div class="form-group"><label>Price *</label><input id="b-price" type="number" placeholder="e.g. 369"></div>
       <div class="form-group"><label>Currency</label><select id="b-currency"><option value="USD">USD</option><option value="SGD">SGD</option><option value="EUR">EUR</option></select></div>
-      <div class="form-group form-full"><label>Group / category <span style="font-size:10px;color:#aaa;font-weight:400">(optional â€” groups items under a collapsible toggle)</span></label><input id="b-group" placeholder="e.g. TK180 Spare Parts" list="b-group-list"><datalist id="b-group-list"></datalist></div>
-      <div class="form-group form-full"><label>Special price <span style="font-size:10px;color:#aaa;font-weight:400">(optional â€” customer-specific price)</span></label><div style="display:flex;gap:8px"><input id="b-special-price" type="number" placeholder="e.g. 135.60" style="flex:1"><input id="b-special-customer" placeholder="Customer name e.g. Nanshan" style="flex:2"></div></div>
+      <div class="form-group form-full"><label>Group / category <span style="font-size:10px;color:#aaa;font-weight:400">(optional — groups items under a collapsible toggle)</span></label><input id="b-group" placeholder="e.g. TK180 Spare Parts" list="b-group-list"><datalist id="b-group-list"></datalist></div>
+      <div class="form-group form-full"><label>Special price <span style="font-size:10px;color:#aaa;font-weight:400">(optional — customer-specific price)</span></label><div style="display:flex;gap:8px"><input id="b-special-price" type="number" placeholder="e.g. 135.60" style="flex:1"><input id="b-special-customer" placeholder="Customer name e.g. Nanshan" style="flex:2"></div></div>
     </div>
     <div class="modal-actions">
       <button id="btn-delete-buying" class="delete-btn" style="margin-right:auto;font-size:13px;padding:9px 14px;display:none" onclick="sbDeleteBuyingFromModal()">Delete entry</button>
@@ -285,13 +285,13 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="form-group"><label>Date</label><input id="p-date" placeholder="e.g. 17 Apr 2026"></div>
       <div class="form-group"><label>Status *</label><select id="p-status"><option value="Quotation">Quotation</option><option value="PO">PO Confirmed</option><option value="Lose">Lost Quote</option></select></div>
       <div class="form-group form-full"><label>Project name *</label><input id="p-project" placeholder="e.g. Bohol Airport"></div>
-      <div class="form-group form-full"><label>Project group <span style="font-size:10px;color:#aaa;font-weight:400">(optional â€” links related entries)</span></label><input id="p-group" placeholder="e.g. Bohol Airport" list="project-group-list"></div>
+      <div class="form-group form-full"><label>Project group <span style="font-size:10px;color:#aaa;font-weight:400">(optional — links related entries)</span></label><input id="p-group" placeholder="e.g. Bohol Airport" list="project-group-list"></div>
       <div class="form-group"><label>Currency *</label><select id="p-currency" onchange="pjRecalc()"><option value="USD">USD</option><option value="SGD">SGD</option><option value="RMB">RMB</option><option value="IDR">IDR</option><option value="EUR">EUR</option></select></div>
       <div class="form-group"><label>Shipping terms</label><select id="p-terms"><option value="">None</option><option value="DDP">DDP</option><option value="DAP">DAP</option><option value="EXW">EXW</option><option value="CIF">CIF</option><option value="FOB">FOB</option><option value="FOT">FOT</option><option value="CIP">CIP</option><option value="CPT">CPT</option></select></div>
       <div class="form-group"><label>Warranty</label><select id="p-warranty"><option value="">Unknown / N/A</option><option value="1Y">1 Year</option><option value="2Y">2 Years</option><option value="3Y">3 Years</option><option value="5Y">5 Years</option></select></div>
     </div>
     <div class="pj-items">
-      <label class="pj-items-label">Line items <span style="font-size:10px;color:#aaa;font-weight:400">(printers, accessories, discounts â€” one row each, like the quotation PDF)</span></label>
+      <label class="pj-items-label">Line items <span style="font-size:10px;color:#aaa;font-weight:400">(products, accessories, services, discounts — one row each, like the quotation PDF)</span></label>
       <div class="pj-head"><span>Type</span><span>Model / item</span><span>PN</span><span>Qty</span><span>Unit price</span><span>Buy $</span><span></span></div>
       <div id="pj-rows"></div>
       <datalist id="pj-name-list"></datalist>
@@ -299,9 +299,9 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div id="pj-total" class="pj-total"></div>
     </div>
     <div class="form-grid">
-      <div class="form-group form-full"><label>Project total override <span style="font-size:10px;color:#aaa;font-weight:400">(optional â€” leave empty to use the sum of line items)</span></label><input id="p-override" type="number" step="any" placeholder="e.g. 88314.40" oninput="pjRecalc()"></div>
+      <div class="form-group form-full"><label>Project total override <span style="font-size:10px;color:#aaa;font-weight:400">(optional — leave empty to use the sum of line items)</span></label><input id="p-override" type="number" step="any" placeholder="e.g. 88314.40" oninput="pjRecalc()"></div>
       <div class="form-group form-full"><label>Notes</label><textarea id="p-notes" placeholder="One note per line."></textarea><span class="form-hint">Press Enter for multiple notes</span></div>
-      <div class="form-group form-full"><label>PDF documents <span style="font-size:10px;color:#aaa;font-weight:400">(quotation, PO, tax invoiceâ€¦ tag each one, then pick which to read)</span></label>
+      <div class="form-group form-full"><label>PDF documents <span style="font-size:10px;color:#aaa;font-weight:400">(quotation, PO, tax invoice… tag each one, then pick which to read)</span></label>
       <input id="p-pdf" type="file" accept="application/pdf" multiple onchange="pjAddFiles()" class="att-file-input">
       <div class="att-list" id="p-pdf-current"></div>
       <button type="button" class="att-add" onclick="document.getElementById('p-pdf').click()">&#43; Add document</button>
@@ -328,8 +328,8 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       </div>
       <div class="form-group form-full"><label>Project name <span style="font-size:10px;color:#aaa;font-weight:400" id="tp-name-hint">(auto-filled as "Customer &mdash; 50&times; Model" from the fields below &mdash; edit it if you like)</span></label><div style="display:flex;gap:8px"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-name" placeholder="e.g. Biman &mdash; 50&times; TK180 &mdash; boarding pass printers" style="flex:1"><button type="button" class="att-add" style="white-space:nowrap" id="tp-name-auto" onclick="trkResetAutoName()" title="Regenerate the name from the customer and products below">&#8635; Auto</button></div></div>
       <div class="form-section tp-cust-only">Customer</div>
-      <div class="form-group tp-cust-only"><label>Customer <span class="tp-req tp-cust-only">*</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-customer" placeholder="Type â€” existing customers pop up" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-customer-suggest"></div></div></div>
-      <div class="form-group tp-cust-only"><label>Country <span class="tp-req tp-cust-only">*</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-country" placeholder="Type â€” existing countries pop up" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-country-suggest"></div></div></div>
+      <div class="form-group tp-cust-only"><label>Customer <span class="tp-req tp-cust-only">*</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-customer" placeholder="Type — existing customers pop up" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-customer-suggest"></div></div></div>
+      <div class="form-group tp-cust-only"><label>Country <span class="tp-req tp-cust-only">*</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-country" placeholder="Type — existing countries pop up" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-country-suggest"></div></div></div>
       <div class="form-group"><label>Handling office <span class="tp-req tp-cust-only">*</span></label><select id="tp-office"><option value="">&mdash;</option><option>China</option><option>Indonesia</option><option>Singapore</option></select></div>
       <div class="form-group"><label>Solution type <span class="tp-req tp-cust-only">*</span> <span style="font-size:10px;color:#aaa;font-weight:400">(one tag for what it's about &mdash; shown on the card)</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-solution" placeholder="e.g. Custom, Posiva, Fire fighting" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-solution-suggest"></div></div></div>
       <div class="form-section tp-cust-only">The deal</div>

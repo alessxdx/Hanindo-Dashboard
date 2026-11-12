@@ -9,8 +9,8 @@
 var PJ_EDIT_ID=null; /* project _id being edited, null = new */
 
 var PJ_TYPES=[
-  {v:"printer",label:"Printer"},
-  {v:"other",label:"Accessory / Other"},
+  {v:"printer",label:"Product"}, /* stored as "printer": the main units counted (printers, wheel balancers, extinguishers…) */
+  {v:"other",label:"Accessory / Service"},
   {v:"discount",label:"Discount (−)"},
   {v:"shipping_adjustment",label:"Shipping / Adj."}
 ];
@@ -106,7 +106,7 @@ function pjRecalc(){
   if(!any){el.textContent="";return;}
   var ovr=document.getElementById("p-override")?parseFloat(document.getElementById("p-override").value):NaN;
   var fmt=function(v){return v.toLocaleString(undefined,{maximumFractionDigits:2});};
-  var html="Printer subtotal: <strong>"+fmt(printer)+" "+cur+"</strong> &nbsp;·&nbsp; Line total: <strong>"+fmt(total)+" "+cur+"</strong>";
+  var html="Products subtotal: <strong>"+fmt(printer)+" "+cur+"</strong> &nbsp;·&nbsp; Line total: <strong>"+fmt(total)+" "+cur+"</strong>";
   if(!isNaN(ovr))html+=" &nbsp;·&nbsp; Override shown as Project Total: <strong>"+fmt(ovr)+" "+cur+"</strong>";
   el.innerHTML=html;
 }
