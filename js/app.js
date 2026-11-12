@@ -581,7 +581,7 @@ var _routeRenderTracker = renderTracker;
 renderTracker = function(){ _routeRenderTracker(); syncRoute(); };
 
 window.addEventListener("hashchange", applyRoute);
-(function initRoute(){
+function initRoute(){
   /* always go through navTo once, even when the address names the page
      the app starts on (a plain link opens Today), so the sidebar item and
      the toolbar match the page */
@@ -593,9 +593,10 @@ window.addEventListener("hashchange", applyRoute);
     var s = routeState();
     history.replaceState(null, "", location.pathname + location.search + "#" + s.tab + (s.sel ? "/" + encodeURIComponent(s.sel) : ""));
   }
-})();
+}
 
-loadFromDB();
+/* start the app — straight away, or after sign-in once sign-in is required (js/auth.js) */
+sbGate(function(){ initRoute(); loadFromDB(); });
 
 /* phone tab bar */
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",buildBottomNav);else buildBottomNav();

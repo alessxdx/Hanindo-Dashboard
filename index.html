@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-12.27";
+var APP_VERSION = "2026-11-12.28";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -466,7 +466,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
 </div>
 <script>
 /* document.write keeps classic scripts executing in listed order. */
-["js/config.js","js/data.js","js/render.js","js/richtext.js","js/fx.js","js/detail.js","js/supabase.js","js/projects.js","js/parse.js","js/tracker.js","js/custbase.js","js/today.js","js/po.js","js/pricing.js","js/app.js"]
+["js/config.js","js/data.js","js/render.js","js/richtext.js","js/fx.js","js/detail.js","js/supabase.js","js/auth.js","js/projects.js","js/parse.js","js/tracker.js","js/custbase.js","js/today.js","js/po.js","js/pricing.js","js/app.js"]
   .forEach(function(src){document.write('<script src="'+src+'?v='+ASSET_V+'"><\/script>');});
 </script>
 <!-- Phone tab bar: the four main pages plus More (opens the full menu).

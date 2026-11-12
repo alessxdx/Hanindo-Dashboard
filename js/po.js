@@ -580,7 +580,7 @@ async function poUploadAtt(a){
   var path="po/"+Date.now()+"-"+safe;
   var r=await fetch(SB_URL+"/storage/v1/object/documents/"+path,{
     method:"POST",
-    headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":a.file.type||"application/octet-stream"},
+    headers:{"apikey":SB_KEY,"Authorization":"Bearer "+sbToken(),"Content-Type":a.file.type||"application/octet-stream"},
     body:a.file
   });
   if(!r.ok)throw new Error("upload failed (HTTP "+r.status+")");

@@ -1,6 +1,6 @@
 const SB_URL="https://mtuteycxdhlqpdupqolb.supabase.co";
 const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10dXRleWN4ZGhscXBkdXBxb2xiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NDY4NDAsImV4cCI6MjA5MjMyMjg0MH0.LTP6V7jECT3ArHiiUPIi1yf_38Rpdl0JhFAatHte22M";
-function sbH(){return{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"return=representation"};}
+function sbH(){return{"apikey":SB_KEY,"Authorization":"Bearer "+sbToken(),"Content-Type":"application/json","Prefer":"return=representation"};}
 async function sbGet(t){var r=await fetch(SB_URL+"/rest/v1/"+t+"?select=*&order=created_at.asc",{headers:sbH()});return r.ok?r.json():null;}
 async function sbInsert(t,row){var r=await fetch(SB_URL+"/rest/v1/"+t,{method:"POST",headers:sbH(),body:JSON.stringify(row)});return r.ok?r.json():null;}
 async function sbDelete(t,id){return (await fetch(SB_URL+"/rest/v1/"+t+"?id=eq."+id,{method:"DELETE",headers:sbH()})).ok;}
@@ -42,7 +42,7 @@ async function sbUploadPdf(file){
   var path="tx/"+Date.now()+"-"+safe;
   var r=await fetch(SB_URL+"/storage/v1/object/documents/"+path,{
     method:"POST",
-    headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":file.type||"application/pdf"},
+    headers:{"apikey":SB_KEY,"Authorization":"Bearer "+sbToken(),"Content-Type":file.type||"application/pdf"},
     body:file
   });
   if(!r.ok)throw new Error("upload failed (HTTP "+r.status+")");
