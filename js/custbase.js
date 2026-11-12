@@ -176,8 +176,6 @@ function cbCustomers(){
       g.ps.forEach(function(p){c.n[cbCat(p)]--;});
       c.n[g.cat]++;
     });
-    var closed=c.n.won+c.n.done+c.n.lost;
-    c.winRate=closed?Math.round((c.n.won+c.n.done)/closed*100):null;
     /* the tracker's country leads; sales countries are added after it */
     Object.keys(salesCty[c.key]||{}).forEach(function(k){c.countries[k]=1;});
     c.country=Object.keys(c.countries)[0]||"";
@@ -330,12 +328,10 @@ function cbRenderStats(all){
   var bought=all.filter(function(c){return c.n.won+c.n.done+c.pos;}).length;
   var rev=0,pos=0,ongoing=0,activeC=0,quotes=0;
   all.forEach(function(c){rev+=c.revenue;pos+=c.pos;ongoing+=c.n.ongoing;quotes+=c.quotes;if(c.n.ongoing)activeC++;});
-  var w=0,l=0;all.forEach(function(c){w+=c.n.won+c.n.done;l+=c.n.lost;});
   el.innerHTML=
     "<div class='stat'><div class='stat-label'>Customers</div><div class='stat-value'>"+all.length+"</div><div class='stat-sub'>"+bought+" have bought</div></div>"+
     "<div class='stat'><div class='stat-label'>Revenue</div><div class='stat-value'>"+(rev?cbMoney(rev):"&mdash;")+"</div><div class='stat-sub'>"+pos+" confirmed POs &middot; USD equiv.</div></div>"+
-    "<div class='stat'><div class='stat-label'>Ongoing projects</div><div class='stat-value'>"+ongoing+"</div><div class='stat-sub'>with "+activeC+" customer"+(activeC===1?"":"s")+(quotes?" &middot; "+quotes+" open quotes":"")+"</div></div>"+
-    "<div class='stat'><div class='stat-label'>Win rate</div><div class='stat-value'>"+(w+l?Math.round(w/(w+l)*100)+"%":"&mdash;")+"</div><div class='stat-sub'>"+w+" won &middot; "+l+" lost (tracker)</div></div>";
+    "<div class='stat'><div class='stat-label'>Ongoing projects</div><div class='stat-value'>"+ongoing+"</div><div class='stat-sub'>with "+activeC+" customer"+(activeC===1?"":"s")+(quotes?" &middot; "+quotes+" open quotes":"")+"</div></div>";
 }
 
 function cbPanelHtml(c){
