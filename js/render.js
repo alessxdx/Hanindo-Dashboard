@@ -8,22 +8,10 @@ function bStatus(s){
 function bTerm(t){const m={DDP:"b-ddp",DAP:"b-dap",EXW:"b-exw"};return`<span class="badge ${m[t]||"b-exw"}">${t}</span>`;}
 function bWarranty(w){if(!w)return"";const m={"5Y":"b-5y","3Y":"b-3y","2Y":"b-2y","1Y":"b-1y"};return`<span class="badge ${m[w]||"b-1y"}">${w} warranty</span>`;}
 
-let currentTab="today",expandedCards={},expandedRows={};
+let currentTab="today",expandedRows={};
 /* pencil used in place of the word "Edit" on row / entry edit buttons */
 var EDIT_ICO='<svg class="edit-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/></svg>';
 
-function setTab(btn){
-  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");currentTab=btn.dataset.tab;
-  document.getElementById("filter-bar").style.display="none";
-  renderContent();
-}
-function getFiltered(){
-  const fc=document.getElementById("fc").value;
-  const fm=document.getElementById("fm").value;
-  const fs=document.getElementById("fs").value;
-  return TX.filter(t=>(!fc||t.country===fc)&&(!fm||t.model===fm)&&(!fs||t.status===fs));
-}
 /* Deals live in two tables and either one can be empty — a fully migrated DB
    has no transactions at all — so every option list unions both sources. */
 function allDealCountries(){
@@ -41,12 +29,6 @@ function allDealGroups(){
   return [...new Set([...TX.map(t=>t.projectGroup),...PROJECTS.map(p=>p.projectGroup)].filter(Boolean))];
 }
 function refreshFilterOptions(){
-  const fc=document.getElementById("fc"),fm=document.getElementById("fm");
-  const fcV=fc.value,fmV=fm.value;
-  fc.innerHTML='<option value="">All countries</option>';
-  fm.innerHTML='<option value="">All models</option>';
-  allDealCountries().sort().forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;if(c===fcV)o.selected=true;fc.appendChild(o);});
-  allDealModels().sort().forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=m;if(m===fmV)o.selected=true;fm.appendChild(o);});
   const cl=document.getElementById("customer-list"),ml=document.getElementById("model-list"),cntl=document.getElementById("country-list");
   if(cl)cl.innerHTML=allDealCustomers().sort().map(c=>`<option value="${c}">`).join("");
   if(ml){
@@ -146,26 +128,6 @@ function combinedGroupsOf(txs){
   const combinedGroups={};
   txs.forEach(function(t){if(t.projectGroup&&t.model&&t.model.includes("+"))combinedGroups[t.projectGroup]=true;});
   return combinedGroups;
-}
-function txEntrySort(a,b){
-  const aCombined=a.projectGroup&&a.model&&a.model.includes("+");
-  const bCombined=b.projectGroup&&b.model&&b.model.includes("+");
-  if(a.projectGroup&&b.projectGroup&&a.projectGroup===b.projectGroup){
-    if(aCombined&&!bCombined)return -1;
-    if(!aCombined&&bCombined)return 1;
-  }
-  return parseDV(b.date)-parseDV(a.date);
-}
-function buildTxEntriesHtml(txs){
-  const combinedGroups=combinedGroupsOf(txs);
-  return [...txs].sort(txEntrySort).map(function(tx){
-    const inner=buildTxEntryHtml(tx);
-    const isSplit=tx.projectGroup&&tx.project&&(tx.project.includes("— ATB")||tx.project.includes("— BTP"));
-    const grpId=tx.projectGroup?tx.projectGroup.replace(/[^a-zA-Z0-9]/g,"-"):"";
-    return (isSplit&&combinedGroups[tx.projectGroup])
-      ?"<div class='grp-entry' data-group='"+grpId+"' style='display:none'>"+inner+"</div>"
-      :inner;
-  }).join("");
 }
 /* One history entry, fully expanded. Returned bare (no grp-entry wrapper) so
    both the flat list and the collapsed-row list can place it themselves. */
@@ -643,58 +605,12 @@ function hxToggleYear(gsc,key,gk){
   if(c)c.classList.toggle("open",!HX_YEAR_CLOSED[k]);
 }
 
-function buildCustomerCard(name,txs){
-  const country=txs[0].country,flagIcon=FLAGS[country]||"\u{1F310}";
-  const cardKey=name+"__"+country,isOpen=expandedCards[cardKey];
-  const pos=txs.filter(t=>t.status==="PO").length,qt=txs.filter(t=>t.status!=="PO").length;
-  const rows=buildTxEntriesHtml(txs);
-  const sid=cardKey.replace(/[^a-zA-Z0-9]/g,"-");
-  const escapedKey=cardKey.replace(/'/g,"\\'");
-  return`<div class="card">
-    <div class="card-header" onclick="toggleCard('${escapedKey}','${sid}')">
-      <div class="flag-icon">${flagIcon}</div>
-      <div style="flex:1"><div class="cname">${name}</div>
-      <div class="cmeta">${country} \xb7 ${pos} PO${pos!==1?"s":""} \xb7 ${qt} quote${qt!==1?"s":""}</div></div>
-      <div class="chevron ${isOpen?"open":""}" id="chev-${sid}">\u25be</div>
-    </div>
-    <div class="card-body ${isOpen?"open":""}" id="body-${sid}">${rows}</div>
-  </div>`;
-}
-function renderCustomers(){
-  const data=getFiltered(),sortMode=document.getElementById("fsort").value,groupMode="country";
-  const byC={};
-  data.forEach(t=>{const key=t.customer+"__"+t.country;if(!byC[key])byC[key]=[];byC[key].push(t);});
-  if(!Object.keys(byC).length){document.getElementById("content").innerHTML='<div class="empty">No transactions match your filters.</div>';return;}
-  let entries=Object.entries(byC).map(([key,txs])=>[txs[0].customer,txs,key]);
-  if(sortMode==="name")entries.sort((a,b)=>a[0].localeCompare(b[0]));
-  else if(sortMode==="name-desc")entries.sort((a,b)=>b[0].localeCompare(a[0]));
-  else if(sortMode==="po-desc")entries.sort((a,b)=>b[1].filter(t=>t.status==="PO").length-a[1].filter(t=>t.status==="PO").length);
-  else if(sortMode==="recent")entries.sort((a,b)=>Math.max(...b[1].map(t=>parseDV(t.date)))-Math.max(...a[1].map(t=>parseDV(t.date))));
-  let html="";
-  if(groupMode==="country"){
-    const byCountry={};
-    entries.forEach(([name,txs,key])=>{const c=txs[0].country||"Unknown";if(!byCountry[c])byCountry[c]=[];byCountry[c].push([name,txs,key]);});
-    Object.entries(byCountry).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([country,list])=>{
-      const f=flagImg(country,18);
-      html+=`<div class="country-group-label">${f} ${country} <span class="country-count">${list.length} customer${list.length!==1?"s":""}</span></div>`;
-      list.forEach(([name,txs])=>{html+=buildCustomerCard(name,txs);});
-    });
-  } else {
-    entries.forEach(([name,txs])=>{html+=buildCustomerCard(name,txs);});
-  }
-  document.getElementById("content").innerHTML=html;
-}
 function toggleGroup(grp,btn,e){
   e.stopPropagation();
   const entries=document.querySelectorAll(".grp-entry[data-group=\""+grp+"\"]");
   const isHidden=entries.length>0&&entries[0].style.display==="none";
   entries.forEach(function(el){el.style.display=isHidden?"block":"none";});
   btn.innerHTML=isHidden?"&#9650; Hide individual model entries":"&#9660; Show individual model entries";
-}
-function toggleCard(key,sid){
-  expandedCards[key]=!expandedCards[key];
-  document.getElementById("body-"+sid).classList.toggle("open",expandedCards[key]);
-  document.getElementById("chev-"+sid).classList.toggle("open",expandedCards[key]);
 }
 /* The dropdown lists model families, not every variant: casing, cutter,
    ATB/BTP, ARINC, AEA and warranty wording all fold into their family.
@@ -1248,10 +1164,7 @@ function closeSpareModal(){
 
 function renderContent(){
   if(typeof MD_GROUP_SEL!=="undefined"&&MD_GROUP_SEL){renderProjectGroupView();return;}
-  if(currentTab==="customers")renderCustomers();
-  else if(currentTab==="groups")renderProjectGroupsList();
-  else if(currentTab==="projects")renderProjects();
-  else if(currentTab==="tracker")renderTracker();
+  if(currentTab==="tracker")renderTracker();
   else if(currentTab==="custbase")renderCustBase();
   else if(currentTab==="today")renderToday();
   else if(currentTab==="po")renderPOs();
@@ -1263,9 +1176,8 @@ function renderContent(){
 }
 
 // ============================================================
-// NEW (Stage 2): renderProjects — read-only project + line item view
+// Project (sales record) helpers
 // ============================================================
-let expandedProjects={};
 let expandedProjectItems={}; /* per-project line-item expand state (default collapsed) */
 function projectTotal(projId){
   return LINE_ITEMS.filter(function(li){return li.projectId===projId;})
@@ -1363,73 +1275,12 @@ function buildProjectBlock(p,opts){
       "</div>"+
     "</div>";
 }
-function buildProjectCard(name,projects){
-  var country=projects[0].country;
-  var flag=FLAGS[country]||"";
-  var poCount=projects.filter(function(p){return p.status==="PO";}).length;
-  var qtCount=projects.filter(function(p){return p.status!=="PO";}).length;
-  var sorted=projects.slice().sort(function(a,b){return parseDV(b.date)-parseDV(a.date);});
-  var cardKey="proj__"+name+"__"+country;
-  var sid=cardKey.replace(/[^a-zA-Z0-9]/g,"-");
-  var isOpen=expandedProjects[cardKey];
-  var bodyHtml=sorted.map(buildProjectBlock).join("");
-
-  return "<div class='card'>"+
-    "<div class='card-header' onclick='toggleProjectCard(\""+cardKey.replace(/'/g,"\\'")+"\",\""+sid+"\")'>"+
-      "<div class='flag-icon'>"+flag+"</div>"+
-      "<div style='flex:1'>"+
-        "<div class='cname'>"+name+"</div>"+
-        "<div class='cmeta'>"+country+" \xb7 "+poCount+" PO"+(poCount!==1?"s":"")+" \xb7 "+qtCount+" quote"+(qtCount!==1?"s":"")+" \xb7 "+projects.length+" project"+(projects.length!==1?"s":"")+"</div>"+
-      "</div>"+
-      "<div class='chevron "+(isOpen?"open":"")+"' id='chev-"+sid+"'>\u25be</div>"+
-    "</div>"+
-    "<div class='card-body "+(isOpen?"open":"")+"' id='body-"+sid+"'>"+bodyHtml+"</div>"+
-  "</div>";
-}
 function toggleProjItems(pid){
   expandedProjectItems[pid]=!expandedProjectItems[pid];
   var el=document.getElementById("pitems-"+pid);
   if(el)el.style.display=expandedProjectItems[pid]?"":"none";
   var chev=document.getElementById("pchev-"+pid);
   if(chev)chev.classList.toggle("open",expandedProjectItems[pid]);
-}
-function toggleProjectCard(key,sid){
-  expandedProjects[key]=!expandedProjects[key];
-  document.getElementById("body-"+sid).classList.toggle("open",expandedProjects[key]);
-  document.getElementById("chev-"+sid).classList.toggle("open",expandedProjects[key]);
-}
-function renderProjects(){
-  if(!PROJECTS.length){
-    document.getElementById("content").innerHTML='<div class="empty">No projects found. The new <code>projects</code> table is empty \u2014 did you run Stage 1B migration?</div>';
-    return;
-  }
-  // Group by customer + country
-  var byC={};
-  PROJECTS.forEach(function(p){
-    var k=p.customer+"__"+p.country;
-    if(!byC[k])byC[k]=[];
-    byC[k].push(p);
-  });
-  // Group customers by country
-  var byCountry={};
-  Object.entries(byC).forEach(function(entry){
-    var name=entry[0].split("__")[0];
-    var projs=entry[1];
-    var c=projs[0].country||"Unknown";
-    if(!byCountry[c])byCountry[c]=[];
-    byCountry[c].push([name,projs]);
-  });
-  var html="<div style='background:var(--accent-soft);color:var(--accent-text);padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:12px;border:1px solid var(--border-strong)'>"+
-    "Quotations with <strong>multiple models / line items</strong> live here \u2014 use <strong>+ Add entry</strong> to create one (printers, accessories, discounts per row, with an attached PDF), or <strong>Edit</strong> on any project below."+
-  "</div>";
-  Object.entries(byCountry).sort(function(a,b){return a[0].localeCompare(b[0]);}).forEach(function(entry){
-    var country=entry[0],list=entry[1];
-    list.sort(function(a,b){return a[0].localeCompare(b[0]);});
-    var f=flagImg(country,18);
-    html+="<div class='country-group-label'>"+f+" "+country+" <span class='country-count'>"+list.length+" customer"+(list.length!==1?"s":"")+"</span></div>";
-    list.forEach(function(item){html+=buildProjectCard(item[0],item[1]);});
-  });
-  document.getElementById("content").innerHTML=html;
 }
 // ============================================================
 // END NEW (Stage 2)
@@ -1446,7 +1297,7 @@ function populateModelSelect(){
   }).join("");
 }
 function openModal(){
-  if(currentTab==="customers"||currentTab==="custbase"||currentTab==="projects"||currentTab==="groups"){
+  if(currentTab==="custbase"){
     // New entries are created as projects (line items + PDF parsing).
     // The transaction modal is still used when editing legacy transactions.
     openProjectModal();

@@ -1,14 +1,8 @@
 /* ============================================================
-   MASTER–DETAIL view for "By Customer" (primary view).
-   Left: compact searchable customer list (respects the filter
-   dropdowns). Right: per-customer rollup (printers by model,
-   revenue, quote pipeline) + full history of entries rendered
-   with the exact same entry builder as the Cards view, so all
-   edge cases (Bohol/Laguindingan combined toggles, dual
-   pricing, Nanshan, overrides, TK180 TPH) look identical.
+   Shared customer / order building blocks (order cards, model
+   rollups, documents, project groups) used by Customer Base and
+   the project-group page.
    ============================================================ */
-var MD_SEL=null;    /* selected customer name (one entry per company, all countries) */
-var MD_SEARCH="";
 var MD_GROUP_SEL=null; /* selected project-group name, or null */
 
 /* How many POs a record stands for: a summary record (e.g. a customer's
@@ -50,26 +44,6 @@ function mdProjTotal(p){
   if(p.totalOverride)return p.totalOverride;
   return LINE_ITEMS.filter(function(li){return li.projectId===p._id;})
     .reduce(function(s,li){return s+li.qty*li.unitPrice;},0);
-}
-/* Does a project pass the active By Customer filter dropdowns? */
-function mdProjPassesFilters(p){
-  var fc=document.getElementById("fc").value;
-  var fs=document.getElementById("fs").value;
-  var fm=document.getElementById("fm").value;
-  if(fc&&p.country!==fc)return false;
-  if(fs&&p.status!==fs)return false;
-  if(fm&&!LINE_ITEMS.some(function(li){return li.projectId===p._id&&li.type==="printer"&&li.name===fm;}))return false;
-  return true;
-}
-/* Does a transaction pass the active filter dropdowns? */
-function mdTxPassesFilters(t){
-  var fc=document.getElementById("fc").value,fm=document.getElementById("fm").value,fs=document.getElementById("fs").value;
-  return (!fc||t.country===fc)&&(!fm||t.model===fm)&&(!fs||t.status===fs);
-}
-/* Resolved deals with the filter dropdowns applied. */
-function mdFilteredResolved(){
-  var R=resolveDeals();
-  return {txs:R.txs.filter(mdTxPassesFilters),projs:R.projs.filter(mdProjPassesFilters)};
 }
 /* Per-customer rollup over transactions AND project-only deals.
    - Transactions: unit counts from split entries (skip combined) and
@@ -164,89 +138,13 @@ function mdProjSearchText(p){
   var li=LINE_ITEMS.filter(function(x){return x.projectId===p._id;}).map(function(x){return x.name+" "+(x.pn||"");}).join(" ");
   return (p.customer+" "+p.country+" "+(p.project||"")+" "+(p.projectGroup||"")+" "+li).toLowerCase();
 }
-function mdComputeEntries(){
-  var sortMode=document.getElementById("fsort").value;
-  var R=mdFilteredResolved();
-  /* one entry per company: the same customer in two countries (Daifuku
-     Australia and New Zealand) is one entry carrying both countries */
-  var map={};
-  function ent(customer,country){
-    var k=customer;
-    if(!map[k])map[k]={key:k,name:customer,country:country,countries:[],txs:[],projs:[]};
-    if(country&&map[k].countries.indexOf(country)===-1)map[k].countries.push(country);
-    return map[k];
-  }
-  R.txs.forEach(function(t){ent(t.customer,t.country).txs.push(t);});
-  R.projs.forEach(function(p){ent(p.customer,p.country).projs.push(p);});
-  var entries=Object.keys(map).map(function(k){return map[k];});
-  var q=MD_SEARCH.trim().toLowerCase();
-  if(q){
-    entries=entries.filter(function(e){
-      return e.txs.some(function(t){return (t.customer+" "+t.country+" "+t.model+" "+(t.project||"")+" "+(t.projectGroup||"")+" "+(t.pn||"")).toLowerCase().indexOf(q)!==-1;})
-        ||e.projs.some(function(p){return mdProjSearchText(p).indexOf(q)!==-1;});
-    });
-  }
-  function poCount(e){return mdCountSt(e.txs,"PO")+mdCountSt(e.projs,"PO");}
-  function recent(e){var ds=e.txs.map(function(t){return parseDV(t.date);}).concat(e.projs.map(function(p){return parseDV(p.date);}));return ds.length?Math.max.apply(null,ds):0;}
-  if(sortMode==="name")entries.sort(function(a,b){return a.name.localeCompare(b.name);});
-  else if(sortMode==="name-desc")entries.sort(function(a,b){return b.name.localeCompare(a.name);});
-  else if(sortMode==="po-desc")entries.sort(function(a,b){return poCount(b)-poCount(a);});
-  else if(sortMode==="recent")entries.sort(function(a,b){return recent(b)-recent(a);});
-  else entries.sort(function(a,b){return a.name.localeCompare(b.name);});
-  return entries;
-}
 
-/* Country headings with the companies inside. A company in several
-   countries (Daifuku: Australia + New Zealand) is listed under each, with
-   that country's own PO/quote counts and an "also in" note; any of its
-   rows opens the same combined customer page. */
-function buildMdList(entries){
-  if(!entries.length)return "<div class='md-none'>No customers match.</div>";
-  var fc=(document.getElementById("fc")||{}).value||"";
-  var byCountry={};
-  entries.forEach(function(e){
-    (e.countries.length?e.countries:["Unknown"]).forEach(function(c){
-      if(fc&&c!==fc)return;
-      (byCountry[c]=byCountry[c]||[]).push(e);
-    });
-  });
-  /* fixed market order; any country not listed follows A-Z */
-  var first=["Singapore","Philippines","Indonesia","New Zealand","China"];
-  var rank=function(c){var i=first.indexOf(c);return i===-1?first.length:i;};
-  return Object.keys(byCountry).sort(function(a,b){return rank(a)-rank(b)||a.localeCompare(b);}).map(function(country){
-    var items=byCountry[country].map(function(e){
-      var here=function(x){return (x.country||"Unknown")===country;};
-      var cnt=function(st){return mdCountSt(e.txs.filter(here),st)+mdCountSt(e.projs.filter(here),st);};
-      var pos=cnt("PO"),qt=cnt("Quotation"),ls=cnt("Lose");
-      var meta=(pos?"<span class='md-pill md-pill-po'>"+pos+" PO"+(pos!==1?"s":"")+"</span>":"")+
-        (qt?"<span class='md-pill md-pill-qt'>"+qt+" quote"+(qt!==1?"s":"")+"</span>":"")+
-        (ls?"<span class='md-pill md-pill-ls'>"+ls+" lost</span>":"")+
-        (!pos&&!qt&&!ls?"<span class='md-pill'>no deals</span>":"");
-      var others=e.countries.filter(function(c){return c!==country;}).sort();
-      return "<div class='md-item"+(e.key===MD_SEL?" active":"")+"' data-key=\""+mdEscAttr(e.key)+"\" onclick='mdSelect(this.getAttribute(\"data-key\"))'>"+
-        "<div class='md-item-main'>"+
-          "<div class='md-item-name'>"+mdEscAttr(e.name)+"</div>"+
-          (others.length?"<div class='md-item-cty'>also in "+others.map(mdEscAttr).join(", ")+"</div>":"")+
-          "<div class='md-item-meta'>"+meta+"</div>"+
-        "</div>"+
-        "<div class='md-item-chev'>&rsaquo;</div>"+
-      "</div>";
-    }).join("");
-    return "<div class='md-country'>"+flagImg(country,18)+"<b>"+mdEscAttr(country)+"</b><span>"+byCountry[country].length+"</span></div>"+items;
-  }).join("");
-}
 
 /* ===== one customer's page: what they bought =====
    Totals, printers by model, a card per order and every document. */
 /* Order notes fold away by default; "Show all notes" opens every card's
    notes at once and is remembered per browser. */
 var MD_NOTES_OPEN=(function(){try{return localStorage.getItem("cpd_md_notes")==="1";}catch(e){return false;}})();
-function mdToggleAllNotes(){
-  MD_NOTES_OPEN=!MD_NOTES_OPEN;
-  try{localStorage.setItem("cpd_md_notes",MD_NOTES_OPEN?"1":"0");}catch(e){}
-  document.querySelectorAll(".od-notes-wrap").forEach(function(d){d.open=MD_NOTES_OPEN;});
-  var b=document.getElementById("md-notes-all");if(b)b.textContent=MD_NOTES_OPEN?"Hide all notes":"Show all notes";
-}
 function mdOrderCard(d){
   var p=d.p,t=d.t,multi=d.multi;
   var esc=mdEscAttr;
@@ -366,93 +264,7 @@ function mdModelsTable(r){
     :"<div class='md-money-none'>No printer quantities recorded.</div>";
   return {html:modelsTable,modelKeys:modelKeys,spareKeys:spareKeys,totalPo:totalPo,totalQt:totalQt};
 }
-/* opts.embedded: drawn inside the Customer Base panel, which has its own
-   name header and close button */
-function buildMdDetail(key,opts){
-  var embedded=!!(opts&&opts.embedded),only=opts&&opts.country; /* only: one country's records */
-  var R=resolveDeals();
-  var txs=R.txs.filter(function(t){return t.customer===key&&(!only||t.country===only);});
-  var projs=R.projs.filter(function(p){return p.customer===key&&(!only||p.country===only);});
-  if(!txs.length&&!projs.length)return "<div class='md-empty'>No entries for this customer.</div>";
-  var ref=txs[0]||projs[0];
-  var name=ref.customer,country=ref.country;
-  var countries=[];txs.concat(projs).forEach(function(e){if(e.country&&countries.indexOf(e.country)===-1)countries.push(e.country);});
-  countries.sort();
-  var r=mdRollup(txs,projs);
-  var pos=mdCountSt(txs,"PO")+mdCountSt(projs,"PO");
-  var qt=txs.filter(function(t){return t.status==="Quotation";}).length+projs.filter(function(p){return p.status==="Quotation";}).length;
-  var ls=txs.filter(function(t){return t.status==="Lose";}).length+projs.filter(function(p){return p.status==="Lose";}).length;
 
-  var mt=mdModelsTable(r),modelKeys=mt.modelKeys,spareKeys=mt.spareKeys,totalPo=mt.totalPo,totalQt=mt.totalQt,modelsTable=mt.html;
-
-  var curs=[];txs.forEach(function(t){if(curs.indexOf(t.currency)===-1)curs.push(t.currency);});
-  projs.forEach(function(p){if(curs.indexOf(p.currency)===-1)curs.push(p.currency);});
-  var notes=fxNotesFor(curs);
-  /* every order newest first, under year headings */
-  var deals=projs.map(function(p){return {p:p,when:parseDV(p.date)};}).concat(txs.map(function(t){return {t:t,when:parseDV(t.date)};}))
-    .sort(function(a,b){return b.when-a.when;});
-  var multi=countries.length>1,lastYear=null;
-  var ordersHtml=deals.map(function(d){
-    d.multi=multi;
-    var y=d.when?new Date(d.when).getFullYear():"No date";
-    var head=y!==lastYear?"<div class='od-year'>"+y+"</div>":"";lastYear=y;
-    return head+mdOrderCard(d);
-  }).join("");
-  var docsHtml=mdDocsHtml(deals);
-  var docCount=(docsHtml.match(/class='md-doc'/g)||[]).length;
-  var fxBlock=notes.length?"<div class='md-fx-notes'>"+notes.map(function(n){return "<div class='fx-note'>"+n+"</div>";}).join("")+(FX.live?"":"<div class='fx-note'>Live rates unavailable — using stored estimates.</div>")+"</div>":"";
-
-  return ""+
-    (embedded?"":"<button class='md-back' onclick='mdBack()'>&#8592; All customers</button>"+
-    "<div class='md-head md-head-card'><div class='md-flags md-flags-lg'>"+countries.slice(0,3).map(function(c){return flagImg(c,countries.length>1?30:38);}).join("")+"</div>"+
-      "<div><div class='md-head-name'>"+mdEscAttr(name)+"</div>"+
-      "<div class='md-head-meta'><span>"+countries.map(mdEscAttr).join(" &middot; ")+"</span>"+
-        (pos?"<span class='md-pill md-pill-po'>"+pos+" PO"+(pos!==1?"s":"")+"</span>":"")+
-        (qt?"<span class='md-pill md-pill-qt'>"+qt+" open quote"+(qt!==1?"s":"")+"</span>":"")+
-        (ls?"<span class='md-pill md-pill-ls'>"+ls+" lost</span>":"")+"</div></div>"+
-    "</div>")+
-    /* embedded: the Customer Base panel shows revenue and POs in its own boxes */
-    (embedded?"":"<div class='md-kpis'>"+
-      "<div class='md-kpi'><div class='md-kpi-l'>Revenue · confirmed POs"+(r.approx?" <span title='Some quantities unknown'>*</span>":"")+"</div>"+mdMoneyLines(r.revenue)+"</div>"+
-      "<div class='md-kpi'><div class='md-kpi-l'>Open quotation pipeline</div>"+mdMoneyLines(r.pipeline)+"</div>"+
-      "<div class='md-kpi'><div class='md-kpi-l'>Printers</div><div class='md-money-line'>"+totalPo.toLocaleString()+" <span class='md-kpi-u'>ordered</span></div>"+
-        (totalQt?"<div class='md-kpi-s'>"+totalQt.toLocaleString()+" more quoted</div>":"")+"</div>"+
-    "</div>")+
-    /* embedded: the printer table only for Custom printer customers that
-       have printer quantities (store equipment etc. has none) */
-    (embedded&&(!opts.models||!(modelKeys.length||spareKeys.length))?"":
-    "<div class='md-section'>"+
-      "<div class='md-section-title'>Printers by model</div>"+
-      modelsTable+
-    "</div>")+
-    fxBlock+
-    "<div class='md-section md-orders'>"+
-      "<div class='md-section-title md-orders-head'>Orders &amp; quotations <span class='nt-n'>"+deals.length+"</span>"+
-        "<button class='md-notes-btn' id='md-notes-all' onclick='mdToggleAllNotes()'>"+(MD_NOTES_OPEN?"Hide all notes":"Show all notes")+"</button></div>"+
-      ordersHtml+
-    "</div>"+
-    "<div class='md-section'>"+
-      "<div class='md-section-title'>Documents <span class='nt-n'>"+docCount+"</span></div>"+
-      docsHtml+
-    "</div>";
-}
-
-function mdSelect(key){
-  MD_SEL=key;
-  renderCustomersDetail();
-  if(window.matchMedia("(max-width: 980px)").matches){
-    var d=document.querySelector(".md-detail");
-    if(d)d.scrollIntoView({behavior:"smooth",block:"start"});
-  }
-}
-function mdBack(){MD_SEL=null;renderCustomersDetail();}
-function mdSearchInput(v){
-  MD_SEARCH=v;
-  var list=mdComputeEntries();
-  var el=document.getElementById("md-list-items");
-  if(el)el.innerHTML=buildMdList(list);
-  var c=document.getElementById("md-count");if(c)c.textContent=list.length+" customer"+(list.length!==1?"s":"");
-}
 
 /* ============================================================
    CONSOLIDATED PROJECT GROUP view.
@@ -562,7 +374,6 @@ function renderProjectGroupView(){
    a 🔗 badge buried inside a customer's history first. Clicking a
    row opens the same buildProjectGroupView() consolidated page.
    ============================================================ */
-var PG_SEARCH="";
 function computeProjectGroups(){
   var R=resolveDeals();
   var map={},order=[];
@@ -573,13 +384,6 @@ function computeProjectGroups(){
   R.txs.forEach(function(t){if(!t.projectGroup)return;var e=ent(t.projectGroup);e.txs.push(t);e.customers[t.customer]=true;if(!e.country)e.country=t.country;});
   R.projs.forEach(function(p){if(!p.projectGroup)return;var e=ent(p.projectGroup);e.projs.push(p);e.customers[p.customer]=true;if(!e.country)e.country=p.country;});
   return order.map(function(g){return map[g];});
-}
-function pgTotalsCompact(totals){
-  var curs=Object.keys(totals);
-  if(!curs.length)return "<span class='trk-r-none'>&mdash;</span>";
-  return curs.sort().map(function(c){
-    return "<div class='pg-amt'>"+totals[c].toLocaleString(undefined,{maximumFractionDigits:0})+" <span class='trk-r-cur'>"+c+"</span></div>";
-  }).join("");
 }
 /* A group is one of two things, told apart by its documents:
    - one PO split across locations: every entry carries the same PO file
@@ -648,98 +452,4 @@ function pgSharedPo(g){
   var nums=g.txs.concat(g.projs).map(function(e){var m=String(e.project||"").match(/\bPO\s*#?\s*(\d{5,})/i);return m?m[1]:"";});
   return nums.length&&nums[0]&&nums.every(function(x){return x===nums[0];})?nums[0]:"";
 }
-/* typing re-renders only the rows, so the search box keeps focus */
-function pgSearchInput(v){
-  PG_SEARCH=v;
-  var body=document.getElementById("pg-list-items");
-  if(body)body.innerHTML=pgListBody();else renderProjectGroupsList();
-}
-function pgListBody(){
-  var all=computeProjectGroups();
-  var q=PG_SEARCH.trim().toLowerCase();
-  var groups=all.filter(function(g){
-    if(!q)return true;
-    return g.name.toLowerCase().indexOf(q)!==-1||Object.keys(g.customers).some(function(c){return c.toLowerCase().indexOf(q)!==-1;});
-  });
-  groups.sort(function(a,b){return a.name.localeCompare(b.name);});
-  if(!groups.length)return "<div class='empty'>No project groups match your search.</div>";
-  var rows=groups.map(function(g){
-    var totals=mdGroupTotals(g.txs,g.projs);
-    var k=pgKind(g),units=pgUnits(g),po=k.kind==="loc"?pgSharedPo(g):"";
-    var custNames=Object.keys(g.customers).sort().join(", ");
-    var esc=String(g.name).replace(/\\/g,"\\\\").replace(/'/g,"\\'");
-    return "<tr class='trk-row pg-row' onclick=\"openProjectGroup('"+esc+"')\">"+
-      "<td class='pg-c-name'><div class='trk-r-name'>"+mdEscAttr(g.name)+(units?" <span class='pg-units'>("+units+")</span>":"")+"</div>"+
-        "<div class='trk-r-sub'>"+flagImg(g.country,14)+" "+mdEscAttr(custNames)+(g.country?" &middot; "+mdEscAttr(g.country):"")+(po?" &middot; PO "+po:"")+"</div></td>"+
-      "<td class='pg-c-kind'><span class='pg-kind pg-kind-"+k.kind+"'>"+(k.kind==="loc"?"&#128205; ":"&#128196; ")+k.label+"</span></td>"+
-      "<td class='pg-c-parts'>"+k.parts.map(function(x){return "<span class='pg-part'>"+mdEscAttr(x)+"</span>";}).join("")+"</td>"+
-      "<td class='num pg-c-tot'>"+pgTotalsCompact(totals)+"</td>"+
-      "<td class='pg-c-go' aria-hidden='true'>&#8250;</td>"+
-    "</tr>";
-  }).join("");
-  return "<div class='po-table-wrap'><table class='po-table pg-list'><thead><tr>"+
-    "<th>Project group</th><th class='pg-c-kind'>Type</th><th class='pg-c-parts'>Covers</th><th class='num'>Total</th><th class='pg-c-go'></th>"+
-    "</tr></thead><tbody>"+rows+"</tbody></table></div>";
-}
-function renderProjectGroupsList(){
-  pgHideStats();
-  var all=computeProjectGroups();
-  if(!all.length){
-    document.getElementById("content").innerHTML="<div class='empty'>No project groups yet. Set a “project group” on an entry (Add/Edit) to link related projects together and see them here.</div>";
-    return;
-  }
-  var entries=all.reduce(function(n,g){return n+g.txs.length+g.projs.length;},0);
-  document.getElementById("content").innerHTML=
-    "<div class='trk-bar'>"+
-      "<div class='trk-search'><span class='trk-search-ico'>&#128269;</span>"+
-        "<input id='pg-search' type='search' placeholder='Search project groups or customers&hellip;' value=\""+mdEscAttr(PG_SEARCH)+"\" oninput='pgSearchInput(this.value)' autocomplete='off'></div>"+
-      "<span class='pg-summary'>"+all.length+" group"+(all.length!==1?"s":"")+" &middot; "+entries+" entries</span>"+
-    "</div>"+
-    "<div id='pg-list-items'>"+pgListBody()+"</div>";
-}
 
-/* One toolbar: search first, then country / model / status / sort menus.
-   The menus write to the hidden #fc/#fm/#fs/#fsort selects that the
-   filtering code already reads, then re-render. */
-function mdSetSel(id,v){var el=document.getElementById(id);if(el)el.value=v;renderCustomers();}
-function mdPickCountry(v){mdSetSel("fc",v);}
-function mdPickModel(v){mdSetSel("fm",v);}
-function mdPickStatus(v){mdSetSel("fs",v);}
-function mdPickSort(v){mdSetSel("fsort",v);}
-function mdToolbar(n){
-  var opts=function(id){
-    var el=document.getElementById(id);
-    return el?[].map.call(el.options,function(o){return {value:o.value,label:o.textContent.replace(/^Sort:\s*/,"")};}):[];
-  };
-  var cur=function(id){var el=document.getElementById(id);return el?el.value:"";};
-  var countries=opts("fc").map(function(o){return o.value?{value:o.value,label:o.label,color:typeof trkCountryColor==="function"?trkCountryColor(o.value):""}:o;});
-  return "<div class='trk-bar md-bar'>"+
-    "<div class='trk-search'><span class='trk-search-ico'>&#128269;</span><input id='md-search' type='search' placeholder='Search customers, models, projects&hellip;' value=\""+mdEscAttr(MD_SEARCH)+"\" oninput='mdSearchInput(this.value)' autocomplete='off'></div>"+
-    uiDropdown({key:"md-country",onPick:"mdPickCountry",cur:cur("fc"),opts:countries})+
-    uiDropdown({key:"md-model",onPick:"mdPickModel",cur:cur("fm"),opts:opts("fm")})+
-    uiDropdown({key:"md-status",onPick:"mdPickStatus",cur:cur("fs"),opts:opts("fs")})+
-    uiDropdown({key:"md-sort",onPick:"mdPickSort",cur:cur("fsort"),opts:opts("fsort")})+
-    "<span class='pg-summary' id='md-count'>"+n+" customer"+(n!==1?"s":"")+"</span>"+
-  "</div>";
-}
-function renderCustomersDetail(){
-  if(MD_SEL&&MD_SEL.indexOf("__")>-1)MD_SEL=MD_SEL.split("__")[0];
-  var entries=mdComputeEntries();
-  if(!entries.length&&!MD_SEARCH){
-    document.getElementById("content").innerHTML=mdToolbar(0)+'<div class="empty">No customers match these filters.</div>';
-    return;
-  }
-  var keys=entries.map(function(e){return e.key;});
-  if(MD_SEL&&keys.indexOf(MD_SEL)===-1)MD_SEL=null;
-  if(!MD_SEL&&keys.length&&!window.matchMedia("(max-width: 980px)").matches)MD_SEL=keys[0];
-
-  document.getElementById("content").innerHTML=mdToolbar(entries.length)+
-    "<div class='md-layout"+(MD_SEL?" md-has-sel":"")+"'>"+
-      "<div class='md-list'>"+
-        "<div id='md-list-items'>"+buildMdList(entries)+"</div>"+
-      "</div>"+
-      "<div class='md-detail'>"+
-        (MD_SEL?buildMdDetail(MD_SEL):"<div class='md-empty'>Select a customer to see rollup and full history.</div>")+
-      "</div>"+
-    "</div>";
-}

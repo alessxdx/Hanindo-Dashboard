@@ -311,12 +311,6 @@ var TRK_COUNTRY_COLORS={
   "Malaysia":"#4f46e5",     /* indigo */
   "Italy":"#16a34a"         /* green */
 };
-function trkCountryColor(c){
-  if(!c)return"";
-  if(TRK_COUNTRY_COLORS[c])return TRK_COUNTRY_COLORS[c];
-  var h=0;for(var i=0;i<c.length;i++)h=(h*31+c.charCodeAt(i))>>>0;
-  return "hsl("+(h%360)+",60%,45%)";
-}
 
 /* ===== title date suffix =====
    Cards show "Name — 7 Sep 2026" using the project's earliest entry
@@ -407,7 +401,7 @@ function trkSyncToolbar(){
      tab that can add something; the computer's tracker uses its own button */
   var tb=document.getElementById("toolbar");
   tb.classList.toggle("trk-fab",currentTab==="tracker");
-  tb.classList.toggle("has-fab",["customers","custbase","groups","tracker","po","buying","spares","others"].indexOf(currentTab)>-1);
+  tb.classList.toggle("has-fab",["custbase","tracker","po","buying","spares","others"].indexOf(currentTab)>-1);
   if(currentTab==="today"){btn.style.display="none";return;} /* Today only reads */
   if(currentTab==="tracker"){
     if(TRK_SEL&&TRK_VIEW==="cal"){btn.style.display="none";}

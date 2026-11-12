@@ -35,14 +35,6 @@ function fxNote(cur){
   var when=FX.live?"as of "+FX.dateLabel:"offline estimate";
   return "1 USD = "+rStr+" "+cur+" ("+when+")";
 }
-function fxNotesFor(currencies){
-  var seen={},out=[];
-  (currencies||[]).forEach(function(c){
-    if(seen[c])return;seen[c]=1;
-    var n=fxNote(c);if(n)out.push(n);
-  });
-  return out;
-}
 
 (function fxInit(){
   var CACHE_KEY="cpd_fx",MAX_AGE=12*3600*1000;

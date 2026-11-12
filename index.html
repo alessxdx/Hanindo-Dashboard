@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-12.33";
+var APP_VERSION = "2026-11-12.34";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -144,23 +144,6 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="stat-grid" id="stats"></div>
 
       <div class="toolbar" id="toolbar">
-        <div class="filters" id="filter-bar">
-          <select id="fc" onchange="renderCustomers()"><option value="">All countries</option></select>
-          <select id="fm" onchange="renderCustomers()"><option value="">All models</option></select>
-          <select id="fs" onchange="renderCustomers()">
-            <option value="">All status</option>
-            <option value="PO">PO confirmed</option>
-            <option value="Quotation">Quotation (open)</option>
-            <option value="Lose">Lost quote</option>
-          </select>
-          <select id="fsort" onchange="renderCustomers()">
-            <option value="name">Sort: A–Z</option>
-            <option value="name-desc">Sort: Z–A</option>
-            <option value="po-desc">Sort: Most POs</option>
-            <option value="recent">Sort: Most recent</option>
-          </select>
-        </div>
-
         <div class="toolbar-right">
           <button class="btn-add" onclick="openModal()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>

@@ -205,7 +205,7 @@ async function loadFromDB(){
     }
 
   }catch(e){console.error(e);alert("Could not connect to database. Using local data.");}
-  /* renderContent (not renderCustomers): with URL routing the app can
+  /* renderContent: with URL routing the app can
      start on any tab, so re-render whichever view the route selected. */
   hideLoad();refreshFilterOptions();renderStats();renderContent();
 }
@@ -329,11 +329,6 @@ async function sbDeleteBuying(i){
   if(!confirm("Remove this buying price entry?"))return;
   var item=BUYING[i];if(item&&item._id)await sbDelete("buying_prices",item._id);
   BUYING.splice(i,1);renderContent();
-}
-async function sbDeleteOther(i){
-  if(!confirm("Remove this note?"))return;
-  var item=OTHERS[i];if(item&&item._id)await sbDelete("others",item._id);
-  OTHERS.splice(i,1);renderContent();
 }
 
 function editTx(i, e){
@@ -476,5 +471,4 @@ async function deleteOtherFromModal(){
   closeOtherModal();
   renderContent();
 }
-function deleteBuying(i){if(!confirm("Remove this buying price entry?"))return;var item=BUYING[i];if(item&&item._id){fetch(SB_URL+"/rest/v1/buying_prices?id=eq."+item._id,{method:"DELETE",headers:sbH()});}BUYING.splice(i,1);renderContent();}
 function deleteOther(i){if(!confirm("Remove this note?"))return;var item=OTHERS[i];if(item&&item._id){fetch(SB_URL+"/rest/v1/others?id=eq."+item._id,{method:"DELETE",headers:sbH()});}OTHERS.splice(i,1);renderContent();}
