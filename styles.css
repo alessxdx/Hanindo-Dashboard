@@ -2825,3 +2825,6 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 :root[data-theme="dark"] .sb-login-err{color:#fda29b}
 .sb-login-foot{font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5}
 .sb-who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.sb-login-card label.sb-keep{flex-direction:row;align-items:center;gap:8px;font-weight:500;color:var(--text);cursor:pointer}
+.sb-login-card label.sb-keep input{width:16px;height:16px;padding:0;margin:0;accent-color:var(--accent,#0f7a83)}

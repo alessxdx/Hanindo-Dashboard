@@ -1200,7 +1200,10 @@ function trkOpenViewer(url,name){
     body.innerHTML="<div class='empty'>Loading PDF&hellip;</div>";
     pdfvOpen(url,name);
   }else if(/\.(png|jpe?g|gif|webp)$/.test(n)){
-    body.innerHTML="<img src='"+trkEsc(url)+"' alt='"+trkEsc(name)+"' style='max-width:100%;height:auto;display:block;margin:0 auto'>";
+    body.innerHTML="<div class='empty'>Loading image&hellip;</div>";
+    (typeof sbFileObjectUrl==="function"?sbFileObjectUrl(url):Promise.resolve(url)).then(function(src){
+      body.innerHTML="<img src='"+trkEsc(src)+"' alt='"+trkEsc(name)+"' style='max-width:100%;height:auto;display:block;margin:0 auto'>";
+    });
   }else if(/\.(xlsx|xlsm|xls|csv)$/.test(n)){
     body.innerHTML="<div class='empty'>Loading spreadsheet&hellip;</div>";
     trkRenderSpreadsheet(url,name);
@@ -1227,7 +1230,10 @@ async function pdfvOpen(url,name){
   var tok=++PDFV.token;
   try{
     await loadPdfJs();
-    var doc=await window.pdfjsLib.getDocument({url:url}).promise;
+    /* fetched here (not by pdf.js) so a private file goes out with the sign-in */
+    var fr=await fetch(url);
+    if(!fr.ok)throw new Error("could not download the PDF ("+fr.status+")");
+    var doc=await window.pdfjsLib.getDocument({data:new Uint8Array(await fr.arrayBuffer())}).promise;
     var sizes=[];
     for(var i=1;i<=doc.numPages;i++){
       var vp=(await doc.getPage(i)).getViewport({scale:1});

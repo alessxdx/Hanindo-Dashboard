@@ -25,28 +25,40 @@ function sbTokenRef(tok){
     return String(p.iss||"").indexOf(SB_REF)>-1||p.ref===SB_REF;}catch(e){return false;}
 }
 function sbValidSession(s){return !!(s&&s.access_token&&s.refresh_token&&s.email&&sbTokenRef(s.access_token));}
-var SB_SESSION=(function(){try{var s=JSON.parse(localStorage.getItem(SB_SESSION_KEY)||"null");return sbValidSession(s)?s:null;}catch(e){return null;}})();
+/* "Keep me signed in" on: the session lives in localStorage and survives
+   closing the browser (it is refreshed in the background, so it lasts until
+   Sign out). Off: sessionStorage, so it ends when the browser closes. */
+var SB_SESSION=(function(){
+  try{
+    var s=JSON.parse(localStorage.getItem(SB_SESSION_KEY)||"null");
+    if(!sbValidSession(s))s=JSON.parse(sessionStorage.getItem(SB_SESSION_KEY)||"null");
+    return sbValidSession(s)?s:null;
+  }catch(e){return null;}
+})();
 
 function sbSaveSession(s){
   SB_SESSION=s;
-  try{if(s)localStorage.setItem(SB_SESSION_KEY,JSON.stringify(s));else localStorage.removeItem(SB_SESSION_KEY);}catch(e){}
+  try{
+    localStorage.removeItem(SB_SESSION_KEY);sessionStorage.removeItem(SB_SESSION_KEY);
+    if(s)(s.keep===false?sessionStorage:localStorage).setItem(SB_SESSION_KEY,JSON.stringify(s));
+  }catch(e){}
   sbRenderAuthNav();
 }
 /* the token requests send: the person's session, else the anon key */
 function sbToken(){return SB_SESSION&&SB_SESSION.access_token?SB_SESSION.access_token:SB_KEY;}
 function sbSignedIn(){return !!(SB_SESSION&&SB_SESSION.access_token);}
 
-function sbSessionFrom(j,email){
+function sbSessionFrom(j,email,keep){
   return {access_token:j.access_token,refresh_token:j.refresh_token,
     expires_at:Date.now()+((j.expires_in||3600)*1000),
-    email:(j.user&&j.user.email)||email||""};
+    email:(j.user&&j.user.email)||email||"",keep:keep!==false};
 }
-async function sbSignIn(email,password){
+async function sbSignIn(email,password,keep){
   var r=await fetch(SB_URL+"/auth/v1/token?grant_type=password",{method:"POST",
     headers:{"apikey":SB_KEY,"Content-Type":"application/json"},body:JSON.stringify({email:email,password:password})});
   var j=await r.json().catch(function(){return {};});
   if(!r.ok||!j.access_token)throw new Error(j.error_description||j.msg||j.error||"Sign-in failed");
-  var s=sbSessionFrom(j,email);
+  var s=sbSessionFrom(j,email,keep);
   if(!sbValidSession(s))throw new Error("Sign-in answer not from this database");
   sbSaveSession(s);
 }
@@ -60,7 +72,7 @@ async function sbRefresh(){
         headers:{"apikey":SB_KEY,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:SB_SESSION.refresh_token})});
       var j=await r.json().catch(function(){return {};});
       if(!r.ok||!j.access_token){sbSaveSession(null);return false;}
-      sbSaveSession(sbSessionFrom(j,SB_SESSION.email));
+      sbSaveSession(sbSessionFrom(j,SB_SESSION.email,SB_SESSION.keep));
       return true;
     }catch(e){return false;} /* offline: keep the session, try again later */
     finally{SB_REFRESHING=null;}
@@ -92,6 +104,7 @@ function sbLoginHtml(msg){
     "<form onsubmit='return sbLoginSubmit(event)'>"+
       "<label>Email<input id='sb-email' type='email' autocomplete='username' required value='"+String((SB_SESSION&&SB_SESSION.email)||"").replace(/'/g,"&#39;")+"'></label>"+
       "<label>Password<input id='sb-pass' type='password' autocomplete='current-password' required></label>"+
+      "<label class='sb-keep'><input id='sb-keep' type='checkbox' checked> Keep me signed in on this device</label>"+
       "<div class='sb-login-err' id='sb-err'></div>"+
       "<button type='submit' class='btn-save' id='sb-go'>Sign in</button>"+
       (SB_AUTH_REQUIRED?"":"<button type='button' class='edit-btn' onclick='sbHideLogin()'>Cancel</button>")+
@@ -114,7 +127,7 @@ async function sbLoginSubmit(ev){
   var btn=document.getElementById("sb-go"),err=document.getElementById("sb-err");
   btn.disabled=true;btn.textContent="Signing in…";err.textContent="";
   try{
-    await sbSignIn(document.getElementById("sb-email").value.trim(),document.getElementById("sb-pass").value);
+    await sbSignIn(document.getElementById("sb-email").value.trim(),document.getElementById("sb-pass").value,document.getElementById("sb-keep").checked);
     sbHideLogin();
     var f=SB_AFTER_LOGIN;SB_AFTER_LOGIN=null;
     if(f)f();
@@ -145,11 +158,54 @@ function sbRenderAuthNav(){
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",sbRenderAuthNav);else sbRenderAuthNav();
 
+/* ===== private files =====
+   The "documents" bucket is private: files are fetched with the person's
+   sign-in, or opened through a temporary signed link. Stored addresses keep
+   the old public form (.../object/public/documents/<path>); everything that
+   opens them is translated here, so no saved record has to change. */
+var SB_DOC_MARK="/storage/v1/object/public/documents/";
+function sbDocPath(url){url=String(url||"");var i=url.indexOf(SB_DOC_MARK);return i<0?null:url.slice(i+SB_DOC_MARK.length).split("#")[0];}
+/* a link that works for an hour, for opening in a new tab */
+async function sbSignedUrl(url){
+  var p=sbDocPath(url);
+  if(!p)return url;
+  await sbEnsureFresh();
+  var r=await SB_NATIVE_FETCH(SB_URL+"/storage/v1/object/sign/documents/"+p.split("?")[0],{method:"POST",
+    headers:{"apikey":SB_KEY,"Authorization":"Bearer "+sbToken(),"Content-Type":"application/json"},body:JSON.stringify({expiresIn:3600})});
+  var j=await r.json().catch(function(){return {};});
+  return j.signedURL?SB_URL+"/storage/v1"+(j.signedURL.charAt(0)==="/"?"":"/")+j.signedURL:url;
+}
+/* links that leave the page (new tab, Open button, ctrl-click) get a signed
+   link; chips that open the built-in viewer are left alone (the viewer
+   fetches the file itself, through fetch below) */
+document.addEventListener("click",function(ev){
+  var a=ev.target&&ev.target.closest&&ev.target.closest("a[href]");
+  if(!a||!sbDocPath(a.getAttribute("href")))return;
+  var mod=ev.ctrlKey||ev.metaKey||ev.shiftKey||ev.button===1;
+  if(!mod&&/trkViewFile/.test(a.getAttribute("onclick")||""))return;
+  ev.preventDefault();ev.stopPropagation();
+  var w=window.open("about:blank","_blank");
+  sbSignedUrl(a.getAttribute("href")).then(function(u){if(w)w.location.href=u;else location.href=u;});
+},true);
+/* blob URL for an <img> preview of a private file */
+async function sbFileObjectUrl(url){
+  if(!sbDocPath(url))return url;
+  var r=await fetch(url);
+  return r.ok?URL.createObjectURL(await r.blob()):url;
+}
+
 /* a request refused for an expired / missing sign-in: refresh once, else
    ask the person to sign in again (only once the database is locked) */
 var SB_NATIVE_FETCH=window.fetch.bind(window);
 window.fetch=async function(input,init){
   var url=typeof input==="string"?input:(input&&input.url)||"";
+  /* a private file asked for by its old public address: fetch it with the sign-in */
+  var dp=sbDocPath(url);
+  if(dp!==null&&url.indexOf(SB_URL)===0){
+    await sbEnsureFresh();
+    var h=Object.assign({},(init&&init.headers)||{},{"apikey":SB_KEY,"Authorization":"Bearer "+sbToken()});
+    return SB_NATIVE_FETCH(SB_URL+"/storage/v1/object/authenticated/documents/"+dp,Object.assign({},init||{},{headers:h}));
+  }
   var res=await SB_NATIVE_FETCH(input,init);
   /* sign-in still optional: a refused personal token must never block the
      site — forget it and repeat the request with the public key */
