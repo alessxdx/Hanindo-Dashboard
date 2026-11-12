@@ -180,6 +180,8 @@ function renderCustBase(){
   var sel=CB_SEL?all.filter(function(c){return c.key===CB_SEL;})[0]:null;
   if(!sel)CB_FULL=false;
   if(CB_FULL){
+    /* the page-wide stat boxes describe all customers, not this one */
+    var st=document.getElementById("stats");if(st)st.innerHTML="";
     content.innerHTML="<button class='trk-back' onclick='cbToggleFull()'>&larr; All customers</button>"+cbPanelHtml(sel);
     return;
   }
@@ -285,19 +287,65 @@ function cbPanelHtml(c){
   var groups=hasSales&&typeof computeProjectGroups==="function"?computeProjectGroups().filter(function(g){
     return g.txs.concat(g.projs).some(function(e){return e.customer===c.sales.name&&(!c.sales.country||e.country===c.sales.country);});
   }).sort(function(a,b){return a.name.localeCompare(b.name);}):[];
-  var groupsHtml=groups.length?"<div class='po-panel-sec'>Project groups &middot; "+groups.length+"</div>"+groups.map(function(g){
+  /* groups: one line each (name, size, total), opening the group page */
+  var groupsHtml=groups.map(function(g){
     var k=pgKind(g),units=pgUnits(g);
-    return "<button class='cb-proj cb-group' onclick='openProjectGroup("+JSON.stringify(g.name).replace(/'/g,"&#39;")+")'>"+
-      "<span class='cb-proj-name'>&#128279; "+trkEsc(g.name)+(units?" <span class='pg-units'>("+units+")</span>":"")+"</span>"+
-      "<span class='cb-proj-meta'><span class='pg-kind pg-kind-"+k.kind+"'>"+(k.kind==="loc"?"&#128205; ":"&#128196; ")+k.label+"</span></span>"+
-      "<span class='cb-group-parts'>"+k.parts.map(function(x){return "<span class='pg-part'>"+trkEsc(x)+"</span>";}).join("")+"</span>"+
-      "<span class='cb-proj-foot'><span>Group total</span><span class='cb-group-tot'>"+pgTotalsCompact(mdGroupTotals(g.txs,g.projs))+"</span></span>"+
+    return "<button class='cb-grpline' onclick='openProjectGroup("+JSON.stringify(g.name).replace(/'/g,"&#39;")+")' title='"+trkEsc(k.parts.join(", "))+"'>"+
+      "<span class='cb-grpline-name'>&#128279; "+trkEsc(g.name)+"</span>"+
+      "<span class='cb-grpline-meta'>"+trkEsc(k.label)+(units?" &middot; "+units:"")+"</span>"+
+      "<span class='cb-grpline-tot'>"+pgTotalsCompact(mdGroupTotals(g.txs,g.projs))+"</span><span class='cb-grpline-go'>&rsaquo;</span>"+
     "</button>";
-  }).join(""):"";
-  /* the By Customer history (revenue, printers by model, every order and
-     document), drawn by the same code that page uses */
-  var history=hasSales&&typeof buildMdDetail==="function"?
-    "<div class='cb-hist-head'>PO &amp; quotation history</div><div class='cb-hist'>"+buildMdDetail(c.sales.name,{embedded:true,country:c.sales.country,models:!!c.solutions.Custom})+"</div>":"";
+  }).join("");
+
+  /* orders & quotations from the sales records: one line each, a click opens
+     its line items and notes (drawn by By Customer's own order card) */
+  var deals=[],ordersHtml="",docsHtml="",docCount=0,modelsHtml="";
+  if(hasSales&&typeof mdOrderCard==="function"){
+    deals=c.sales.projs.map(function(p){return {p:p,when:parseDV(p.date)};})
+      .concat(c.sales.txs.map(function(t){return {t:t,when:parseDV(t.date)};}))
+      .sort(function(a,b){return b.when-a.when;});
+    var lastY=null;
+    ordersHtml=deals.map(function(d){
+      var e=d.p||d.t,y=d.when?new Date(d.when).getFullYear():"No date";
+      var head=y!==lastY?"<div class='cb-ord-year'>"+y+"</div>":"";lastY=y;
+      var total=d.p?mdProjTotal(d.p):(d.t.totalOverride||d.t.price*(mdParseUnits(d.t.qty)||1));
+      var title=e.project||e.displayModel||e.model||"Untitled";
+      if(e.projectGroup&&title.toLowerCase().indexOf(e.projectGroup.toLowerCase())===0){
+        var rest=title.slice(e.projectGroup.length).replace(/^[\s—–\-:]+/,"").replace(/^\((.*)\)$/,"$1").trim();
+        if(rest)title=rest;
+      }
+      var num=Math.round(total*100)/100;
+      return head+"<details class='cb-ord'><summary>"+
+        "<span class='cb-ord-chev'>&#9656;</span>"+
+        "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(title)+"</span>"+
+          "<span class='cb-ord-sub'>"+trkEsc(e.displayDate||e.date||"")+(e.projectGroup?" &middot; &#128279; "+trkEsc(e.projectGroup):"")+"</span></span>"+
+        bStatus(e.status)+
+        "<span class='cb-ord-tot'>"+num.toLocaleString(undefined,{maximumFractionDigits:2})+" <span class='trk-r-cur'>"+trkEsc(e.currency)+"</span></span>"+
+      "</summary>"+mdOrderCard(d)+"</details>";
+    }).join("");
+    docsHtml=mdDocsHtml(deals);
+    docCount=(docsHtml.match(/class='md-doc'/g)||[]).length;
+    if(c.solutions.Custom&&typeof mdModelsTable==="function"){
+      var mt=mdModelsTable(mdRollup(c.sales.txs,c.sales.projs));
+      if(mt.modelKeys.length||mt.spareKeys.length)
+        modelsHtml="<details class='cb-models'><summary>Printers by model <span class='cb-tab-n'>"+mt.totalPo.toLocaleString()+" ordered</span></summary>"+mt.html+"</details>";
+    }
+  }
+
+  /* tabs: only one list shows at a time, so the page stays short */
+  var tabs=[];
+  if(c.projects.length)tabs.push({k:"projects",label:"Projects",n:c.projects.length,html:secs});
+  if(deals.length)tabs.push({k:"orders",label:"Orders",n:deals.length,html:
+    (groupsHtml?"<div class='cb-grplines'>"+groupsHtml+"</div>":"")+modelsHtml+ordersHtml});
+  if(docCount)tabs.push({k:"docs",label:"Documents",n:docCount,html:docsHtml});
+  var cur=tabs.some(function(t){return t.k===CB_TAB;})?CB_TAB:(tabs[0]&&tabs[0].k);
+  var tabsHtml=tabs.length?
+    "<div class='cb-tabs' role='tablist'>"+tabs.map(function(t){
+      return "<button role='tab' class='cb-tab"+(t.k===cur?" on":"")+"' data-tab='"+t.k+"' onclick='cbSetTab(\""+t.k+"\")'>"+t.label+" <span class='cb-tab-n'>"+t.n+"</span></button>";
+    }).join("")+"</div>"+
+    tabs.map(function(t){return "<div class='cb-tabpane' data-pane='"+t.k+"'"+(t.k===cur?"":" hidden")+">"+t.html+"</div>";}).join("")
+    :"";
+  var history="";
   return "<aside class='po-panel cb-panel"+(hasSales?" cb-panel-wide":"")+(CB_FULL?" cb-full":"")+"'><div class='cb-full-in'>"+
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(c.name)+"</span>"+
       (CB_FULL?"":"<button class='trk-pn-expand' title='Open full page' aria-label='Open full page' onclick='cbToggleFull()'>&#x2922;</button>"+
@@ -310,9 +358,7 @@ function cbPanelHtml(c){
       "<div><b>"+(c.projects.length||"&mdash;")+"</b><span>tracker projects</span></div>"+
     "</div>"+
     details+
-    secs+
-    groupsHtml+
-    history+
+    tabsHtml+
   "</div></aside>";
 }
 
@@ -328,6 +374,14 @@ function cbToggleCountry(k){
 /* expanded customer: the panel opens as a full page in the main area,
    like an expanded tracker project; "All customers" goes back to the list */
 var CB_FULL=false;
+/* the panel's open tab, kept while moving between customers; switching
+   only flips the panes, so the scroll position stays */
+var CB_TAB="";
+function cbSetTab(k){
+  CB_TAB=k;
+  document.querySelectorAll(".cb-panel .cb-tab").forEach(function(b){b.classList.toggle("on",b.dataset.tab===k);});
+  document.querySelectorAll(".cb-panel .cb-tabpane").forEach(function(p){p.hidden=p.dataset.pane!==k;});
+}
 function cbToggleFull(){CB_FULL=!CB_FULL;renderCustBase();window.scrollTo(0,0);}
 /* a row click opens the side panel; clicking the open customer again
    expands it to the full page (as in the tracker) */

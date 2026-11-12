@@ -342,23 +342,8 @@ function mdDocsHtml(deals){
   }).join("")+"</div>";
 }
 
-/* opts.embedded: drawn inside the Customer Base panel, which has its own
-   name header and close button */
-function buildMdDetail(key,opts){
-  var embedded=!!(opts&&opts.embedded),only=opts&&opts.country; /* only: one country's records */
-  var R=resolveDeals();
-  var txs=R.txs.filter(function(t){return t.customer===key&&(!only||t.country===only);});
-  var projs=R.projs.filter(function(p){return p.customer===key&&(!only||p.country===only);});
-  if(!txs.length&&!projs.length)return "<div class='md-empty'>No entries for this customer.</div>";
-  var ref=txs[0]||projs[0];
-  var name=ref.customer,country=ref.country;
-  var countries=[];txs.concat(projs).forEach(function(e){if(e.country&&countries.indexOf(e.country)===-1)countries.push(e.country);});
-  countries.sort();
-  var r=mdRollup(txs,projs);
-  var pos=mdCountSt(txs,"PO")+mdCountSt(projs,"PO");
-  var qt=txs.filter(function(t){return t.status==="Quotation";}).length+projs.filter(function(p){return p.status==="Quotation";}).length;
-  var ls=txs.filter(function(t){return t.status==="Lose";}).length+projs.filter(function(p){return p.status==="Lose";}).length;
-
+/* printers-by-model table for one customer's rollup (also used by Customer Base) */
+function mdModelsTable(r){
   var modelKeys=Object.keys(r.models).sort();
   var spareKeys=Object.keys(r.spares||{}).sort();
   var anyLost=modelKeys.some(function(m){return r.models[m].lost>0;})||spareKeys.some(function(m){return r.spares[m].lost>0;});
@@ -379,6 +364,26 @@ function buildMdDetail(key,opts){
     (spareKeys.length?"<tbody><tr class='md-spare-head'><td colspan='"+cols+"'>Print heads &amp; spare parts <span>not counted as printers</span></td></tr>"+spareRows+"</tbody>":"")+
     "</table>"
     :"<div class='md-money-none'>No printer quantities recorded.</div>";
+  return {html:modelsTable,modelKeys:modelKeys,spareKeys:spareKeys,totalPo:totalPo,totalQt:totalQt};
+}
+/* opts.embedded: drawn inside the Customer Base panel, which has its own
+   name header and close button */
+function buildMdDetail(key,opts){
+  var embedded=!!(opts&&opts.embedded),only=opts&&opts.country; /* only: one country's records */
+  var R=resolveDeals();
+  var txs=R.txs.filter(function(t){return t.customer===key&&(!only||t.country===only);});
+  var projs=R.projs.filter(function(p){return p.customer===key&&(!only||p.country===only);});
+  if(!txs.length&&!projs.length)return "<div class='md-empty'>No entries for this customer.</div>";
+  var ref=txs[0]||projs[0];
+  var name=ref.customer,country=ref.country;
+  var countries=[];txs.concat(projs).forEach(function(e){if(e.country&&countries.indexOf(e.country)===-1)countries.push(e.country);});
+  countries.sort();
+  var r=mdRollup(txs,projs);
+  var pos=mdCountSt(txs,"PO")+mdCountSt(projs,"PO");
+  var qt=txs.filter(function(t){return t.status==="Quotation";}).length+projs.filter(function(p){return p.status==="Quotation";}).length;
+  var ls=txs.filter(function(t){return t.status==="Lose";}).length+projs.filter(function(p){return p.status==="Lose";}).length;
+
+  var mt=mdModelsTable(r),modelKeys=mt.modelKeys,spareKeys=mt.spareKeys,totalPo=mt.totalPo,totalQt=mt.totalQt,modelsTable=mt.html;
 
   var curs=[];txs.forEach(function(t){if(curs.indexOf(t.currency)===-1)curs.push(t.currency);});
   projs.forEach(function(p){if(curs.indexOf(p.currency)===-1)curs.push(p.currency);});
