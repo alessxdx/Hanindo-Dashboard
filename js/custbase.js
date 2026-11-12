@@ -9,6 +9,8 @@ var CB_SEL="";      /* selected customer key (lower-cased name) */
 var CB_Q="";        /* search box */
 var CB_FILTER="";   /* "", "ongoing", "won", "lost" */
 var CB_Q_T=null;
+var CB_SOL="";      /* solution chip: "" = all */
+var CB_COUNTRY="";  /* country chip: "" = all */
 
 /* outcome buckets, in the order the panel lists them */
 var CB_CATS=[
@@ -58,7 +60,9 @@ function cbCustomers(){
   out.sort(function(a,b){return b.last.localeCompare(a.last)||a.name.localeCompare(b.name);});
   return out;
 }
-function cbMatches(c){
+function cbMatches(c,skip){
+  if(skip!=="sol"&&CB_SOL&&!c.solutions[CB_SOL])return false;
+  if(skip!=="country"&&CB_COUNTRY&&(c.country||"")!==CB_COUNTRY)return false;
   if(CB_FILTER==="ongoing"&&!c.n.ongoing)return false;
   if(CB_FILTER==="won"&&!(c.n.won+c.n.done))return false;
   if(CB_FILTER==="lost"&&!(c.n.lost&&!c.n.ongoing&&!c.n.won&&!c.n.done))return false;
@@ -97,6 +101,32 @@ function renderCustBase(){
         {value:"lost",label:"Only lost",count:cnt(function(c){return c.n.lost&&!c.n.ongoing&&!c.n.won&&!c.n.done;})}
       ]})+
     "</div>";
+  /* chip rows: one tap narrows to a solution / country, tapping it again
+     clears it. Counts follow the other filters, so they add up to the list. */
+  var solN={},ctyN={};
+  all.forEach(function(c){
+    if(cbMatches(c,"sol"))Object.keys(c.solutions).forEach(function(s){solN[s]=(solN[s]||0)+1;});
+    if(cbMatches(c,"country")){var k=c.country||"";ctyN[k]=(ctyN[k]||0)+1;}
+  });
+  var solKeys=Object.keys(solN).sort(function(a,b){return solN[b]-solN[a]||a.localeCompare(b);});
+  if(CB_SOL&&solKeys.indexOf(CB_SOL)<0)solKeys.push(CB_SOL);
+  var ctyKeys=Object.keys(ctyN).sort(function(a,b){if(!a!==!b)return a?-1:1;return ctyN[b]-ctyN[a]||a.localeCompare(b);});
+  if(CB_COUNTRY&&ctyKeys.indexOf(CB_COUNTRY)<0)ctyKeys.push(CB_COUNTRY);
+  var chip=function(fn,v,cur,inner,n){
+    return "<button class='trk-chip cb-chip"+(v===cur?" active":"")+"' onclick='"+fn+"("+JSON.stringify(v).replace(/'/g,"&#39;")+")'>"+inner+
+      (n!==undefined?"<span class='cb-chip-n'>"+n+"</span>":"")+"</button>";
+  };
+  var chips=
+    "<div class='cb-chips'>"+
+      "<div class='cb-chip-row'><span class='cb-chip-lbl'>Solution</span><div class='cb-chip-set'>"+
+        chip("cbPickSol","",CB_SOL,"All")+
+        solKeys.map(function(s){return chip("cbPickSol",s,CB_SOL,"<span class='trk-sol-dot' style='background:"+trkSolutionColor(s)+"'></span>"+trkEsc(s),solN[s]||0);}).join("")+
+      "</div></div>"+
+      "<div class='cb-chip-row'><span class='cb-chip-lbl'>Country</span><div class='cb-chip-set'>"+
+        chip("cbPickCountry","",CB_COUNTRY,"All")+
+        ctyKeys.map(function(k){return chip("cbPickCountry",k,CB_COUNTRY,(k?trkFlag(k,14)+" "+trkEsc(k):"No country"),ctyN[k]||0);}).join("")+
+      "</div></div>"+
+    "</div>";
   var sel=CB_SEL?all.filter(function(c){return c.key===CB_SEL;})[0]:null;
   var row=function(c){
     var pills=CB_CATS.map(function(x){
@@ -126,7 +156,7 @@ function renderCustBase(){
     if(!a!==!b)return a?-1:1;
     return groups[b].length-groups[a].length||a.localeCompare(b);
   });
-  var searching=!!(CB_Q.trim()||CB_FILTER);
+  var searching=!!(CB_Q.trim()||CB_FILTER||CB_SOL||CB_COUNTRY);
   var rows=order.map(function(k){
     var g=groups[k].sort(function(a,b){return a.name.localeCompare(b.name);});
     var shut=!searching&&cbIsShut(k),won=0,ongoing=0;
@@ -147,7 +177,7 @@ function renderCustBase(){
       (sel?cbPanelHtml(sel):"")+
     "</div>"
     :"<div class='empty'>"+(all.length?"No customer matches that search or filter.":"No customers in the Project Tracker yet.")+"</div>";
-  content.innerHTML=toolbar+(CB_Q.trim()||CB_FILTER?"<div class='trk-search-count'>"+list.length+" of "+all.length+" customers</div>":"")+table;
+  content.innerHTML=toolbar+chips+(searching?"<div class='trk-search-count'>"+list.length+" of "+all.length+" customers</div>":"")+table;
 }
 
 function cbRenderStats(all){
@@ -218,6 +248,8 @@ function cbToggleCountry(k){
 }
 function cbOpen(key){CB_SEL=key||"";renderCustBase();if(typeof syncRoute==="function")syncRoute();}
 function cbPickFilter(v){CB_FILTER=v;renderCustBase();}
+function cbPickSol(v){CB_SOL=(v&&v===CB_SOL)?"":v;renderCustBase();}
+function cbPickCountry(v){CB_COUNTRY=(v&&v===CB_COUNTRY)?"":v;renderCustBase();}
 function cbSearchInput(v){
   CB_Q=v;
   clearTimeout(CB_Q_T);
