@@ -1734,6 +1734,7 @@ function trkProductChips(p,max){
 var TRK_KIND="Customer";
 function trkSetKind(k){
   TRK_KIND=k;
+  if(k==="Other")trkClearRequired();
   var other=k==="Other";
   document.getElementById("tp-kind-customer").classList.toggle("active",!other);
   document.getElementById("tp-kind-other").classList.toggle("active",other);
@@ -1777,8 +1778,13 @@ function trkAddContact(){
   if(ins.length)ins[ins.length-1].focus();
 }
 function trkRemoveContact(i){TRK_XC.splice(i,1);trkRenderContacts();}
+function trkClearRequired(){
+  document.querySelectorAll("#modal-trk-project .trk-missing").forEach(function(g){g.classList.remove("trk-missing");});
+  trkReqMsg("");
+}
 function trkOpenProjectModal(){
   var m=document.getElementById("modal-trk-project");
+  trkClearRequired();
   m.removeAttribute("data-edit-id");
   document.getElementById("trk-project-modal-title").textContent="Add project";
   document.getElementById("btn-delete-trk-project").style.display="none";
@@ -1836,6 +1842,7 @@ function trkSetPaymentDisplay(pay){
     " <span style='font-size:10.5px;color:var(--text-faint)'>set by &ldquo;Payment received&rdquo; entries in the timeline</span>";
 }
 function trkEditProject(){
+  trkClearRequired();
   var p=TRK_PROJECTS.find(function(x){return x._id===TRK_SEL;});
   if(!p)return;
   var m=document.getElementById("modal-trk-project");
@@ -1884,10 +1891,41 @@ function trkEditProject(){
   trkFollowupMin(document.getElementById("tp-followup"));
   m.classList.add("open");
 }
+var TRK_REQUIRED=[["tp-customer","Customer"],["tp-country","Country"],["tp-office","Handling office"],["tp-solution","Solution type"]];
+/* marks empty required fields red, focuses the first, says which */
+function trkCheckRequired(){
+  var miss=[];
+  TRK_REQUIRED.forEach(function(f){
+    var el=document.getElementById(f[0]);
+    var empty=!el.value.trim();
+    el.closest(".form-group").classList.toggle("trk-missing",empty);
+    if(empty){
+      miss.push(f[1]);
+      if(!el._reqWired){el._reqWired=1;el.addEventListener(el.tagName==="SELECT"?"change":"input",function(){
+        if(el.value.trim())el.closest(".form-group").classList.remove("trk-missing");
+        var left=document.querySelectorAll("#modal-trk-project .trk-missing").length;
+        if(!left)trkReqMsg("");
+      });}
+    }
+  });
+  if(!miss.length){trkReqMsg("");return true;}
+  trkReqMsg("Please fill in: "+miss.join(", "));
+  var first=document.getElementById(TRK_REQUIRED.filter(function(f){return miss.indexOf(f[1])>-1;})[0][0]);
+  first.scrollIntoView({block:"center",behavior:"smooth"});
+  first.removeAttribute("readonly");first.focus({preventScroll:true});
+  return false;
+}
+function trkReqMsg(t){
+  var m=document.getElementById("tp-req-msg");
+  if(!m)return;
+  m.textContent=t;m.style.display=t?"":"none";
+}
 async function trkSaveProject(){
   var other=TRK_KIND==="Other";
   var name=document.getElementById("tp-name").value.trim();
   var customer=document.getElementById("tp-customer").value.trim();
+  /* customer projects need customer, country, office and solution */
+  if(!other&&!trkCheckRequired())return;
   /* a product typed but never added shouldn't be lost */
   if(!other&&document.getElementById("tp-product").value.trim())trkAddProduct();
   if(!name){

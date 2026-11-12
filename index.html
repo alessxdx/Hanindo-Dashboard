@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-12.1";
+var APP_VERSION = "2026-11-12.2";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -342,10 +342,10 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       </div>
       <div class="form-group form-full"><label>Project name <span style="font-size:10px;color:#aaa;font-weight:400" id="tp-name-hint">(auto-filled as "Customer &mdash; 50&times; Model" from the fields below &mdash; edit it if you like)</span></label><div style="display:flex;gap:8px"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-name" placeholder="e.g. Biman &mdash; 50&times; TK180 &mdash; boarding pass printers" style="flex:1"><button type="button" class="att-add" style="white-space:nowrap" id="tp-name-auto" onclick="trkResetAutoName()" title="Regenerate the name from the customer and products below">&#8635; Auto</button></div></div>
       <div class="form-section tp-cust-only">Customer</div>
-      <div class="form-group tp-cust-only"><label>Customer</label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-customer" placeholder="Type — existing customers pop up" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-customer-suggest"></div></div></div>
-      <div class="form-group tp-cust-only"><label>Country</label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-country" placeholder="Type — existing countries pop up" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-country-suggest"></div></div></div>
-      <div class="form-group"><label>Handling office</label><select id="tp-office"><option value="">&mdash;</option><option>China</option><option>Indonesia</option><option>Singapore</option></select></div>
-      <div class="form-group"><label>Solution type <span style="font-size:10px;color:#aaa;font-weight:400">(one tag for what it's about &mdash; shown on the card)</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-solution" placeholder="e.g. Custom, Posiva, Fire fighting" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-solution-suggest"></div></div></div>
+      <div class="form-group tp-cust-only"><label>Customer <span class="tp-req tp-cust-only">*</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-customer" placeholder="Type — existing customers pop up" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-customer-suggest"></div></div></div>
+      <div class="form-group tp-cust-only"><label>Country <span class="tp-req tp-cust-only">*</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-country" placeholder="Type — existing countries pop up" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-country-suggest"></div></div></div>
+      <div class="form-group"><label>Handling office <span class="tp-req tp-cust-only">*</span></label><select id="tp-office"><option value="">&mdash;</option><option>China</option><option>Indonesia</option><option>Singapore</option></select></div>
+      <div class="form-group"><label>Solution type <span class="tp-req tp-cust-only">*</span> <span style="font-size:10px;color:#aaa;font-weight:400">(one tag for what it's about &mdash; shown on the card)</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-solution" placeholder="e.g. Custom, Posiva, Fire fighting" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-solution-suggest"></div></div></div>
       <div class="form-section tp-cust-only">The deal</div>
       <div class="form-group form-full tp-cust-only"><label>Products of interest <span style="font-size:10px;color:#aaa;font-weight:400">(qty optional; type &mdash; your models pop up; Enter or &#43; Add; as many as they asked about)</span></label>
         <div style="display:flex;gap:8px;align-items:flex-start">
@@ -373,6 +373,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="form-group form-full tp-cust-only trk-xc-wrap"><div id="tp-xc-list"></div><button type="button" class="trk-xc-add" onclick="trkAddContact()">+ Add another contact</button></div>
       <div class="form-group form-full"><label class="fmt-label"><span>Project description</span><span class="fmt-tools"><button type="button" class="nt-tool fmt-b" title="Bold (Ctrl+B)" onmousedown="event.preventDefault()" onclick="toggleWrap('tp-notes','**')">B</button><button type="button" class="nt-tool fmt-i" title="Italic (Ctrl+I)" onmousedown="event.preventDefault()" onclick="toggleWrap('tp-notes','*')">I</button><button type="button" class="nt-tool fmt-u" title="Underline (Ctrl+U)" onmousedown="event.preventDefault()" onclick="toggleWrap('tp-notes','__')">U</button></span></label><textarea id="tp-notes" onkeydown="listKeys(event)" style="min-height:260px" placeholder="Background, requirements, competitors&hellip;"></textarea></div>
     </div>
+    <div id="tp-req-msg" class="tp-req-msg" style="display:none"></div>
     <div class="modal-actions">
       <button id="btn-delete-trk-project" class="delete-btn" style="font-size:13px;padding:9px 14px;display:none" onclick="trkDeleteProject()">Delete project</button>
       <button id="btn-lost-trk-project" class="delete-btn" style="margin-right:auto;font-size:13px;padding:9px 14px;display:none;opacity:.85" onclick="trkToggleLost()">Mark as lost</button>
