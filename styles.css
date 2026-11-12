@@ -2623,6 +2623,16 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .cb-c-val{white-space:nowrap}
 .cb-c-last{white-space:nowrap}
 .cb-pills{display:flex;flex-wrap:wrap;gap:4px}
+@media (min-width:701px){.cb-pills{flex-wrap:nowrap}}
+/* country bands */
+.cb-grp{cursor:pointer;user-select:none}
+.cb-grp-in{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.cb-grp .po-grp-n{margin-left:2px}
+.cb-grp-chev{display:inline-block;width:14px;font-size:14px;line-height:1;color:var(--text-muted);transition:transform .15s}
+.cb-grp.shut .cb-grp-chev{transform:rotate(-90deg)}
+.cb-grp-open{font-size:11.5px;font-weight:500;color:var(--text-muted);margin-left:4px}
+.cb-grp:hover td{filter:brightness(.98)}
+.cb-row td:first-child{padding-left:34px}
 .cb-pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
 .cb-ongoing{background:#eff8ff;color:#175cd3;border-color:#b2ddff}
 .cb-won{background:#fffaeb;color:#b54708;border-color:#fedf89}

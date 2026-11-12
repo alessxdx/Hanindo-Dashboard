@@ -98,18 +98,46 @@ function renderCustBase(){
       ]})+
     "</div>";
   var sel=CB_SEL?all.filter(function(c){return c.key===CB_SEL;})[0]:null;
-  var rows=list.map(function(c){
+  var row=function(c){
     var pills=CB_CATS.map(function(x){
       return c.n[x.k]?"<span class='cb-pill cb-"+x.k+"' title='"+x.label.replace("&middot;","·")+"'>"+c.n[x.k]+" "+(x.k==="won"?"won":x.k)+"</span>":"";
     }).join("");
     var offices=Object.keys(c.offices).sort().join(", ");
+    if(offices===c.country)offices="";
+    // the country is in the band above, so the line under the name only needs anything that differs
+    var other=Object.keys(c.countries).filter(function(k){return k!==c.country;});
+    var sub=[offices?trkEsc(offices)+" office":"",other.length?"also "+other.map(trkEsc).join(", "):""].filter(Boolean).join(" &middot; ");
     return "<tr class='po-row cb-row"+(c.key===CB_SEL?" sel":"")+"' onclick='cbOpen("+JSON.stringify(c.key).replace(/'/g,"&#39;")+")'>"+
-      "<td><div class='cb-name'>"+trkEsc(c.name)+"</div><div class='cb-sub'>"+(c.country?trkFlag(c.country,14)+" "+trkEsc(c.country):"")+(offices?" &middot; "+trkEsc(offices)+" office":"")+"</div></td>"+
+      "<td><div class='cb-name'>"+trkEsc(c.name)+"</div>"+(sub?"<div class='cb-sub'>"+sub+"</div>":"")+"</td>"+
       "<td class='num cb-c-n'>"+c.projects.length+"</td>"+
       "<td><div class='cb-pills'>"+pills+"</div></td>"+
       "<td class='num cb-c-val'>"+(c.wonUSD?"<span class='po-amt'>"+cbMoney(c.wonUSD)+"</span>":"<span class='po-dim'>&mdash;</span>")+"</td>"+
       "<td class='cb-c-last po-dim'>"+(c.last?trkFmtDate(c.last):"")+"</td>"+
     "</tr>";
+  };
+  /* one band per country: most customers first, customers A-Z inside, no country last */
+  var groups={},order=[];
+  list.forEach(function(c){
+    var k=c.country||"";
+    if(!groups[k]){groups[k]=[];order.push(k);}
+    groups[k].push(c);
+  });
+  order.sort(function(a,b){
+    if(!a!==!b)return a?-1:1;
+    return groups[b].length-groups[a].length||a.localeCompare(b);
+  });
+  var searching=!!(CB_Q.trim()||CB_FILTER);
+  var rows=order.map(function(k){
+    var g=groups[k].sort(function(a,b){return a.name.localeCompare(b.name);});
+    var shut=!searching&&cbIsShut(k),won=0,ongoing=0;
+    g.forEach(function(c){won+=c.wonUSD;ongoing+=c.n.ongoing;});
+    return "<tr class='po-grp cb-grp"+(shut?" shut":"")+"' onclick='cbToggleCountry("+JSON.stringify(k).replace(/'/g,"&#39;")+")' title='"+(shut?"Show":"Hide")+" these customers'>"+
+        "<td colspan='3'><span class='cb-grp-in'><span class='cb-grp-chev'>&#9662;</span>"+(k?trkFlag(k,18)+" ":"")+"<span class='po-grp-name'>"+(k?trkEsc(k):"No country set")+"</span>"+
+        "<span class='po-grp-n'>"+g.length+" customer"+(g.length===1?"":"s")+"</span>"+
+        (ongoing?"<span class='cb-grp-open'>"+ongoing+" ongoing project"+(ongoing===1?"":"s")+"</span>":"")+"</span></td>"+
+        "<td class='num cb-c-val'>"+(won?"<span class='po-grp-lbl'>Won</span><span class='po-grp-sum'>"+cbMoney(won)+"</span>":"")+"</td><td class='cb-c-last'></td>"+
+      "</tr>"+
+      (shut?"":g.map(row).join(""));
   }).join("");
   var table=list.length?
     "<div class='po-split"+(sel?" has-sel":"")+"'>"+
@@ -179,6 +207,15 @@ function cbPanelHtml(c){
   "</aside>";
 }
 
+/* folded country bands are remembered on this device */
+function cbShutMap(){try{return JSON.parse(localStorage.getItem("cb_shut")||"{}")||{};}catch(e){return {};}}
+function cbIsShut(k){return !!cbShutMap()[k||"-"];}
+function cbToggleCountry(k){
+  var m=cbShutMap(),id=k||"-";
+  if(m[id])delete m[id];else m[id]=1;
+  try{localStorage.setItem("cb_shut",JSON.stringify(m));}catch(e){}
+  renderCustBase();
+}
 function cbOpen(key){CB_SEL=key||"";renderCustBase();if(typeof syncRoute==="function")syncRoute();}
 function cbPickFilter(v){CB_FILTER=v;renderCustBase();}
 function cbSearchInput(v){
