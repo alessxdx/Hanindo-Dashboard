@@ -354,7 +354,7 @@ function cbPanelHtml(c){
     var row=function(label,html){return html?"<div class='trk-pn-row'><span>"+label+"</span><div>"+html+"</div></div>":"";};
     var ents=typeof trkEntriesFor==="function"?trkEntriesFor(p._id):[];
     var tl=ents.slice(0,3).map(function(e){
-      return "<div class='trk-pn-e'><div class='trk-pn-e-meta'><strong>"+trkFmtDate(e.date)+"</strong> "+trkTypeBadge(e.type)+"</div>"+
+      return "<div class='trk-pn-e'><div class='trk-pn-e-meta'><strong>"+trkFmtDate(e.date)+"</strong> "+trkTypeBadge(e.type)+trkAmtTag(e)+"</div>"+
         (e.title?"<div class='trk-pn-e-title'>"+trkEsc(e.title)+"</div>":"")+
         (e.details?"<div class='trk-pn-e-det'>"+trkLines(e.details)+"</div>":"")+"</div>";
     }).join("");

@@ -12,6 +12,7 @@
 var TD_SOON=14;        /* "due soon" window for payments, days */
 var TD_QUOTE_WIN=30;   /* quotes expiring within / expired within, days */
 var TD_DEFAULT_TERMS=30;
+var TD_NOINV_DAYS=60;  /* won with a PO this long ago and still no invoice → Needs info */
 
 function tdEsc(s){return typeof trkEsc==="function"?trkEsc(s):String(s==null?"":s);}
 function tdAddDays(iso,n){var d=new Date(iso+"T00:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
@@ -49,7 +50,11 @@ function tdMoneyOwed(){
     var inv=ents.filter(function(e){return e.type==="Invoice";}).sort(function(a,b){return b.date.localeCompare(a.date);})[0];
     var po=ents.filter(function(e){return e.type==="Purchase order";}).sort(function(a,b){return a.date.localeCompare(b.date);})[0];
     var terms=tdTerms([inv?(inv.title||"")+" "+(inv.details||""):"",p.notes]);
-    var r={p:p,inv:inv?inv.date:"",po:po?po.date:"",terms:terms,amt:p.estValue,cur:p.currency||"USD",partial:p.payment==="Partially paid"};
+    /* payments recorded with an amount reduce what is left */
+    var paid=ents.filter(function(e){return e.type==="Payment received"&&e.amount!==null&&e.amount!==undefined;})
+      .reduce(function(n,e){return n+Number(e.amount);},0);
+    var r={p:p,inv:inv?inv.date:"",po:po?po.date:"",terms:terms,total:p.estValue,paid:paid,cur:p.currency||"USD",partial:p.payment==="Partially paid"||paid>0};
+    r.amt=r.total===null?null:Math.max(0,r.total-paid);
     r.usd=r.amt!==null&&typeof fxToUSD==="function"?fxToUSD(r.amt,r.cur):null;
     if(!r.inv){r.state="noinv";return r;}
     r.due=tdAddDays(r.inv,terms.days);
@@ -90,7 +95,11 @@ function tdGo(tab,sel){navTo(tab,sel||null);if(typeof syncRoute==="function")syn
 function tdGoAttr(tab,sel){return "tdGo("+JSON.stringify(tab)+","+JSON.stringify(sel||"")+")";}
 function tdAttr(js){return js.replace(/&/g,"&amp;").replace(/'/g,"&#39;");}
 function tdUSD(v){return typeof cbMoney==="function"?cbMoney(v):"$"+Math.round(v).toLocaleString();}
-function tdAmt(r){return r.amt===null?"<span class='td-dim'>value not set</span>":tdEsc(r.amt.toLocaleString())+" <span class='trk-r-cur'>"+tdEsc(r.cur)+"</span>";}
+function tdAmt(r){
+  if(r.amt===null)return "<span class='td-dim'>value not set</span>";
+  var main=tdEsc(r.amt.toLocaleString())+" <span class='trk-r-cur'>"+tdEsc(r.cur)+"</span>";
+  return r.paid?main+"<span class='td-amt-of'>left of "+tdEsc(r.total.toLocaleString())+"</span>":main;
+}
 
 function tdRow(o){
   /* o: {name, cust, country, right, sub, badge, go, sel} */
@@ -162,7 +171,7 @@ function renderToday(){
         r.state==="soon"?"<span class='trk-badge trk-stale'>"+(r.days===0?"Due today":"Due in "+r.days+"d")+"</span>":
         "<span class='trk-badge trk-fu'>Due "+trkFmtDate(r.due).replace(/ \d{4}$/,"")+"</span>";
     }
-    if(r.partial)badge+=" <span class='trk-badge td-b-part'>Partly paid</span>";
+    if(r.partial)badge+=" <span class='trk-badge td-b-part'>"+(r.paid?"Paid "+tdEsc(r.paid.toLocaleString()):"Partly paid")+"</span>";
     return tdRow({name:r.p.name,cust:r.p.customer,country:r.p.country,sub:sub,badge:badge,right:tdAmt(r),go:"tracker",sel:r.p._id});
   };
   var paySec=function(label,arr,cls){
@@ -190,7 +199,7 @@ function renderToday(){
     paySec("Invoiced, due later",by.later,"td-sec-later")+
     paySec("Won, not invoiced yet",by.noinv,"td-sec-wait")+
     (custHtml?"<details class='td-bycust'><summary>By customer</summary>"+custHtml+"</details>":"")+
-    "<div class='td-note'>Due date = the project's Invoice timeline entry + its payment terms (read from the description, e.g. &ldquo;30 days after invoice&rdquo;; "+TD_DEFAULT_TERMS+" days when none is written). Add a &ldquo;Payment received&rdquo; entry to mark it paid. Amounts in USD equivalent.</div>"
+    "<div class='td-note'>Due date = the project's Invoice timeline entry + its payment terms (read from the description, e.g. &ldquo;30 days after invoice&rdquo;; "+TD_DEFAULT_TERMS+" days when none is written). Add a &ldquo;Payment received&rdquo; entry with the amount received; what is left is shown, and the last payment marks it Fully paid. Amounts in USD equivalent.</div>"
     :"";
 
   /* quotes */
@@ -211,6 +220,27 @@ function renderToday(){
     "<div class='stat'><div class='stat-label'>Money owed</div><div class='stat-value'>"+(money.length?tdUSD(sumUSD(money)):"&mdash;")+"</div><div class='stat-sub'>"+money.length+" won project"+(money.length===1?"":"s")+" not fully paid</div></div>"+
     "<div class='stat'><div class='stat-label'>Quotes expiring</div><div class='stat-value'>"+quotes.filter(function(q){return q.days>=0;}).length+"</div><div class='stat-sub'>in the next "+TD_QUOTE_WIN+" days</div></div>";
 
+  /* needs info: gaps that make the numbers above wrong */
+  var gaps=[];
+  money.forEach(function(r){
+    if(r.total===null)gaps.push({r:r,why:"Won but no project value &mdash; money owed can't be counted",fix:"add the value"});
+    if(r.state==="noinv"&&r.po&&tdDays(r.po,today)>=TD_NOINV_DAYS)gaps.push({r:r,why:"PO "+trkFmtDate(r.po)+", "+tdDays(r.po,today)+" days ago, still no invoice on the timeline",fix:"add the Invoice entry"});
+    if(r.state==="noinv"&&!r.po)gaps.push({r:r,why:"Won but no Purchase order or Invoice on the timeline",fix:"add the PO / invoice"});
+  });
+  var gapRow=function(g){return tdRow({name:g.r.p.name,cust:g.r.p.customer,country:g.r.p.country,sub:g.why,badge:"<span class='trk-badge td-b-wait'>"+g.fix+"</span>",go:"tracker",sel:g.r.p._id});};
+
+  /* backup reminder */
+  var bkDays=typeof bkDaysSince==="function"?bkDaysSince():null;
+  var bkOn=typeof bkDaysSince==="function";
+  var bkDue=bkOn&&(bkDays===null||bkDays>=BK_REMIND_DAYS);
+  var bkBody=!bkOn?"":"<div class='td-bk'><div class='td-bk-txt'>"+
+      (bkDays===null?"<b>No backup saved on this computer yet.</b>":
+        "Last backup: <b>"+(bkDays===0?"today":bkDays===1?"yesterday":bkDays+" days ago")+"</b>"+(bkDue?" &mdash; time for a new one.":"."))+
+      "<span>Saves every table to a file on this computer, in case something is deleted by mistake. Reminder every "+BK_REMIND_DAYS+" days.</span></div>"+
+    "<div class='td-bk-btns'><button class='btn btn-primary' onclick='bkDownloadExcel()'>Download Excel backup</button>"+
+    "<button class='btn' onclick='bkDownloadJson()' title='Exact copy of the data, for restoring'>JSON</button></div></div>";
+  var bkCard=bkOn?tdCard("Backup",bkDue?"!":"",bkBody,"",bkDue?"td-card-bkdue":""):"";
+
   var dateStr=new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"});
   content.innerHTML="<div class='td-date'>"+tdEsc(dateStr)+"</div><div class='td-grid'>"+
     "<div class='td-col'>"+
@@ -226,6 +256,8 @@ function renderToday(){
     "</div>"+
     "<div class='td-col'>"+
       tdCard("Money owed",money.length,moneyBody,"Every won project is fully paid. &#128176;","td-card-money")+
+      (gaps.length?tdCard("Needs info",gaps.length,gaps.map(gapRow).join(""),""):"")+
+      bkCard+
     "</div>"+
   "</div>";
 }

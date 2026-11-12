@@ -2828,3 +2828,13 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 
 .sb-login-card label.sb-keep{flex-direction:row;align-items:center;gap:8px;font-weight:500;color:var(--text);cursor:pointer}
 .sb-login-card label.sb-keep input{width:16px;height:16px;padding:0;margin:0;accent-color:var(--accent,#0f7a83)}
+
+.trk-amt{font-size:11px;font-weight:700;color:#067647;background:#ecfdf3;border-radius:6px;padding:1px 6px;white-space:nowrap}
+:root[data-theme="dark"] .trk-amt{background:#053321;color:#75e0a7}
+.td-amt-of{display:block;font-size:10px;color:var(--text-muted);font-weight:400;text-align:right}
+.td-bk{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:4px 2px}
+.td-bk-txt{font-size:13px;display:flex;flex-direction:column;gap:3px;min-width:0;flex:1 1 220px}
+.td-bk-txt span{font-size:11px;color:var(--text-muted)}
+.td-bk-btns{display:flex;gap:6px;flex-wrap:wrap}
+.td-card-bkdue{border-color:#fdb022}
+.td-card-bkdue .td-n{background:#fef0c7;color:#b54708}

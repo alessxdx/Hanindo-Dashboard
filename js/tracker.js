@@ -43,8 +43,14 @@ var TRK_HAS_LOW=true;
 var TRK_HAS_XC=true;
 function trkPToDb(p){var r=trkPToDbBase(p);if(TRK_HAS_FU)r.next_followup=p.nextFollowup||null;if(TRK_HAS_XC)r.extra_contacts=(p.extraContacts&&p.extraContacts.length)?p.extraContacts:null;return r;}
 function trkPToDbBase(p){return{name:p.name,customer:p.customer||null,country:p.country||null,office:p.office||null,status:p.status,payment:p.payment||null,solution:p.solution||null,products:p.products||[],est_value:(p.estValue===null||isNaN(p.estValue))?null:p.estValue,currency:p.currency||"USD",expected_date:p.expectedDate||null,expected_period:p.expectedPeriod||null,contact_name:p.contactName||null,contact_position:p.contactPosition||null,contact_info:p.contactInfo||null,notes:p.notes||null};}
-function dbToTrkE(r){return{_id:r.id,projectId:r.project_id,date:r.entry_date||"",type:r.entry_type||"Note",title:r.title||"",details:r.details||"",attachments:Array.isArray(r.attachments)?r.attachments:[],createdAt:r.created_at||""};}
-function trkEToDb(e){return{project_id:e.projectId,entry_date:e.date||null,entry_type:e.type,title:e.title||null,details:e.details||null,attachments:e.attachments||[]};}
+function dbToTrkE(r){return{_id:r.id,projectId:r.project_id,date:r.entry_date||"",type:r.entry_type||"Note",title:r.title||"",details:r.details||"",attachments:Array.isArray(r.attachments)?r.attachments:[],amount:(r.amount===null||r.amount===undefined)?null:Number(r.amount),createdAt:r.created_at||""};}
+/* amount received, shown next to a Payment received entry's type */
+function trkAmtTag(e){
+  if(e.type!=="Payment received"||e.amount===null||e.amount===undefined)return "";
+  var p=TRK_PROJECTS.find(function(x){return x._id===e.projectId;});
+  return " <span class='trk-amt'>"+trkEsc(Number(e.amount).toLocaleString())+" "+trkEsc((p&&p.currency)||"")+"</span>";
+}
+function trkEToDb(e){return{project_id:e.projectId,entry_date:e.date||null,entry_type:e.type,title:e.title||null,details:e.details||null,attachments:e.attachments||[],amount:(e.type==="Payment received"&&e.amount!==null&&e.amount!==undefined&&!isNaN(e.amount))?e.amount:null};}
 
 /* ===== helpers ===== */
 function trkEsc(s){return String(s===null||s===undefined?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
@@ -876,7 +882,7 @@ function trkPanelHtml(p,act){
     var atts=(e.attachments||[]).map(function(a){
       return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+trkFileIcon(a.name)+" "+trkEsc(a.name)+"</a>";
     }).join("");
-    return "<div class='trk-pn-e'><div class='trk-pn-e-meta'><strong>"+trkFmtDate(e.date)+"</strong> "+trkTypeBadge(e.type)+
+    return "<div class='trk-pn-e'><div class='trk-pn-e-meta'><strong>"+trkFmtDate(e.date)+"</strong> "+trkTypeBadge(e.type)+trkAmtTag(e)+
         "<a href='#' class='trk-tl-edit' title='Edit' aria-label='Edit entry' onclick='trkEditEntry(event,\""+e._id+"\")'>"+EDIT_ICO+"</a></div>"+
       (e.title?"<div class='trk-pn-e-title'>"+trkEsc(e.title)+"</div>":"")+
       (e.details?"<div class='trk-pn-e-det'>"+trkLines(e.details)+"</div>":"")+
@@ -1144,7 +1150,7 @@ function trkRenderDetail(){
       return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+trkFileIcon(a.name)+" "+trkEsc(a.name)+"</a>";
     }).join("");
     return "<div class='trk-tl-item trk-t-"+trkTypeSlug(e.type)+"'><div class='trk-tl-dot'></div><div class='trk-tl-body'>"+
-      "<div class='trk-tl-meta'><strong>"+trkFmtDate(e.date)+"</strong> "+trkTypeBadge(e.type)+
+      "<div class='trk-tl-meta'><strong>"+trkFmtDate(e.date)+"</strong> "+trkTypeBadge(e.type)+trkAmtTag(e)+
         "<a href='#' class='trk-tl-edit' title='Edit' aria-label='Edit entry' onclick='trkEditEntry(event,\""+e._id+"\")'>"+EDIT_ICO+"</a></div>"+
       (e.title?"<div class='trk-tl-title'>"+trkEsc(e.title)+"</div>":"")+
       (e.details?"<div class='trk-tl-details'>"+trkLines(e.details)+"</div>":"")+
@@ -2093,6 +2099,7 @@ function trkOpenEntryModal(){
   document.getElementById("te-title").value="";
   document.getElementById("te-details").value="";
   document.getElementById("te-payment").value="Partially paid";
+  document.getElementById("te-amount").value="";
   trkSyncEntryPaymentVis();
   trkPrefillFollowup();
   var fi=document.getElementById("te-files");if(fi)fi.value="";
@@ -2119,8 +2126,27 @@ function trkFollowupIn(id,days){
 }
 /* the payment-level select only applies to Payment received entries */
 function trkSyncEntryPaymentVis(){
-  var wrap=document.getElementById("te-payment-wrap");
-  if(wrap)wrap.style.display=document.getElementById("te-type").value==="Payment received"?"":"none";
+  var on=document.getElementById("te-type").value==="Payment received";
+  ["te-payment-wrap","te-amount-wrap"].forEach(function(id){var w=document.getElementById(id);if(w)w.style.display=on?"":"none";});
+  if(on)trkAmountHint();
+}
+/* under the amount: the project's currency and what is left after the
+   payments already recorded (and this one) */
+function trkAmountHint(){
+  var p=TRK_PROJECTS.find(function(x){return x._id===TRK_SEL;});
+  var cur=document.getElementById("te-amount-cur"),hint=document.getElementById("te-amount-hint");
+  if(!cur||!hint)return;
+  cur.textContent=(p&&p.currency)||"";
+  if(!p||p.estValue===null){hint.textContent="";return;}
+  var editId=document.getElementById("modal-trk-entry").getAttribute("data-edit-id");
+  var paid=trkEntriesFor(p._id).filter(function(e){return e.type==="Payment received"&&e._id!==editId&&e.amount!==null&&e.amount!==undefined;})
+    .reduce(function(n,e){return n+Number(e.amount);},0);
+  var now=parseFloat(document.getElementById("te-amount").value)||0;
+  var left=p.estValue-paid-now;
+  hint.textContent=(paid?"Already received "+paid.toLocaleString()+" "+p.currency+". ":"")+
+    (left>0.005?"Left after this: "+left.toLocaleString()+" "+p.currency+" of "+p.estValue.toLocaleString()+".":"This covers the full "+p.estValue.toLocaleString()+" "+p.currency+".");
+  /* paying the rest suggests Fully paid */
+  if(now&&left<=0.005)document.getElementById("te-payment").value="Fully paid";
 }
 function trkEditEntry(ev,id){
   if(ev)ev.preventDefault();
@@ -2132,6 +2158,7 @@ function trkEditEntry(ev,id){
   document.getElementById("btn-delete-trk-entry").style.display="inline-flex";
   document.getElementById("te-date").value=e.date?String(e.date).slice(0,10):"";
   document.getElementById("te-type").value=e.type;
+  document.getElementById("te-amount").value=e.amount===null||e.amount===undefined?"":e.amount;
   trkSyncEntryPaymentVis();
   trkPrefillFollowup();
   document.getElementById("te-title").value=e.title;
@@ -2163,7 +2190,8 @@ async function trkSaveEntry(){
     type:document.getElementById("te-type").value,
     title:title,
     details:details,
-    attachments:TRK_ATT.map(function(a){return{name:a.name,url:a.url};})
+    attachments:TRK_ATT.map(function(a){return{name:a.name,url:a.url};}),
+    amount:(function(){var v=document.getElementById("te-amount").value;return v===""?null:parseFloat(v);})()
   };
   var m=document.getElementById("modal-trk-entry");
   var editId=m.getAttribute("data-edit-id");
