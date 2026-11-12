@@ -45,6 +45,17 @@ function cbSales(){
    tag there is a Custom printer customer (confirmed by the user for every
    sales-only customer, 12 Nov 2026). */
 function cbSalesIsCustom(c){return !Object.keys(c.solutions).length;}
+/* this customer's split POs: project groups whose entries all carry the
+   same PO file (pgKind "loc"), with just this customer's entries */
+var CB_GROUPS_CACHE=null;
+function cbSplitPos(sx){
+  if(typeof computeProjectGroups!=="function"||typeof pgKind!=="function")return [];
+  var mine=sx.txs.concat(sx.projs);
+  return (CB_GROUPS_CACHE||[]).filter(function(g){return pgKind(g).kind==="loc";}).map(function(g){
+    var entries=g.txs.concat(g.projs).filter(function(e){return mine.indexOf(e)>-1;});
+    return {g:g,entries:entries};
+  }).filter(function(x){return x.entries.length>1;});
+}
 function cbIso(ms){if(!ms)return "";var d=new Date(ms);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 
 /* one record per customer, from the tracker and the sales records together */
@@ -74,6 +85,7 @@ function cbCustomers(){
   /* sales records join the same company; the first sales name is what
      buildMdDetail looks the history up by */
   var S=cbSales(),salesCty={},allSales=S.txs.concat(S.projs);
+  try{CB_GROUPS_CACHE=typeof computeProjectGroups==="function"?computeProjectGroups():[];}catch(e){CB_GROUPS_CACHE=[];}
   /* a sales-only company bought in several countries (SITA: Indonesia and
      Philippines) is listed once per country, as "SITA Indonesia" etc. */
   var spread={};
@@ -104,6 +116,12 @@ function cbCustomers(){
     if((sx.txs.length||sx.projs.length)&&cbSalesIsCustom(c))c.solutions.Custom=1;
     if(sx.txs.length||sx.projs.length){
       c.pos=mdCountSt(sx.txs,"PO")+mdCountSt(sx.projs,"PO");
+      /* one PO split over several locations (one PO file on every entry,
+         BQuik's 4 stores) counts as one PO, not one per location */
+      cbSplitPos(sx).forEach(function(g){
+        var n=g.entries.filter(function(e){return e.status==="PO";}).length;
+        if(n>1)c.pos-=n-1;
+      });
       c.quotes=sx.txs.concat(sx.projs).filter(function(e){return e.status==="Quotation";}).length;
       var rv=mdRollup(sx.txs,sx.projs).revenue;
       Object.keys(rv).forEach(function(cur){var u=fxToUSD(rv[cur],cur);if(u!==null)c.revUSD+=u;});
@@ -287,8 +305,11 @@ function cbPanelHtml(c){
   var groups=hasSales&&typeof computeProjectGroups==="function"?computeProjectGroups().filter(function(g){
     return g.txs.concat(g.projs).some(function(e){return e.customer===c.sales.name&&(!c.sales.country||e.country===c.sales.country);});
   }).sort(function(a,b){return a.name.localeCompare(b.name);}):[];
-  /* groups: one line each (name, size, total), opening the group page */
-  var groupsHtml=groups.map(function(g){
+  /* split POs (one PO file over several locations) show as ONE order in
+     the list; the other groups keep a one-line link above the orders */
+  var splits=hasSales?cbSplitPos(c.sales):[];
+  var splitOf=function(e){return splits.filter(function(x){return x.entries.indexOf(e)>-1;})[0];};
+  var groupsHtml=groups.filter(function(g){return !splits.some(function(x){return x.g.name===g.name;});}).map(function(g){
     var k=pgKind(g),units=pgUnits(g);
     return "<button class='cb-grpline' onclick='openProjectGroup("+JSON.stringify(g.name).replace(/'/g,"&#39;")+")' title='"+trkEsc(k.parts.join(", "))+"'>"+
       "<span class='cb-grpline-name'>&#128279; "+trkEsc(g.name)+"</span>"+
@@ -299,28 +320,61 @@ function cbPanelHtml(c){
 
   /* orders & quotations from the sales records: one line each, a click opens
      its line items and notes (drawn by By Customer's own order card) */
-  var deals=[],ordersHtml="",docsHtml="",docCount=0,modelsHtml="";
+  var deals=[],items=[],ordersHtml="",docsHtml="",docCount=0,modelsHtml="";
+  var dealTotal=function(d){return d.p?mdProjTotal(d.p):(d.t.totalOverride||d.t.price*(mdParseUnits(d.t.qty)||1));};
+  var money=function(v,cur){v=Math.round(v*100)/100;return v.toLocaleString(undefined,{maximumFractionDigits:2})+" <span class='trk-r-cur'>"+trkEsc(cur)+"</span>";};
+  var shortTitle=function(e){
+    var title=e.project||e.displayModel||e.model||"Untitled";
+    if(e.projectGroup&&title.toLowerCase().indexOf(e.projectGroup.toLowerCase())===0){
+      var rest=title.slice(e.projectGroup.length).replace(/^[\s—–\-:]+/,"").replace(/^\((.*)\)$/,"$1").trim();
+      if(rest)title=rest;
+    }
+    return title;
+  };
   if(hasSales&&typeof mdOrderCard==="function"){
     deals=c.sales.projs.map(function(p){return {p:p,when:parseDV(p.date)};})
       .concat(c.sales.txs.map(function(t){return {t:t,when:parseDV(t.date)};}))
       .sort(function(a,b){return b.when-a.when;});
+    var seenSplit=[];
+    deals.forEach(function(d){
+      var sp=splitOf(d.p||d.t);
+      if(!sp){items.push(d);return;}
+      if(seenSplit.indexOf(sp)>-1)return;seenSplit.push(sp);
+      var parts=deals.filter(function(x){return sp.entries.indexOf(x.p||x.t)>-1;});
+      items.push({split:sp,parts:parts,when:Math.max.apply(null,parts.map(function(x){return x.when;}))});
+    });
+    items.sort(function(a,b){return b.when-a.when;});
     var lastY=null;
-    ordersHtml=deals.map(function(d){
-      var e=d.p||d.t,y=d.when?new Date(d.when).getFullYear():"No date";
+    ordersHtml=items.map(function(d){
+      var y=d.when?new Date(d.when).getFullYear():"No date";
       var head=y!==lastY?"<div class='cb-ord-year'>"+y+"</div>":"";lastY=y;
-      var total=d.p?mdProjTotal(d.p):(d.t.totalOverride||d.t.price*(mdParseUnits(d.t.qty)||1));
-      var title=e.project||e.displayModel||e.model||"Untitled";
-      if(e.projectGroup&&title.toLowerCase().indexOf(e.projectGroup.toLowerCase())===0){
-        var rest=title.slice(e.projectGroup.length).replace(/^[\s—–\-:]+/,"").replace(/^\((.*)\)$/,"$1").trim();
-        if(rest)title=rest;
+      if(d.split){
+        var e0=d.parts[0].p||d.parts[0].t,cur=e0.currency;
+        var tot=d.parts.reduce(function(n,x){return n+dealTotal(x);},0);
+        var g=d.split.g,po=typeof pgSharedPo==="function"?pgSharedPo(g):"";
+        return head+"<details class='cb-ord cb-ord-split'><summary>"+
+          "<span class='cb-ord-chev'>&#9656;</span>"+
+          "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(g.name)+(po?" <span class='cb-ord-po'>PO "+trkEsc(po)+"</span>":"")+"</span>"+
+            "<span class='cb-ord-sub'>"+trkEsc(e0.displayDate||e0.date||"")+" &middot; &#128205; 1 PO split over "+d.parts.length+" locations</span></span>"+
+          bStatus(e0.status)+
+          "<span class='cb-ord-tot'>"+money(tot,cur)+"</span>"+
+        "</summary>"+
+        "<div class='cb-split-body'>"+d.parts.map(function(x){
+          var e=x.p||x.t;
+          return "<details class='cb-ord cb-ord-loc'><summary><span class='cb-ord-chev'>&#9656;</span>"+
+            "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(shortTitle(e))+"</span></span>"+
+            "<span class='cb-ord-tot'>"+money(dealTotal(x),e.currency)+"</span></summary>"+mdOrderCard(x)+"</details>";
+        }).join("")+
+        "<button class='cb-split-open' onclick='openProjectGroup("+JSON.stringify(g.name).replace(/'/g,"&#39;")+")'>Open the group page &rsaquo;</button></div>"+
+        "</details>";
       }
-      var num=Math.round(total*100)/100;
+      var e=d.p||d.t;
       return head+"<details class='cb-ord'><summary>"+
         "<span class='cb-ord-chev'>&#9656;</span>"+
-        "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(title)+"</span>"+
+        "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(shortTitle(e))+"</span>"+
           "<span class='cb-ord-sub'>"+trkEsc(e.displayDate||e.date||"")+(e.projectGroup?" &middot; &#128279; "+trkEsc(e.projectGroup):"")+"</span></span>"+
         bStatus(e.status)+
-        "<span class='cb-ord-tot'>"+num.toLocaleString(undefined,{maximumFractionDigits:2})+" <span class='trk-r-cur'>"+trkEsc(e.currency)+"</span></span>"+
+        "<span class='cb-ord-tot'>"+money(dealTotal(d),e.currency)+"</span>"+
       "</summary>"+mdOrderCard(d)+"</details>";
     }).join("");
     docsHtml=mdDocsHtml(deals);
@@ -335,7 +389,7 @@ function cbPanelHtml(c){
   /* tabs: only one list shows at a time, so the page stays short */
   var tabs=[];
   if(c.projects.length)tabs.push({k:"projects",label:"Projects",n:c.projects.length,html:secs});
-  if(deals.length)tabs.push({k:"orders",label:"Orders",n:deals.length,html:
+  if(items.length)tabs.push({k:"orders",label:"Orders",n:items.length,html:
     (groupsHtml?"<div class='cb-grplines'>"+groupsHtml+"</div>":"")+modelsHtml+ordersHtml});
   if(docCount)tabs.push({k:"docs",label:"Documents",n:docCount,html:docsHtml});
   var cur=tabs.some(function(t){return t.k===CB_TAB;})?CB_TAB:(tabs[0]&&tabs[0].k);
@@ -354,7 +408,7 @@ function cbPanelHtml(c){
     (sols?"<div class='cb-pn-sols'>"+sols+"</div>":"")+
     "<div class='cb-kpis'>"+
       "<div><b>"+(c.revenue?cbMoney(c.revenue):"&mdash;")+"</b><span>revenue</span></div>"+
-      "<div><b>"+(c.pos||"&mdash;")+"</b><span>confirmed POs</span></div>"+
+      "<div><b>"+(c.pos||"&mdash;")+"</b><span>confirmed PO"+(c.pos===1?"":"s")+"</span></div>"+
       "<div><b>"+(c.projects.length||"&mdash;")+"</b><span>tracker projects</span></div>"+
     "</div>"+
     details+

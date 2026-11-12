@@ -2694,6 +2694,14 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .cb-panel:not(.cb-full) .cb-ord-tot{min-width:0}
 .cb-panel:not(.cb-full) .cb-ord>summary .badge{display:none}
 
+/* a PO split over several locations: one order, its locations inside */
+.cb-ord-po{font-size:11px;font-weight:500;color:var(--text-muted);margin-left:4px}
+.cb-split-body{padding:8px 10px 10px}
+.cb-ord-loc{background:var(--bg-soft);margin-bottom:5px}
+.cb-ord-loc>summary{padding:7px 10px}
+.cb-ord-loc .cb-ord-title{font-size:12.5px;font-weight:500}
+.cb-split-open{border:none;background:none;font:inherit;font-size:12px;font-weight:600;color:var(--accent-text);cursor:pointer;padding:4px 2px}
+.cb-split-open:hover{text-decoration:underline}
 /* project groups: one line each above the orders */
 .cb-grplines{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
 .cb-grpline{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;background:var(--accent-soft);border:1px solid transparent;border-radius:8px;padding:8px 12px;cursor:pointer;color:var(--text)}
