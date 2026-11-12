@@ -83,6 +83,42 @@ function cbProjGroups(c){
   }
   return {groups:pGroups,inGroup:inGroup,count:c.projects.length-Object.keys(inGroup).length+pGroups.length};
 }
+/* every project of a customer as one list, whatever the source:
+   a tracker project, a tracker group (BQuik's 4 stores) with its PO, a
+   group of sales entries (Singapore Airlines' 4 POs), or one sales order.
+   cat = the CB_CATS section it sits in. */
+function cbSaleCat(e){return e.status==="PO"?"done":e.status==="Lose"?"lost":"ongoing";}
+function cbBestCat(cats){return (CB_CATS.filter(function(x){return cats.indexOf(x.k)>-1;})[0]||CB_CATS[0]).k;}
+function cbUnits(c){
+  var pg=cbProjGroups(c),units=[];
+  var ms=function(d){var t=d?Date.parse(d):NaN;return isNaN(t)?0:t;};
+  var deals=c.sales.projs.map(function(p){return {p:p,when:parseDV(p.date)||0};})
+    .concat(c.sales.txs.map(function(t){return {t:t,when:parseDV(t.date)||0};}))
+    .sort(function(a,b){return b.when-a.when;});
+  var splits=(c.sales.txs.length||c.sales.projs.length)?cbSplitPos(c.sales,true):[];
+  var partsOf=function(sp){return deals.filter(function(x){return sp.entries.indexOf(x.p||x.t)>-1;});};
+  var maxWhen=function(a){return a.reduce(function(n,x){return Math.max(n,x.when||0);},0);};
+  var used=[];
+  pg.groups.forEach(function(g){
+    used.push(g.sp.g.name);
+    var parts=partsOf(g.sp);
+    units.push({kind:"trkgrp",gr:g,parts:parts,cat:g.cat,
+      when:Math.max(maxWhen(parts),g.ps.reduce(function(n,p){return Math.max(n,ms(p._cbLast));},0))});
+  });
+  c.projects.forEach(function(p){if(!pg.inGroup[p._id])units.push({kind:"trk",p:p,cat:cbCat(p),when:ms(p._cbLast)});});
+  var seen=[];
+  deals.forEach(function(d){
+    var e=d.p||d.t,sp=splits.filter(function(x){return x.entries.indexOf(e)>-1;})[0];
+    if(!sp){units.push({kind:"sale",d:d,cat:cbSaleCat(e),when:d.when});return;}
+    if(used.indexOf(sp.g.name)>-1||seen.indexOf(sp)>-1)return;
+    seen.push(sp);
+    var parts=partsOf(sp);
+    units.push({kind:"salegrp",sp:sp,parts:parts,when:maxWhen(parts),
+      cat:cbBestCat(parts.map(function(x){return cbSaleCat(x.p||x.t);}))});
+  });
+  units.sort(function(a,b){return b.when-a.when;});
+  return {units:units,deals:deals};
+}
 function cbIso(ms){if(!ms)return "";var d=new Date(ms);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 
 /* one record per customer, from the tracker and the sales records together */
@@ -247,7 +283,7 @@ function renderCustBase(){
     var sub=Object.keys(c.solutions).sort().map(function(s){return trkSolutionBadge({solution:s});}).join("");
     return "<tr class='po-row cb-row"+(c.key===CB_SEL?" sel":"")+"' onclick='cbRowClick("+JSON.stringify(c.key).replace(/'/g,"&#39;")+")'>"+
       "<td><div class='cb-name'>"+trkEsc(c.name)+"</div>"+(sub?"<div class='cb-sub'>"+sub+"</div>":"")+"</td>"+
-      "<td class='num cb-c-n'>"+(cbProjGroups(c).count||"<span class='po-dim'>&mdash;</span>")+"</td>"+
+      "<td class='num cb-c-n'>"+(cbUnits(c).units.length||"<span class='po-dim'>&mdash;</span>")+"</td>"+
       "<td><div class='cb-pills'>"+pills+"</div></td>"+
       "<td class='num cb-c-val'>"+(c.revenue?"<span class='po-amt'>"+cbMoney(c.revenue)+"</span>":"<span class='po-dim'>&mdash;</span>")+"</td>"+
       "<td class='cb-c-last po-dim'>"+(c.last?trkFmtDate(c.last):"")+"</td>"+
@@ -336,29 +372,6 @@ function cbPanelHtml(c){
       "<button class='cb-split-open' onclick='navTo(\"tracker\","+JSON.stringify(p._id).replace(/'/g,"&#39;")+")'>Open in Project Tracker &rsaquo;</button>"+
     "</div></details>";
   };
-  var pg=cbProjGroups(c),pGroups=pg.groups,inGroup=pg.inGroup;
-  var pGroupHtml=function(gr,k){
-    var sp=gr.sp,po=typeof pgSharedPo==="function"?pgSharedPo(sp.g):"";
-    var cur={};gr.ps.forEach(function(p){if(p.estValue!==null)cur[p.currency]=(cur[p.currency]||0)+p.estValue;});
-    var tot=Object.keys(cur).map(function(x){return trkEsc(cur[x].toLocaleString())+" "+trkEsc(x);}).join(" + ");
-    var st={};gr.ps.forEach(function(p){st[p.status]=(st[p.status]||0)+1;});
-    var mix=Object.keys(st).map(function(x){return st[x]+" "+trkEsc(x.toLowerCase());}).join(", ");
-    return "<details class='cb-ord cb-ord-split cb-pgrp'><summary>"+
-      "<span class='cb-ord-chev'>&#9656;</span>"+
-      "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(sp.g.name)+(po?" <span class='cb-ord-po'>PO "+trkEsc(po)+"</span>":"")+"</span>"+
-        "<span class='cb-ord-sub'>"+(sp.kind.kind==="loc"?"&#128205; 1 PO &middot; "+gr.ps.length+" locations":"&#128279; 1 project &middot; "+gr.ps.length+" entries")+" &middot; "+mix+"</span></span>"+
-      "<span class='cb-ord-tot'>"+tot+"</span>"+
-    "</summary><div class='cb-split-body'>"+gr.ps.map(function(p){return projBtn(p,k);}).join("")+"</div></details>";
-  };
-  var projCount=pg.count;
-  var secs=CB_CATS.map(function(x){
-    var ps=c.projects.filter(function(p){return cbCat(p)===x.k&&!inGroup[p._id];});
-    var gs=pGroups.filter(function(g){return g.cat===x.k;});
-    if(!ps.length&&!gs.length)return"";
-    return "<div class='po-panel-sec cb-sec cb-sec-"+x.k+"'>"+x.label+" &middot; "+(ps.length+gs.length)+"</div>"+
-      gs.map(function(g){return pGroupHtml(g,x.k);}).join("")+
-      ps.map(function(p){return projBtn(p,x.k);}).join("");
-  }).join("");
   var info=function(label,html){return html?"<div class='trk-pn-row'><span>"+label+"</span><div>"+html+"</div></div>":"";};
   var details=
     info("Open pipeline",c.openUSD?cbMoney(c.openUSD)+" <span class='po-dim'>USD est.</span>":"")+
@@ -367,29 +380,13 @@ function cbPanelHtml(c){
     }).join(""));
   if(details)details="<div class='po-panel-sec'>Details</div>"+details;
   var hasSales=c.sales.txs.length||c.sales.projs.length;
-  /* this customer's project groups (one PO over several sites, or one
-     project with several POs); a card opens the group page */
-  var groups=hasSales&&typeof computeProjectGroups==="function"?computeProjectGroups().filter(function(g){
-    return g.txs.concat(g.projs).some(function(e){return e.customer===c.sales.name&&(!c.sales.country||e.country===c.sales.country);});
-  }).sort(function(a,b){return a.name.localeCompare(b.name);}):[];
-  /* split POs (one PO file over several locations) show as ONE order in
-     the list; the other groups keep a one-line link above the orders */
-  var splits=hasSales?cbSplitPos(c.sales,true):[];
-  var splitOf=function(e){return splits.filter(function(x){return x.entries.indexOf(e)>-1;})[0];};
-  var groupsHtml=groups.filter(function(g){return !splits.some(function(x){return x.g.name===g.name;});}).map(function(g){
-    var k=pgKind(g),units=pgUnits(g);
-    return "<button class='cb-grpline' onclick='openProjectGroup("+JSON.stringify(g.name).replace(/'/g,"&#39;")+")' title='"+trkEsc(k.parts.join(", "))+"'>"+
-      "<span class='cb-grpline-name'>&#128279; "+trkEsc(g.name)+"</span>"+
-      "<span class='cb-grpline-meta'>"+trkEsc(k.label)+(units?" &middot; "+units:"")+"</span>"+
-      "<span class='cb-grpline-tot'>"+pgTotalsCompact(mdGroupTotals(g.txs,g.projs))+"</span><span class='cb-grpline-go'>&rsaquo;</span>"+
-    "</button>";
-  }).join("");
-
-  /* orders & quotations from the sales records: one line each, a click opens
-     its line items and notes (drawn by By Customer's own order card) */
-  var deals=[],items=[],ordersHtml="",docsHtml="",docCount=0,modelsHtml="";
+  var U=cbUnits(c),units=U.units,deals=U.deals;
   var dealTotal=function(d){return d.p?mdProjTotal(d.p):(d.t.totalOverride||d.t.price*(mdParseUnits(d.t.qty)||1));};
   var money=function(v,cur){v=Math.round(v*100)/100;return v.toLocaleString(undefined,{maximumFractionDigits:2})+" <span class='trk-r-cur'>"+trkEsc(cur)+"</span>";};
+  var sumMoney=function(parts){
+    var t={};parts.forEach(function(x){var e=x.p||x.t;t[e.currency]=(t[e.currency]||0)+dealTotal(x);});
+    return Object.keys(t).map(function(k){return money(t[k],k);}).join(" + ");
+  };
   var shortTitle=function(e){
     var title=e.project||e.displayModel||e.model||"Untitled";
     if(e.projectGroup&&title.toLowerCase().indexOf(e.projectGroup.toLowerCase())===0){
@@ -398,54 +395,54 @@ function cbPanelHtml(c){
     }
     return title;
   };
-  if(hasSales&&typeof mdOrderCard==="function"){
-    deals=c.sales.projs.map(function(p){return {p:p,when:parseDV(p.date)};})
-      .concat(c.sales.txs.map(function(t){return {t:t,when:parseDV(t.date)};}))
-      .sort(function(a,b){return b.when-a.when;});
-    var seenSplit=[];
-    deals.forEach(function(d){
-      var sp=splitOf(d.p||d.t);
-      if(!sp){items.push(d);return;}
-      if(seenSplit.indexOf(sp)>-1)return;seenSplit.push(sp);
-      var parts=deals.filter(function(x){return sp.entries.indexOf(x.p||x.t)>-1;});
-      items.push({split:sp,parts:parts,when:Math.max.apply(null,parts.map(function(x){return x.when;}))});
-    });
-    items.sort(function(a,b){return b.when-a.when;});
-    var lastY=null;
-    ordersHtml=items.map(function(d){
-      var y=d.when?new Date(d.when).getFullYear():"No date";
-      var head=y!==lastY?"<div class='cb-ord-year'>"+y+"</div>":"";lastY=y;
-      if(d.split){
-        var e0=d.parts[0].p||d.parts[0].t,cur=e0.currency;
-        var tot=d.parts.reduce(function(n,x){return n+dealTotal(x);},0);
-        var g=d.split.g,po=typeof pgSharedPo==="function"?pgSharedPo(g):"";
-        return head+"<details class='cb-ord cb-ord-split'><summary>"+
-          "<span class='cb-ord-chev'>&#9656;</span>"+
-          "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(g.name)+(po?" <span class='cb-ord-po'>PO "+trkEsc(po)+"</span>":"")+"</span>"+
-            "<span class='cb-ord-sub'>"+trkEsc(e0.displayDate||e0.date||"")+" &middot; "+(d.split.kind.kind==="loc"?"&#128205; 1 PO split over "+d.parts.length+" locations":"&#128279; 1 project &middot; "+cbDocCount(d.parts))+"</span></span>"+
-          bStatus(e0.status)+
-          "<span class='cb-ord-tot'>"+money(tot,cur)+"</span>"+
-        "</summary>"+
-        "<div class='cb-split-body'>"+d.parts.map(function(x){
-          var e=x.p||x.t;
-          return "<details class='cb-ord cb-ord-loc'><summary><span class='cb-ord-chev'>&#9656;</span>"+
-            "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(shortTitle(e))+"</span>"+
-              (d.split.kind.kind==="loc"?"":"<span class='cb-ord-sub'>"+trkEsc(e.displayDate||e.date||"")+"</span>")+"</span>"+
-            (d.split.kind.kind==="loc"?"":bStatus(e.status))+
-            "<span class='cb-ord-tot'>"+money(dealTotal(x),e.currency)+"</span></summary>"+mdOrderCard(x)+"</details>";
-        }).join("")+
-        "<button class='cb-split-open' onclick='openProjectGroup("+JSON.stringify(g.name).replace(/'/g,"&#39;")+")'>Open the group page &rsaquo;</button></div>"+
-        "</details>";
-      }
-      var e=d.p||d.t;
-      return head+"<details class='cb-ord'><summary>"+
-        "<span class='cb-ord-chev'>&#9656;</span>"+
-        "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(shortTitle(e))+"</span>"+
-          "<span class='cb-ord-sub'>"+trkEsc(e.displayDate||e.date||"")+(e.projectGroup?" &middot; &#128279; "+trkEsc(e.projectGroup):"")+"</span></span>"+
-        bStatus(e.status)+
-        "<span class='cb-ord-tot'>"+money(dealTotal(d),e.currency)+"</span>"+
-      "</summary>"+mdOrderCard(d)+"</details>";
-    }).join("");
+  var groupBtn=function(g){return "<button class='cb-split-open' onclick='openProjectGroup("+JSON.stringify(g.name).replace(/'/g,"&#39;")+")'>Open the group page &rsaquo;</button>";};
+  /* one sales order: a line that opens to its items, notes and files */
+  var orderHtml=function(d,inner,loc){
+    var e=d.p||d.t;
+    return "<details class='cb-ord"+(inner?" cb-ord-loc":"")+"'><summary>"+
+      "<span class='cb-ord-chev'>&#9656;</span>"+
+      "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(shortTitle(e))+"</span>"+
+        (loc?"":"<span class='cb-ord-sub'>"+trkEsc(e.displayDate||e.date||"")+(!inner&&e.projectGroup?" &middot; &#128279; "+trkEsc(e.projectGroup):"")+"</span>")+"</span>"+
+      (loc?"":bStatus(e.status))+
+      "<span class='cb-ord-tot'>"+money(dealTotal(d),e.currency)+"</span>"+
+    "</summary>"+mdOrderCard(d)+"</details>";
+  };
+  var unitHtml=function(u){
+    if(u.kind==="trk")return projBtn(u.p,u.cat);
+    if(u.kind==="sale")return orderHtml(u.d,false,false);
+    var sp=u.kind==="trkgrp"?u.gr.sp:u.sp,g=sp.g,isLoc=sp.kind.kind==="loc";
+    var po=isLoc&&typeof pgSharedPo==="function"?pgSharedPo(g):"";
+    var e0=u.parts[0]?(u.parts[0].p||u.parts[0].t):null;
+    var sub,body,tot;
+    if(u.kind==="trkgrp"){
+      var st={};u.gr.ps.forEach(function(p){st[p.status]=(st[p.status]||0)+1;});
+      var mix=Object.keys(st).map(function(x){return st[x]+" "+trkEsc(x.toLowerCase());}).join(", ");
+      sub=(isLoc?"&#128205; 1 PO &middot; "+u.gr.ps.length+" locations":"&#128279; 1 project &middot; "+cbDocCount(u.parts))+" &middot; "+mix;
+      tot=u.parts.length?sumMoney(u.parts):"";
+      body="<div class='cb-grp-sec'>"+(isLoc?"Locations":"Tracker")+"</div>"+u.gr.ps.map(function(p){return projBtn(p,u.cat);}).join("")+
+        (u.parts.length?"<div class='cb-grp-sec'>"+(isLoc?"Purchase order"+(po?" "+trkEsc(po):""):"Orders")+"</div>"+
+          u.parts.map(function(x){return orderHtml(x,true,isLoc);}).join(""):"");
+    }else{
+      sub=(e0?trkEsc(e0.displayDate||e0.date||"")+" &middot; ":"")+(isLoc?"&#128205; 1 PO split over "+u.parts.length+" locations":"&#128279; 1 project &middot; "+cbDocCount(u.parts));
+      tot=sumMoney(u.parts);
+      body=u.parts.map(function(x){return orderHtml(x,true,isLoc);}).join("");
+    }
+    return "<details class='cb-ord cb-ord-split'><summary>"+
+      "<span class='cb-ord-chev'>&#9656;</span>"+
+      "<span class='cb-ord-main'><span class='cb-ord-title'>"+trkEsc(g.name)+(po?" <span class='cb-ord-po'>PO "+trkEsc(po)+"</span>":"")+"</span>"+
+        "<span class='cb-ord-sub'>"+sub+"</span></span>"+
+      (u.kind==="salegrp"&&e0?bStatus(e0.status):"")+
+      "<span class='cb-ord-tot'>"+tot+"</span>"+
+    "</summary><div class='cb-split-body'>"+body+groupBtn(g)+"</div></details>";
+  };
+  var projCount=units.length;
+  var secs=CB_CATS.map(function(x){
+    var us=units.filter(function(u){return u.cat===x.k;});
+    if(!us.length)return "";
+    return "<div class='po-panel-sec cb-sec cb-sec-"+x.k+"'>"+x.label+" &middot; "+us.length+"</div>"+us.map(unitHtml).join("");
+  }).join("");
+  var docsHtml="",docCount=0,modelsHtml="";
+  if(hasSales&&typeof mdDocsHtml==="function"){
     docsHtml=mdDocsHtml(deals);
     docCount=(docsHtml.match(/class='md-doc'/g)||[]).length;
     if(c.solutions.Custom&&typeof mdModelsTable==="function"){
@@ -455,11 +452,9 @@ function cbPanelHtml(c){
     }
   }
 
-  /* tabs: only one list shows at a time, so the page stays short */
+  /* tabs: Projects (tracker and sales together) and Documents */
   var tabs=[];
-  if(c.projects.length)tabs.push({k:"projects",label:"Projects",n:projCount,html:secs});
-  if(items.length)tabs.push({k:"orders",label:"Orders",n:items.length,html:
-    (groupsHtml?"<div class='cb-grplines'>"+groupsHtml+"</div>":"")+modelsHtml+ordersHtml});
+  if(units.length)tabs.push({k:"projects",label:"Projects",n:projCount,html:modelsHtml+secs});
   if(docCount)tabs.push({k:"docs",label:"Documents",n:docCount,html:docsHtml});
   var cur=tabs.some(function(t){return t.k===CB_TAB;})?CB_TAB:(tabs[0]&&tabs[0].k);
   var tabsHtml=tabs.length?
@@ -478,7 +473,7 @@ function cbPanelHtml(c){
     "<div class='cb-kpis'>"+
       "<div><b>"+(c.revenue?cbMoney(c.revenue):"&mdash;")+"</b><span>revenue</span></div>"+
       "<div><b>"+(c.pos||"&mdash;")+"</b><span>confirmed PO"+(c.pos===1?"":"s")+"</span></div>"+
-      "<div><b>"+(projCount||"&mdash;")+"</b><span>tracker project"+(projCount===1?"":"s")+"</span></div>"+
+      "<div><b>"+(projCount||"&mdash;")+"</b><span>project"+(projCount===1?"":"s")+"</span></div>"+
     "</div>"+
     details+
     tabsHtml+

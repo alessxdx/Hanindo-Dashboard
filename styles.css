@@ -2759,3 +2759,6 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 /* inside Customer Base the order already sits under its group, so the
    order card's own link to the group page is left out */
 .cb-ord .od-group{display:none}
+/* labels inside a project group card (Locations / Purchase order) */
+.cb-grp-sec{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin:8px 0 6px}
+.cb-split-body>.cb-grp-sec:first-child{margin-top:2px}
