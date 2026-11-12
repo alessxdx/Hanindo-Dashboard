@@ -187,6 +187,40 @@ function openMobileSidebar(){
   document.getElementById("sidebar").classList.add("mobile-open");
   document.getElementById("mobile-overlay").classList.add("show");
 }
+/* phone More sheet: drag it down to close, like other apps */
+(function moreSheetSwipe(){
+  var sb=document.getElementById("sidebar");
+  if(!sb)return;
+  var y0=null,dy=0,t0=0,drag=false;
+  var scroller=function(el){
+    for(;el&&el!==sb.parentNode;el=el.parentNode){if(el.scrollTop>0)return true;}
+    return false;
+  };
+  sb.addEventListener("touchstart",function(e){
+    if(!sb.classList.contains("mobile-open")||e.touches.length!==1)return;
+    if(scroller(e.target))return; /* the sheet is scrolled: scroll it back first */
+    y0=e.touches[0].clientY;dy=0;t0=Date.now();drag=false;
+  },{passive:true});
+  sb.addEventListener("touchmove",function(e){
+    if(y0===null)return;
+    dy=e.touches[0].clientY-y0;
+    if(!drag&&dy>8){drag=true;sb.style.transition="none";}
+    if(drag){
+      if(dy<0)dy=0;
+      sb.style.transform="translateY("+dy+"px)";
+      if(e.cancelable)e.preventDefault();
+    }
+  },{passive:false});
+  var end=function(){
+    if(y0===null)return;
+    var fast=dy>40&&dy/(Date.now()-t0)>0.5;
+    sb.style.transition="";sb.style.transform="";
+    if(drag&&(dy>sb.offsetHeight*0.25||fast))closeMobileSidebar();
+    y0=null;drag=false;dy=0;
+  };
+  sb.addEventListener("touchend",end);
+  sb.addEventListener("touchcancel",end);
+})();
 function closeMobileSidebar(){
   var sb = document.getElementById("sidebar");
   if(sb) sb.classList.remove("mobile-open");

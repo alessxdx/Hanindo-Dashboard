@@ -113,8 +113,15 @@ function sbLoginHtml(msg){
   "</div>";
 }
 var SB_AFTER_LOGIN=null;
+var SB_RETURN_HASH="";
 function sbShowLogin(msg,after){
   if(after)SB_AFTER_LOGIN=after;
+  /* signed out = no page in the address (not "#today"); the page is
+     remembered and opened again after signing in */
+  if(location.hash){
+    SB_RETURN_HASH=location.hash;
+    try{history.replaceState(null,"",location.pathname+location.search);}catch(e){}
+  }
   var el=document.getElementById("sb-login");
   if(!el){el=document.createElement("div");el.id="sb-login";el.className="sb-login";document.body.appendChild(el);}
   el.innerHTML=sbLoginHtml(msg||"");
@@ -129,9 +136,12 @@ async function sbLoginSubmit(ev){
   try{
     await sbSignIn(document.getElementById("sb-email").value.trim(),document.getElementById("sb-pass").value,document.getElementById("sb-keep").checked);
     sbHideLogin();
+    if(SB_RETURN_HASH){try{history.replaceState(null,"",location.pathname+location.search+SB_RETURN_HASH);}catch(e){}SB_RETURN_HASH="";}
     var f=SB_AFTER_LOGIN;SB_AFTER_LOGIN=null;
+    /* anything loaded while signed out came back empty: load it all again */
+    if(typeof TRK_LOADED!=="undefined")TRK_LOADED=false;
     if(f)f();
-    else if(typeof renderContent==="function"){if(typeof TRK_LOADED!=="undefined")TRK_LOADED=false;if(typeof loadFromDB==="function")loadFromDB();}
+    else if(typeof loadFromDB==="function")loadFromDB();
   }catch(e){
     err.textContent=/invalid/i.test(e.message)?"Wrong email or password.":e.message;
     btn.disabled=false;btn.textContent="Sign in";
@@ -208,6 +218,18 @@ window.fetch=async function(input,init){
     await sbEnsureFresh();
     var h=Object.assign({},(init&&init.headers)||{},{"apikey":SB_KEY,"Authorization":"Bearer "+sbToken()});
     return SB_NATIVE_FETCH(SB_URL+"/storage/v1/object/authenticated/documents/"+dp,Object.assign({},init||{},{headers:h}));
+  }
+  /* database requests once sign-in is required: a phone waking up has an
+     expired token, so refresh it first and send the current one. Without
+     a sign-in the locked database answers with an EMPTY list (not an
+     error), which made the tracker look empty — so ask to sign in instead. */
+  if(SB_AUTH_REQUIRED&&url.indexOf(SB_URL+"/rest/v1/")===0&&init&&init.headers&&init.headers.Authorization){
+    await sbEnsureFresh();
+    if(!sbSignedIn()){
+      sbShowLogin("Please sign in again.");
+      return new Response("{}",{status:401,headers:{"Content-Type":"application/json"}});
+    }
+    init.headers.Authorization="Bearer "+sbToken();
   }
   var res=await SB_NATIVE_FETCH(input,init);
   /* sign-in still optional: a refused personal token must never block the
