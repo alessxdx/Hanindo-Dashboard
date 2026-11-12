@@ -25,21 +25,36 @@ function cbCat(p){
   if(p.status==="Won")return "won";
   return "ongoing";
 }
-function cbKey(name){return String(name||"").trim().toLowerCase();}
+/* one key per company, so "PT. Festo" (tracker) and "PT Festo" (sales) meet */
+function cbKey(name){
+  return String(name||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().replace(/^pt /,"");
+}
 function cbUSD(p){
   if(p.estValue===null||isNaN(p.estValue))return null;
   return (typeof fxToUSD==="function")?fxToUSD(p.estValue,p.currency):(p.currency==="USD"?p.estValue:null);
 }
 function cbMoney(v){return typeof fxFormatUSD==="function"?fxFormatUSD(v):"$"+Math.round(v).toLocaleString();}
 
-/* one record per customer, newest activity first */
+/* sales records (the By Customer data: POs, quotations, order line items) */
+function cbSales(){
+  if(typeof resolveDeals!=="function"||typeof TX==="undefined")return {txs:[],projs:[]};
+  try{return resolveDeals();}catch(e){return {txs:[],projs:[]};}
+}
+function cbIso(ms){if(!ms)return "";var d=new Date(ms);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+
+/* one record per customer, from the tracker and the sales records together */
 function cbCustomers(){
   var act=trkLastActivityMap(),by={},out=[];
+  function rec(k,name){
+    var c=by[k];
+    if(!c){c=by[k]={key:k,name:String(name).trim(),countries:{},offices:{},solutions:{},projects:[],n:{ongoing:0,won:0,done:0,lost:0},wonUSD:0,openUSD:0,last:"",
+      sales:{name:"",txs:[],projs:[]},pos:0,quotes:0,revUSD:0};out.push(c);}
+    return c;
+  }
   TRK_PROJECTS.forEach(function(p){
     var k=cbKey(p.customer);
     if(!k||p.status==="Other")return; /* "Other" projects sit outside the sales pipeline */
-    var c=by[k];
-    if(!c){c=by[k]={key:k,name:p.customer.trim(),countries:{},offices:{},solutions:{},projects:[],n:{ongoing:0,won:0,done:0,lost:0},wonUSD:0,openUSD:0,last:""};out.push(c);}
+    var c=rec(k,p.customer);
     c.projects.push(p);
     var cat=cbCat(p);c.n[cat]++;
     if(p.country)c.countries[p.country]=1;
@@ -51,11 +66,39 @@ function cbCustomers(){
     p._cbLast=d;
     if(d>c.last)c.last=d;
   });
+  /* sales records join the same company; the first sales name is what
+     buildMdDetail looks the history up by */
+  var S=cbSales(),salesCty={};
+  function addSale(e,kind){
+    var k=cbKey(e.customer);if(!k)return;
+    var c=rec(k,e.customer);
+    if(!c.sales.name)c.sales.name=e.customer;
+    if(e.customer!==c.sales.name)return; /* a second spelling: its history stays on By Customer */
+    c.sales[kind].push(e);
+    if(e.country){(salesCty[k]=salesCty[k]||{})[e.country]=1;}
+    var d=cbIso(parseDV(e.date));
+    if(d>c.last)c.last=d;
+  }
+  S.txs.forEach(function(t){addSale(t,"txs");});
+  S.projs.forEach(function(p){addSale(p,"projs");});
   out.forEach(function(c){
     c.projects.sort(function(a,b){return (b._cbLast||"").localeCompare(a._cbLast||"");});
     var closed=c.n.won+c.n.done+c.n.lost;
     c.winRate=closed?Math.round((c.n.won+c.n.done)/closed*100):null;
+    /* the tracker's country leads; sales countries are added after it */
+    Object.keys(salesCty[c.key]||{}).forEach(function(k){c.countries[k]=1;});
     c.country=Object.keys(c.countries)[0]||"";
+    var sx=c.sales;
+    if(sx.txs.length||sx.projs.length){
+      c.pos=mdCountSt(sx.txs,"PO")+mdCountSt(sx.projs,"PO");
+      c.quotes=sx.txs.concat(sx.projs).filter(function(e){return e.status==="Quotation";}).length;
+      var rv=mdRollup(sx.txs,sx.projs).revenue;
+      Object.keys(rv).forEach(function(cur){var u=fxToUSD(rv[cur],cur);if(u!==null)c.revUSD+=u;});
+    }
+    /* revenue: the confirmed POs in the sales records; a customer with none
+       there yet falls back to the tracker's won value (the two often describe
+       the same deal, so they are not added together) */
+    c.revenue=c.revUSD||c.wonUSD;
   });
   out.sort(function(a,b){return b.last.localeCompare(a.last)||a.name.localeCompare(b.name);});
   return out;
@@ -64,12 +107,14 @@ function cbMatches(c,skip){
   if(skip!=="sol"&&CB_SOL&&!c.solutions[CB_SOL])return false;
   if(skip!=="country"&&CB_COUNTRY&&(c.country||"")!==CB_COUNTRY)return false;
   if(CB_FILTER==="ongoing"&&!c.n.ongoing)return false;
-  if(CB_FILTER==="won"&&!(c.n.won+c.n.done))return false;
-  if(CB_FILTER==="lost"&&!(c.n.lost&&!c.n.ongoing&&!c.n.won&&!c.n.done))return false;
+  if(CB_FILTER==="won"&&!(c.n.won+c.n.done+c.pos))return false;
+  if(CB_FILTER==="lost"&&!(c.n.lost&&!c.n.ongoing&&!c.n.won&&!c.n.done&&!c.pos))return false;
   var q=CB_Q.trim().toLowerCase();
   if(!q)return true;
   var hay=[c.name,Object.keys(c.countries).join(" "),Object.keys(c.offices).join(" "),Object.keys(c.solutions).join(" ")]
     .concat(c.projects.map(function(p){return p.name+" "+(p.products||[]).join(" ")+" "+trkAllContacts(p).map(function(x){return x.name;}).join(" ");}))
+    .concat(c.sales.txs.map(function(t){return (t.project||"")+" "+(t.model||"")+" "+(t.projectGroup||"");}))
+    .concat(c.sales.projs.map(function(p){return typeof mdProjSearchText==="function"?mdProjSearchText(p):(p.project||"");}))
     .join(" ").toLowerCase();
   return q.split(/\s+/).every(function(w){return hay.indexOf(w)>-1;});
 }
@@ -97,8 +142,8 @@ function renderCustBase(){
       uiDropdown({key:"cb-filter",onPick:"cbPickFilter",cur:CB_FILTER,opts:[
         {value:"",label:"All customers",count:all.length},
         {value:"ongoing",label:"With ongoing projects",count:cnt(function(c){return c.n.ongoing;})},
-        {value:"won",label:"Have won before",count:cnt(function(c){return c.n.won+c.n.done;})},
-        {value:"lost",label:"Only lost",count:cnt(function(c){return c.n.lost&&!c.n.ongoing&&!c.n.won&&!c.n.done;})}
+        {value:"won",label:"Have bought (won / PO)",count:cnt(function(c){return c.n.won+c.n.done+c.pos;})},
+        {value:"lost",label:"Only lost",count:cnt(function(c){return c.n.lost&&!c.n.ongoing&&!c.n.won&&!c.n.done&&!c.pos;})}
       ]})+
     "</div>";
   /* chip rows: one tap narrows to a solution / country, tapping it again
@@ -123,7 +168,9 @@ function renderCustBase(){
   var row=function(c){
     var pills=CB_CATS.map(function(x){
       return c.n[x.k]?"<span class='cb-pill cb-"+x.k+"' title='"+x.label.replace("&middot;","·")+"'>"+c.n[x.k]+" "+(x.k==="won"?"won":x.k)+"</span>":"";
-    }).join("");
+    }).join("")+(c.pos?"<span class='cb-pill cb-po' title='Confirmed POs in the sales records'>"+c.pos+" PO"+(c.pos===1?"":"s")+"</span>":"")+
+      /* open quotes from the sales records, for customers the tracker doesn't follow yet */
+      (c.quotes&&!c.projects.length?"<span class='cb-pill cb-ongoing' title='Open quotations in the sales records'>"+c.quotes+" quote"+(c.quotes===1?"":"s")+"</span>":"");
     // under the name: the solution types bought / quoted (Custom, Posiva, Fire...);
     // the country is in the band above and the office is understood from it
     var other=Object.keys(c.countries).filter(function(k){return k!==c.country;});
@@ -131,9 +178,9 @@ function renderCustBase(){
     var sub=sols+(other.length?"<span>also "+other.map(trkEsc).join(", ")+"</span>":"");
     return "<tr class='po-row cb-row"+(c.key===CB_SEL?" sel":"")+"' onclick='cbOpen("+JSON.stringify(c.key).replace(/'/g,"&#39;")+")'>"+
       "<td><div class='cb-name'>"+trkEsc(c.name)+"</div>"+(sub?"<div class='cb-sub'>"+sub+"</div>":"")+"</td>"+
-      "<td class='num cb-c-n'>"+c.projects.length+"</td>"+
+      "<td class='num cb-c-n'>"+(c.projects.length||"<span class='po-dim'>&mdash;</span>")+"</td>"+
       "<td><div class='cb-pills'>"+pills+"</div></td>"+
-      "<td class='num cb-c-val'>"+(c.wonUSD?"<span class='po-amt'>"+cbMoney(c.wonUSD)+"</span>":"<span class='po-dim'>&mdash;</span>")+"</td>"+
+      "<td class='num cb-c-val'>"+(c.revenue?"<span class='po-amt'>"+cbMoney(c.revenue)+"</span>":"<span class='po-dim'>&mdash;</span>")+"</td>"+
       "<td class='cb-c-last po-dim'>"+(c.last?trkFmtDate(c.last):"")+"</td>"+
     "</tr>";
   };
@@ -152,19 +199,19 @@ function renderCustBase(){
   var rows=order.map(function(k){
     var g=groups[k].sort(function(a,b){return a.name.localeCompare(b.name);});
     var shut=!searching&&cbIsShut(k),won=0,ongoing=0;
-    g.forEach(function(c){won+=c.wonUSD;ongoing+=c.n.ongoing;});
+    g.forEach(function(c){won+=c.revenue;ongoing+=c.n.ongoing;});
     return "<tr class='po-grp cb-grp"+(shut?" shut":"")+"' onclick='cbToggleCountry("+JSON.stringify(k).replace(/'/g,"&#39;")+")' title='"+(shut?"Show":"Hide")+" these customers'>"+
         "<td colspan='3'><span class='cb-grp-in'><span class='cb-grp-chev'>&#9662;</span>"+(k?trkFlag(k,18)+" ":"")+"<span class='po-grp-name'>"+(k?trkEsc(k):"No country set")+"</span>"+
         "<span class='po-grp-n'>"+g.length+" customer"+(g.length===1?"":"s")+"</span>"+
         (ongoing?"<span class='cb-grp-open'>"+ongoing+" ongoing project"+(ongoing===1?"":"s")+"</span>":"")+"</span></td>"+
-        "<td class='num cb-c-val'>"+(won?"<span class='po-grp-lbl'>Won</span><span class='po-grp-sum'>"+cbMoney(won)+"</span>":"")+"</td><td class='cb-c-last'></td>"+
+        "<td class='num cb-c-val'>"+(won?"<span class='po-grp-lbl'>Revenue</span><span class='po-grp-sum'>"+cbMoney(won)+"</span>":"")+"</td><td class='cb-c-last'></td>"+
       "</tr>"+
       (shut?"":g.map(row).join(""));
   }).join("");
   var table=list.length?
     "<div class='po-split"+(sel?" has-sel":"")+"'>"+
       "<div class='po-table-wrap'><table class='po-table po-list cb-list'><thead><tr>"+
-        "<th>Customer</th><th class='num cb-c-n'>Projects</th><th>Outcome</th><th class='num cb-c-val'>Won value</th><th class='cb-c-last'>Last update</th>"+
+        "<th>Customer</th><th class='num cb-c-n'>Projects</th><th>Outcome</th><th class='num cb-c-val'>Revenue</th><th class='cb-c-last'>Last update</th>"+
       "</tr></thead><tbody>"+rows+"</tbody></table></div>"+
       (sel?cbPanelHtml(sel):"")+
     "</div>"
@@ -175,14 +222,15 @@ function renderCustBase(){
 function cbRenderStats(all){
   var el=document.getElementById("stats");
   if(!el)return;
-  var active=all.filter(function(c){return c.n.ongoing;}).length;
-  var winners=all.filter(function(c){return c.n.won+c.n.done;});
-  var repeat=all.filter(function(c){return c.n.won+c.n.done>=2;}).length;
+  var bought=all.filter(function(c){return c.n.won+c.n.done+c.pos;}).length;
+  var rev=0,pos=0,ongoing=0,activeC=0,quotes=0;
+  all.forEach(function(c){rev+=c.revenue;pos+=c.pos;ongoing+=c.n.ongoing;quotes+=c.quotes;if(c.n.ongoing)activeC++;});
   var w=0,l=0;all.forEach(function(c){w+=c.n.won+c.n.done;l+=c.n.lost;});
   el.innerHTML=
-    "<div class='stat'><div class='stat-label'>Customers</div><div class='stat-value'>"+all.length+"</div><div class='stat-sub'>"+active+" with ongoing projects</div></div>"+
-    "<div class='stat'><div class='stat-label'>Have bought</div><div class='stat-value'>"+winners.length+"</div><div class='stat-sub'>"+repeat+" more than once</div></div>"+
-    "<div class='stat'><div class='stat-label'>Win rate</div><div class='stat-value'>"+(w+l?Math.round(w/(w+l)*100)+"%":"&mdash;")+"</div><div class='stat-sub'>"+w+" won &middot; "+l+" lost (closed projects)</div></div>";
+    "<div class='stat'><div class='stat-label'>Customers</div><div class='stat-value'>"+all.length+"</div><div class='stat-sub'>"+bought+" have bought</div></div>"+
+    "<div class='stat'><div class='stat-label'>Revenue</div><div class='stat-value'>"+(rev?cbMoney(rev):"&mdash;")+"</div><div class='stat-sub'>"+pos+" confirmed POs &middot; USD equiv.</div></div>"+
+    "<div class='stat'><div class='stat-label'>Ongoing projects</div><div class='stat-value'>"+ongoing+"</div><div class='stat-sub'>with "+activeC+" customer"+(activeC===1?"":"s")+(quotes?" &middot; "+quotes+" open quotes":"")+"</div></div>"+
+    "<div class='stat'><div class='stat-label'>Win rate</div><div class='stat-value'>"+(w+l?Math.round(w/(w+l)*100)+"%":"&mdash;")+"</div><div class='stat-sub'>"+w+" won &middot; "+l+" lost (tracker)</div></div>";
 }
 
 function cbPanelHtml(c){
@@ -209,23 +257,32 @@ function cbPanelHtml(c){
       }).join("");
   }).join("");
   var info=function(label,html){return html?"<div class='trk-pn-row'><span>"+label+"</span><div>"+html+"</div></div>":"";};
-  return "<aside class='po-panel cb-panel'>"+
-    "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(c.name)+"</span>"+
-      "<button class='po-panel-x' aria-label='Close' onclick='cbOpen(\"\")'>&times;</button></div>"+
-    (c.country?"<div class='trk-pn-cust'>"+trkFlag(c.country,16)+" "+Object.keys(c.countries).map(trkEsc).join(", ")+"</div>":"")+
-    "<div class='cb-kpis'>"+
-      "<div><b>"+c.projects.length+"</b><span>projects</span></div>"+
-      "<div><b>"+(c.wonUSD?cbMoney(c.wonUSD):"&mdash;")+"</b><span>won value</span></div>"+
-      "<div><b>"+(c.winRate===null?"&mdash;":c.winRate+"%")+"</b><span>win rate</span></div>"+
-    "</div>"+
-    "<div class='po-panel-sec'>Details</div>"+
+  var details=
+    info("Win rate",c.winRate===null?"":c.winRate+"% <span class='po-dim'>of closed projects</span>")+
     info("Office",Object.keys(c.offices).sort().map(function(o){return "<span class='trk-badge trk-office po-of-"+poOfficeSlug(o)+"'>"+trkEsc(o)+"</span>";}).join(" "))+
     info("Solutions",sols)+
     info("Open pipeline",c.openUSD?cbMoney(c.openUSD)+" <span class='po-dim'>USD est.</span>":"")+
     info(contacts.length>1?"Contacts":"Contact",contacts.map(function(x){
       return "<div class='trk-xc-show'>"+trkEsc(x.name)+(x.position?" &middot; "+trkEsc(x.position):"")+(x.info?"<div class='trk-value-usd'>"+trkEsc(x.info)+"</div>":"")+"</div>";
-    }).join(""))+
+    }).join(""));
+  if(details)details="<div class='po-panel-sec'>Details</div>"+details;
+  var hasSales=c.sales.txs.length||c.sales.projs.length;
+  /* the By Customer history (revenue, printers by model, every order and
+     document), drawn by the same code that page uses */
+  var history=hasSales&&typeof buildMdDetail==="function"?
+    "<div class='cb-hist-head'>PO &amp; quotation history</div><div class='cb-hist'>"+buildMdDetail(c.sales.name,{embedded:true})+"</div>":"";
+  return "<aside class='po-panel cb-panel"+(hasSales?" cb-panel-wide":"")+"'>"+
+    "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(c.name)+"</span>"+
+      "<button class='po-panel-x' aria-label='Close' onclick='cbOpen(\"\")'>&times;</button></div>"+
+    (c.country?"<div class='trk-pn-cust'>"+trkFlag(c.country,16)+" "+Object.keys(c.countries).map(trkEsc).join(", ")+"</div>":"")+
+    "<div class='cb-kpis'>"+
+      "<div><b>"+(c.revenue?cbMoney(c.revenue):"&mdash;")+"</b><span>revenue</span></div>"+
+      "<div><b>"+(c.pos||"&mdash;")+"</b><span>confirmed POs</span></div>"+
+      "<div><b>"+(c.projects.length||"&mdash;")+"</b><span>tracker projects</span></div>"+
+    "</div>"+
+    details+
     secs+
+    history+
   "</aside>";
 }
 

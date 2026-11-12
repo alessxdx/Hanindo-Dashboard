@@ -342,7 +342,10 @@ function mdDocsHtml(deals){
   }).join("")+"</div>";
 }
 
-function buildMdDetail(key){
+/* opts.embedded: drawn inside the Customer Base panel, which has its own
+   name header and close button */
+function buildMdDetail(key,opts){
+  var embedded=!!(opts&&opts.embedded);
   var R=resolveDeals();
   var txs=R.txs.filter(function(t){return t.customer===key;});
   var projs=R.projs.filter(function(p){return p.customer===key;});
@@ -395,20 +398,21 @@ function buildMdDetail(key){
   var fxBlock=notes.length?"<div class='md-fx-notes'>"+notes.map(function(n){return "<div class='fx-note'>"+n+"</div>";}).join("")+(FX.live?"":"<div class='fx-note'>Live rates unavailable — using stored estimates.</div>")+"</div>":"";
 
   return ""+
-    "<button class='md-back' onclick='mdBack()'>&#8592; All customers</button>"+
+    (embedded?"":"<button class='md-back' onclick='mdBack()'>&#8592; All customers</button>"+
     "<div class='md-head md-head-card'><div class='md-flags md-flags-lg'>"+countries.slice(0,3).map(function(c){return flagImg(c,countries.length>1?30:38);}).join("")+"</div>"+
       "<div><div class='md-head-name'>"+mdEscAttr(name)+"</div>"+
       "<div class='md-head-meta'><span>"+countries.map(mdEscAttr).join(" &middot; ")+"</span>"+
         (pos?"<span class='md-pill md-pill-po'>"+pos+" PO"+(pos!==1?"s":"")+"</span>":"")+
         (qt?"<span class='md-pill md-pill-qt'>"+qt+" open quote"+(qt!==1?"s":"")+"</span>":"")+
         (ls?"<span class='md-pill md-pill-ls'>"+ls+" lost</span>":"")+"</div></div>"+
-    "</div>"+
-    "<div class='md-kpis'>"+
+    "</div>")+
+    /* embedded: the Customer Base panel shows revenue and POs in its own boxes */
+    (embedded?"":"<div class='md-kpis'>"+
       "<div class='md-kpi'><div class='md-kpi-l'>Revenue · confirmed POs"+(r.approx?" <span title='Some quantities unknown'>*</span>":"")+"</div>"+mdMoneyLines(r.revenue)+"</div>"+
       "<div class='md-kpi'><div class='md-kpi-l'>Open quotation pipeline</div>"+mdMoneyLines(r.pipeline)+"</div>"+
       "<div class='md-kpi'><div class='md-kpi-l'>Printers</div><div class='md-money-line'>"+totalPo.toLocaleString()+" <span class='md-kpi-u'>ordered</span></div>"+
         (totalQt?"<div class='md-kpi-s'>"+totalQt.toLocaleString()+" more quoted</div>":"")+"</div>"+
-    "</div>"+
+    "</div>")+
     "<div class='md-section'>"+
       "<div class='md-section-title'>Printers by model</div>"+
       modelsTable+
