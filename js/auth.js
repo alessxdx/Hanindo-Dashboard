@@ -14,11 +14,22 @@
    then on the site shows the sign-in screen until someone signs in.
    ============================================================ */
 var SB_AUTH_REQUIRED=false;
-var SB_SESSION=(function(){try{return JSON.parse(localStorage.getItem("sb_session")||"null");}catch(e){return null;}})();
+/* All of the owner's GitHub Pages sites share one browser storage
+   (alessxdx.github.io), and another of them keeps its own Supabase session
+   under "sb_session" — so this site's key names the project, and a stored
+   session is only trusted when its token was issued by THIS project. */
+var SB_REF=String(SB_URL).replace(/^https?:\/\//,"").split(".")[0];
+var SB_SESSION_KEY="hanindo_sb_session_"+SB_REF;
+function sbTokenRef(tok){
+  try{var p=JSON.parse(atob(String(tok).split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));
+    return String(p.iss||"").indexOf(SB_REF)>-1||p.ref===SB_REF;}catch(e){return false;}
+}
+function sbValidSession(s){return !!(s&&s.access_token&&s.refresh_token&&s.email&&sbTokenRef(s.access_token));}
+var SB_SESSION=(function(){try{var s=JSON.parse(localStorage.getItem(SB_SESSION_KEY)||"null");return sbValidSession(s)?s:null;}catch(e){return null;}})();
 
 function sbSaveSession(s){
   SB_SESSION=s;
-  try{if(s)localStorage.setItem("sb_session",JSON.stringify(s));else localStorage.removeItem("sb_session");}catch(e){}
+  try{if(s)localStorage.setItem(SB_SESSION_KEY,JSON.stringify(s));else localStorage.removeItem(SB_SESSION_KEY);}catch(e){}
   sbRenderAuthNav();
 }
 /* the token requests send: the person's session, else the anon key */
@@ -35,7 +46,9 @@ async function sbSignIn(email,password){
     headers:{"apikey":SB_KEY,"Content-Type":"application/json"},body:JSON.stringify({email:email,password:password})});
   var j=await r.json().catch(function(){return {};});
   if(!r.ok||!j.access_token)throw new Error(j.error_description||j.msg||j.error||"Sign-in failed");
-  sbSaveSession(sbSessionFrom(j,email));
+  var s=sbSessionFrom(j,email);
+  if(!sbValidSession(s))throw new Error("Sign-in answer not from this database");
+  sbSaveSession(s);
 }
 var SB_REFRESHING=null;
 async function sbRefresh(){
@@ -138,6 +151,16 @@ var SB_NATIVE_FETCH=window.fetch.bind(window);
 window.fetch=async function(input,init){
   var url=typeof input==="string"?input:(input&&input.url)||"";
   var res=await SB_NATIVE_FETCH(input,init);
+  /* sign-in still optional: a refused personal token must never block the
+     site — forget it and repeat the request with the public key */
+  /* (no sbSignedIn() check: requests sent together all carry the old token,
+     and the first refusal has already cleared the session) */
+  if((res.status===401||res.status===403)&&!SB_AUTH_REQUIRED&&url.indexOf(SB_URL)===0&&url.indexOf("/auth/v1/")===-1&&
+     init&&init.headers&&init.headers.Authorization&&init.headers.Authorization!=="Bearer "+SB_KEY){
+    if(sbSignedIn())sbSaveSession(null);
+    init.headers.Authorization="Bearer "+SB_KEY;
+    return SB_NATIVE_FETCH(input,init);
+  }
   if(res.status===401&&url.indexOf(SB_URL)===0&&url.indexOf("/auth/v1/")===-1&&SB_AUTH_REQUIRED){
     if(await sbRefresh()){
       /* retry once with the new token */
