@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-11.6";
+var APP_VERSION = "2026-11-12.1";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -80,6 +80,13 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </span>
         <span class="nav-label">By Customer</span>
+      </button>
+
+      <button class="nav-item" data-tab="custbase" onclick="setTab(this)">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        </span>
+        <span class="nav-label">Customer Base</span>
       </button>
 
       <button class="nav-item" data-tab="model" onclick="setTab(this)">
@@ -465,7 +472,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
 </div>
 <script>
 /* document.write keeps classic scripts executing in listed order. */
-["js/config.js","js/data.js","js/render.js","js/richtext.js","js/fx.js","js/detail.js","js/supabase.js","js/projects.js","js/parse.js","js/tracker.js","js/po.js","js/pricing.js","js/app.js"]
+["js/config.js","js/data.js","js/render.js","js/richtext.js","js/fx.js","js/detail.js","js/supabase.js","js/projects.js","js/parse.js","js/tracker.js","js/custbase.js","js/po.js","js/pricing.js","js/app.js"]
   .forEach(function(src){document.write('<script src="'+src+'?v='+ASSET_V+'"><\/script>');});
 </script>
 <!-- Phone tab bar: the four main pages plus More (opens the full menu).

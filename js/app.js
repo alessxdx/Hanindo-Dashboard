@@ -9,6 +9,7 @@
 /* page title strings per tab */
 var TAB_TITLES = {
   customers: "By Customer",
+  custbase: "Customer Base",
   groups: "Project Groups",
   tracker: "Project Tracker",
   po: "Purchase Orders",
@@ -35,8 +36,9 @@ function navTo(tab, sel){
   /* Re-clicking the tracker tab returns to its list view; leaving it
      restores the customer stat row the tracker replaced. */
   if(typeof TRK_SEL !== "undefined") TRK_SEL = (tab === "tracker" && sel) ? sel : null;
+  if(typeof CB_SEL !== "undefined") CB_SEL = (tab === "custbase" && sel) ? sel : "";
   if(typeof MD_SEL !== "undefined" && tab === "customers"){ MD_SEL = sel || null; MD_SEL_ROUTED = !!sel; }
-  if(currentTab !== "tracker" && currentTab !== "po" && currentTab !== "pricing" && typeof renderStats === "function") renderStats();
+  if(currentTab !== "tracker" && currentTab !== "po" && currentTab !== "pricing" && currentTab !== "custbase" && typeof renderStats === "function") renderStats();
   /* restore the toolbar add button's label/visibility when leaving tracker */
   if(typeof trkSyncToolbar === "function") trkSyncToolbar();
   var title = document.getElementById("page-title");
@@ -511,6 +513,7 @@ var ROUTE_APPLYING = false;
 function routeState(){
   if(typeof MD_GROUP_SEL !== "undefined" && MD_GROUP_SEL) return { tab: "groups", sel: MD_GROUP_SEL };
   if(currentTab === "tracker" && typeof TRK_SEL !== "undefined" && TRK_SEL) return { tab: "tracker", sel: TRK_SEL };
+  if(currentTab === "custbase" && typeof CB_SEL !== "undefined" && CB_SEL) return { tab: "custbase", sel: CB_SEL };
   if(currentTab === "customers" && typeof MD_SEL !== "undefined" && MD_SEL && MD_SEL_ROUTED) return { tab: "customers", sel: MD_SEL };
   return { tab: currentTab, sel: "" };
 }

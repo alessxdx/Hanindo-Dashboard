@@ -1252,6 +1252,7 @@ function renderContent(){
   else if(currentTab==="groups")renderProjectGroupsList();
   else if(currentTab==="projects")renderProjects();
   else if(currentTab==="tracker")renderTracker();
+  else if(currentTab==="custbase")renderCustBase();
   else if(currentTab==="po")renderPOs();
   else if(currentTab==="pricing")renderPricing();
   else if(currentTab==="model")renderModel();

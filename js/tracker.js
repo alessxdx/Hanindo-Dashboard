@@ -402,7 +402,8 @@ function trkSyncToolbar(){
     if(TRK_SEL&&TRK_VIEW==="cal"){btn.style.display="none";}
     else{btn.style.display="";btn.innerHTML=TRK_BTN_HTML.replace("Add entry","Add project");}
   }else{
-    btn.style.display="";
+    /* Customer Base only reads the tracker, nothing to add there */
+    btn.style.display=currentTab==="custbase"?"none":"";
     btn.innerHTML=TRK_BTN_HTML;
   }
 }
