@@ -99,3 +99,12 @@ alter table purchase_orders
   add column if not exists invoice_no text,
   add column if not exists paid_date date,
   add column if not exists received_date date;
+
+-- 2026-11-16: Fire fighting expense sheets share the PO tables
+alter table public.purchase_orders add column if not exists section text;
+alter table public.po_lines add column if not exists category text;
+alter table public.po_lines add column if not exists item_group text;
+alter table public.po_lines add column if not exists supplier text;
+alter table public.po_lines add column if not exists actual_total numeric;
+alter table public.po_lines add column if not exists delivery numeric;
+alter table public.po_lines add column if not exists note text;

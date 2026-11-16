@@ -15,13 +15,25 @@ var PO_SEL="";               /* PO open in the side panel */
 var PO_FOFFICE="",PO_FYEAR="",PO_SEARCH="";
 var PO_ATT=[];               /* modal attachment staging */
 var PO_OFFICES=["China","Indonesia","Singapore"];
+/* Two sections share the page: printer POs to CUSTOM (section empty) and
+   Fire fighting expense sheets (section "Fire fighting", amounts in IDR,
+   lines carry category / group / supplier / price paid incl. VAT). */
+var PO_FIRE="Fire fighting";
+var PO_SECTION="";try{PO_SECTION=localStorage.getItem("cpd_po_section")||"";}catch(e){}
+function poIsFire(){return PO_SECTION===PO_FIRE;}
+function poPickSection(v){
+  PO_SECTION=v;PO_SEL="";PO_FOFFICE="";PO_VIEW="list";
+  try{localStorage.setItem("cpd_po_section",v);}catch(e){}
+  renderPOs();
+}
+function poNum(v){return (v===null||v===undefined||v==="")?null:Number(v);}
 function poOfficeSlug(o){return String(o||"").toLowerCase().replace(/\s/g,"");}
 
 /* ===== converters ===== */
-function dbToPo(r){return{_id:r.id,poNumber:r.po_number||"",office:r.office||"",date:r.po_date||"",vendor:r.vendor||"CUSTOM S.p.A.",currency:r.currency||"USD",total:(r.total===null||r.total===undefined)?null:Number(r.total),notes:r.notes||"",invoiceNo:r.invoice_no||"",paidDate:r.paid_date||"",receivedDate:r.received_date||"",attachments:Array.isArray(r.attachments)?r.attachments:[],createdAt:r.created_at||""};}
-function poToDb(p){return{po_number:p.poNumber,office:p.office||null,po_date:p.date||null,vendor:p.vendor||"CUSTOM S.p.A.",currency:p.currency||"USD",total:(p.total===null||isNaN(p.total))?null:p.total,notes:p.notes||null,invoice_no:p.invoiceNo||null,paid_date:p.paidDate||null,received_date:p.receivedDate||null,attachments:p.attachments||[]};}
-function dbToPoLine(r){return{_id:r.id,poId:r.po_id,pn:r.pn||"",description:r.description||"",qty:Number(r.qty)||0,unit:r.unit||"pcs",unitPrice:(r.unit_price===null||r.unit_price===undefined)?null:Number(r.unit_price),sortOrder:Number(r.sort_order)||0};}
-function poLineToDb(l){return{po_id:l.poId,pn:l.pn||null,description:l.description||null,qty:l.qty||0,unit:l.unit||"pcs",unit_price:(l.unitPrice===null||isNaN(l.unitPrice))?null:l.unitPrice,sort_order:l.sortOrder||0};}
+function dbToPo(r){return{_id:r.id,poNumber:r.po_number||"",office:r.office||"",date:r.po_date||"",vendor:r.vendor||"CUSTOM S.p.A.",currency:r.currency||"USD",total:(r.total===null||r.total===undefined)?null:Number(r.total),notes:r.notes||"",invoiceNo:r.invoice_no||"",paidDate:r.paid_date||"",receivedDate:r.received_date||"",attachments:Array.isArray(r.attachments)?r.attachments:[],section:r.section||"",createdAt:r.created_at||""};}
+function poToDb(p){return{po_number:p.poNumber,office:p.office||null,po_date:p.date||null,vendor:p.vendor||"CUSTOM S.p.A.",currency:p.currency||"USD",total:(p.total===null||isNaN(p.total))?null:p.total,notes:p.notes||null,invoice_no:p.invoiceNo||null,paid_date:p.paidDate||null,received_date:p.receivedDate||null,attachments:p.attachments||[],section:p.section||null};}
+function dbToPoLine(r){return{_id:r.id,poId:r.po_id,pn:r.pn||"",description:r.description||"",qty:Number(r.qty)||0,unit:r.unit||"pcs",unitPrice:(r.unit_price===null||r.unit_price===undefined)?null:Number(r.unit_price),sortOrder:Number(r.sort_order)||0,category:r.category||"",itemGroup:r.item_group||"",supplier:r.supplier||"",actualTotal:poNum(r.actual_total),delivery:poNum(r.delivery),note:r.note||""};}
+function poLineToDb(l){return{po_id:l.poId,pn:l.pn||null,description:l.description||null,qty:l.qty||0,unit:l.unit||"pcs",unit_price:(l.unitPrice===null||isNaN(l.unitPrice))?null:l.unitPrice,sort_order:l.sortOrder||0,category:l.category||null,item_group:l.itemGroup||null,supplier:l.supplier||null,actual_total:(l.actualTotal===null||l.actualTotal===undefined||isNaN(l.actualTotal))?null:l.actualTotal,delivery:(l.delivery===null||l.delivery===undefined||isNaN(l.delivery))?null:l.delivery,note:l.note||null};}
 
 /* ===== load ===== */
 async function poLoad(force){
@@ -66,12 +78,14 @@ function poSearchInput(v){
 /* ===== filtering ===== */
 function poFiltered(){
   var q=PO_SEARCH.trim().toLowerCase();
+  var fire=poIsFire();
   return PO_LIST.filter(function(p){
+    if((p.section===PO_FIRE)!==fire)return false;
     if(PO_FOFFICE&&p.office!==PO_FOFFICE)return false;
     if(PO_FYEAR&&poYear(p)!==PO_FYEAR)return false;
     if(q){
       var hay=(p.poNumber+" "+p.office+" "+p.notes+" "+p.invoiceNo+" "+
-        poLinesFor(p._id).map(function(l){return l.pn+" "+l.description;}).join(" ")).toLowerCase();
+        poLinesFor(p._id).map(function(l){return l.pn+" "+l.description+" "+l.supplier+" "+l.itemGroup+" "+l.category;}).join(" ")).toLowerCase();
       if(hay.indexOf(q)===-1)return false;
     }
     return true;
@@ -87,11 +101,12 @@ function poSyncToolbar(){
   if(!btn||currentTab!=="po")return;
   if(typeof TRK_BTN_HTML!=="undefined"&&TRK_BTN_HTML===null)TRK_BTN_HTML=btn.innerHTML;
   btn.style.display="";
-  if(typeof TRK_BTN_HTML==="string")btn.innerHTML=TRK_BTN_HTML.replace("Add entry","Add PO");
+  if(typeof TRK_BTN_HTML==="string")btn.innerHTML=TRK_BTN_HTML.replace("Add entry",poIsFire()?"Add expenses":"Add PO");
 }
 function poRenderStats(list){
   var el=document.getElementById("stats");
   if(!el)return;
+  if(poIsFire()){poFireStats(el,list);return;}
   var spend=0,units=0,models={};
   list.forEach(function(p){
     var u=poUsd(p.total,p.currency);
@@ -131,12 +146,18 @@ function renderPOs(){
   poRenderStats(list);
 
   var years=[];
-  PO_LIST.forEach(function(p){var y=poYear(p);if(y&&years.indexOf(y)===-1)years.push(y);});
+  var secList=PO_LIST.filter(function(p){return (p.section===PO_FIRE)===poIsFire();});
+  secList.forEach(function(p){var y=poYear(p);if(y&&years.indexOf(y)===-1)years.push(y);});
   years.sort().reverse();
 
   /* One toolbar: view switch, a search box that also holds the active
      filters as removable pills, then the office and year pickers */
-  var seg=[["list","List"],["models","By model"]].map(function(v){
+  var fire=poIsFire();
+  var secSw="<div class='po-secs'>"+[["","Printer orders","CUSTOM"],[PO_FIRE,"Fire fighting","expenses"]].map(function(s){
+    var n=PO_LIST.filter(function(p){return (p.section===PO_FIRE)===(s[0]===PO_FIRE);}).length;
+    return "<button class='po-sec-btn"+(PO_SECTION===s[0]?" active":"")+(s[0]?" po-sec-fire":"")+"' onclick='poPickSection(\""+s[0]+"\")'>"+s[1]+" <span class='po-sec-sub'>"+s[2]+"</span><span class='po-dd-n'>"+n+"</span></button>";
+  }).join("")+"</div>";
+  var seg=(fire?[["list","List"],["models","By group"]]:[["list","List"],["models","By model"]]).map(function(v){
     return "<button class='po-seg-btn"+(PO_VIEW===v[0]?" active":"")+"' onclick='PO_VIEW=\""+v[0]+"\";renderPOs()'>"+v[1]+"</button>";
   }).join("");
   var pills=(PO_FOFFICE?"<span class='trk-badge po-of-"+poOfficeSlug(PO_FOFFICE)+" po-pill'>"+trkEsc(PO_FOFFICE)+"<button aria-label='Clear office filter' onclick='PO_FOFFICE=\"\";renderPOs()'>&times;</button></span>":"")+
@@ -145,18 +166,18 @@ function renderPOs(){
     "<div class='po-bar'>"+
       "<div class='po-seg'>"+seg+"</div>"+
       "<label class='po-searchbox'>"+pills+
-        "<input id='po-search' placeholder='Search PO no. / model / PN&hellip;' value='"+trkEsc(PO_SEARCH)+"' oninput='poSearchInput(this.value)'>"+
+        "<input id='po-search' placeholder='"+(fire?"Search item / supplier&hellip;":"Search PO no. / model / PN&hellip;")+"' value='"+trkEsc(PO_SEARCH)+"' oninput='poSearchInput(this.value)'>"+
       "</label>"+
-      uiDropdown({key:"po-office",onPick:"poPickOffice",cur:PO_FOFFICE,opts:[{value:"",label:"All offices",count:PO_LIST.length}].concat(PO_OFFICES.map(function(o){
-        return {value:o,label:o,dot:poOfficeSlug(o),count:PO_LIST.filter(function(p){return p.office===o;}).length};
-      }))})+
-      uiDropdown({key:"po-year",onPick:"poPickYear",cur:PO_FYEAR,opts:[{value:"",label:"All years",count:PO_LIST.length}].concat(years.map(function(y){
-        return {value:y,label:y,count:PO_LIST.filter(function(p){return poYear(p)===y;}).length};
+      (fire?"":uiDropdown({key:"po-office",onPick:"poPickOffice",cur:PO_FOFFICE,opts:[{value:"",label:"All offices",count:secList.length}].concat(PO_OFFICES.map(function(o){
+        return {value:o,label:o,dot:poOfficeSlug(o),count:PO_LIST.filter(function(p){return p.office===o&&p.section!==PO_FIRE;}).length};
+      }))}))+
+      uiDropdown({key:"po-year",onPick:"poPickYear",cur:PO_FYEAR,opts:[{value:"",label:"All years",count:secList.length}].concat(years.map(function(y){
+        return {value:y,label:y,count:secList.filter(function(p){return poYear(p)===y;}).length};
       }))})+
     "</div>";
 
   if(PO_SEL&&!list.some(function(p){return p._id===PO_SEL;}))PO_SEL="";
-  content.innerHTML=toolbar+(PO_VIEW==="models"?poModelsHtml(list):poTableHtml(list));
+  content.innerHTML=secSw+toolbar+(fire?(PO_VIEW==="models"?poFireGroupsHtml(list):poTableHtml(list)):(PO_VIEW==="models"?poModelsHtml(list):poTableHtml(list)));
 }
 
 function poPickOffice(v){PO_FOFFICE=v;renderPOs();}
@@ -220,6 +241,7 @@ function poUsdSum(list){
 }
 function poTableHtml(list){
   if(!list.length)return poEmptyHtml();
+  var fire=poIsFire();
   var groups=[],byLabel={};
   list.forEach(function(p){
     var ml=poMonthLabel(p);
@@ -228,13 +250,14 @@ function poTableHtml(list){
   });
   var rows=groups.map(function(ml){
     var g=byLabel[ml];
-    return "<tr class='po-grp'><td colspan='4'><span class='po-grp-name'>"+ml+"</span><span class='po-grp-n'>"+g.length+" PO"+(g.length===1?"":"s")+"</span></td>"+
-      "<td class='num'><span class='po-grp-lbl'>Subtotal</span><span class='po-grp-sum'>"+poUsdSum(g)+"</span></td><td></td></tr>"+
+    var noun=fire?"sheet":"PO";
+    return "<tr class='po-grp'><td colspan='"+(fire?3:4)+"'><span class='po-grp-name'>"+ml+"</span><span class='po-grp-n'>"+g.length+" "+noun+(g.length===1?"":"s")+"</span></td>"+
+      "<td class='num'><span class='po-grp-lbl'>Subtotal</span><span class='po-grp-sum'>"+(fire?poFmtMoney(g.reduce(function(t,p){return t+(p.total||0);},0),"IDR"):poUsdSum(g))+"</span></td><td></td></tr>"+
       g.map(function(p){
         var n=poLinesFor(p._id).length,att=(p.attachments||[]).length;
         return "<tr class='po-row"+(PO_SEL===p._id?" sel":"")+"' onclick='poSelect(\""+p._id+"\")'>"+
           "<td class='po-no'>"+(p.office?"<span class='trk-badge po-dot po-of-"+poOfficeSlug(p.office)+"' title='"+trkEsc(p.office)+"'></span>":"")+trkEsc(p.poNumber)+(p.notes?" <span class='po-has-note' title='Has a note'>&#9998;</span>":"")+(p.invoiceNo&&!p.paidDate?" <span class='po-unpaid' title='Invoiced, not yet paid'>Unpaid</span>":"")+"</td>"+
-          "<td>"+(p.office?"<span class='trk-badge po-of-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+"</span>":"")+"</td>"+
+          (fire?"":"<td>"+(p.office?"<span class='trk-badge po-of-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+"</span>":"")+"</td>")+
           "<td class='po-dim'>"+(p.date?trkFmtDate(p.date):"&mdash;")+"</td>"+
           "<td class='po-dim num'>"+n+"</td>"+
           "<td class='num po-amt'>"+poFmtMoney(p.total,p.currency)+"</td>"+
@@ -245,9 +268,9 @@ function poTableHtml(list){
   var sel=PO_SEL?PO_LIST.filter(function(p){return p._id===PO_SEL;})[0]:null;
   return "<div class='po-split"+(sel?" has-sel":"")+"'>"+
     "<div class='po-table-wrap'><table class='po-table po-list'>"+
-      "<thead><tr><th>PO</th><th>Office</th><th>Date</th><th class='num'>Lines</th><th class='num'>Amount</th><th class='num'>Files</th></tr></thead>"+
+      "<thead><tr><th>"+(fire?"Expense sheet":"PO")+"</th>"+(fire?"":"<th>Office</th>")+"<th>Date</th><th class='num'>Lines</th><th class='num'>Amount</th><th class='num'>Files</th></tr></thead>"+
       "<tbody>"+rows+"</tbody></table></div>"+
-    (sel?poPanelHtml(sel):"")+
+    (sel?(sel.section===PO_FIRE?poFirePanelHtml(sel):poPanelHtml(sel)):"")+
   "</div>";
 }
 function poPanelHtml(p){
@@ -309,6 +332,7 @@ function poMonthLabel(p){
   return (PO_MONTHS_FULL[mi]||"")+" "+d.slice(0,4);
 }
 function poEmptyHtml(){
+  if(poIsFire())return "<div class='empty'>"+(PO_SEARCH||PO_FYEAR?"No expense sheets match this filter.":"No fire fighting expenses yet. Click <strong>+ Add expenses</strong>.")+"</div>";
   return "<div class='empty'>"+(PO_LIST.length?"No purchase orders match this filter.":"No purchase orders yet. Click <strong>+ Add PO</strong> and drop the PO PDF — the form fills itself.")+"</div>";
 }
 
@@ -400,6 +424,14 @@ function polRowHtml(l){
     "<input class='pol-desc' placeholder='Description / model' value='"+trkEsc(l.description||"")+"'>"+
     "<input class='pol-price' type='number' step='any' placeholder='Unit price' value='"+(l.unitPrice!==undefined&&l.unitPrice!==null?l.unitPrice:"")+"' oninput='poRecalc()'>"+
     "<button type='button' class='pol-del' title='Remove line' onclick='this.parentElement.remove();poRecalc()'>&#10005;</button>"+
+    "<div class='pol-x'>"+
+      "<input class='pol-cat' placeholder='Category' list='pol-cat-list' value='"+trkEsc(l.category||"")+"'>"+
+      "<input class='pol-grp' placeholder='Group (e.g. Welding electrodes)' list='pol-grp-list' value='"+trkEsc(l.itemGroup||"")+"'>"+
+      "<input class='pol-sup' placeholder='Supplier' value='"+trkEsc(l.supplier||"")+"'>"+
+      "<input class='pol-act' type='number' step='any' placeholder='Paid incl. VAT' value='"+(l.actualTotal!==undefined&&l.actualTotal!==null?l.actualTotal:"")+"' oninput='poRecalc()'>"+
+      "<input class='pol-dlv' type='number' step='any' placeholder='Delivery' value='"+(l.delivery!==undefined&&l.delivery!==null?l.delivery:"")+"' oninput='poRecalc()'>"+
+      "<input class='pol-note' placeholder='Note' value='"+trkEsc(l.note||"")+"'>"+
+    "</div>"+
   "</div>";
 }
 function polAddRow(l){
@@ -413,13 +445,21 @@ function polReadRows(){
       pn:row.querySelector(".pol-pn").value.trim(),
       description:row.querySelector(".pol-desc").value.trim(),
       unitPrice:row.querySelector(".pol-price").value===""?null:parseFloat(row.querySelector(".pol-price").value),
-      sortOrder:i
+      sortOrder:i,
+      category:row.querySelector(".pol-cat").value.trim(),
+      itemGroup:row.querySelector(".pol-grp").value.trim(),
+      supplier:row.querySelector(".pol-sup").value.trim(),
+      actualTotal:row.querySelector(".pol-act").value===""?null:parseFloat(row.querySelector(".pol-act").value),
+      delivery:row.querySelector(".pol-dlv").value===""?null:parseFloat(row.querySelector(".pol-dlv").value),
+      note:row.querySelector(".pol-note").value.trim()
     };
   }).filter(function(l){return l.qty||l.pn||l.description;});
 }
 function poRecalc(){
   var sum=0,any=false;
+  var fire=document.getElementById("modal-po").classList.contains("po-fire");
   polReadRows().forEach(function(l){
+    if(fire){var t=poFireLinePaid(l);if(t!==null){sum+=t;any=true;}if(l.delivery)sum+=l.delivery;return;}
     if(l.unitPrice!==null&&!isNaN(l.unitPrice)){sum+=l.qty*l.unitPrice;any=true;}
   });
   if(any)document.getElementById("po-total").value=Math.round(sum*100)/100;
@@ -427,11 +467,12 @@ function poRecalc(){
 function poOpenModal(){
   var m=document.getElementById("modal-po");
   m.removeAttribute("data-edit-id");
-  document.getElementById("po-modal-title").textContent="Add purchase order";
+  poModalMode(poIsFire());
+  document.getElementById("po-modal-title").textContent=poIsFire()?"Add fire fighting expenses":"Add purchase order";
   document.getElementById("btn-delete-po").style.display="none";
   m.querySelectorAll("input,textarea").forEach(function(el){el.value="";});
   document.getElementById("po-office").value="";
-  document.getElementById("po-currency").value="USD";
+  document.getElementById("po-currency").value=poIsFire()?"IDR":"USD";
   document.getElementById("pol-rows").innerHTML="";
   document.getElementById("po-parse-status").textContent="";
   PO_ATT=[];poRenderAttList();
@@ -442,7 +483,8 @@ function poEdit(id){
   if(!p)return;
   var m=document.getElementById("modal-po");
   m.setAttribute("data-edit-id",id);
-  document.getElementById("po-modal-title").textContent="Edit purchase order";
+  poModalMode(p.section===PO_FIRE);
+  document.getElementById("po-modal-title").textContent=p.section===PO_FIRE?"Edit fire fighting expenses":"Edit purchase order";
   document.getElementById("btn-delete-po").style.display="inline-flex";
   document.getElementById("po-number").value=p.poNumber;
   document.getElementById("po-office").value=p.office||"";
@@ -464,7 +506,8 @@ function poEdit(id){
 }
 async function poSave(){
   var num=document.getElementById("po-number").value.trim();
-  if(!num){alert("Please enter the PO number.");return;}
+  var fireM=document.getElementById("modal-po").classList.contains("po-fire");
+  if(!num){alert(fireM?"Please enter a name for this expense sheet.":"Please enter the PO number.");return;}
   /* forgot-I-already-entered-it guard */
   var dup=poFindByNumber(num,document.getElementById("modal-po").getAttribute("data-edit-id"));
   if(dup&&!confirm("PO "+num+" is already recorded ("+(dup.date?trkFmtDate(dup.date):"no date")+", "+(dup.office||"?")+" office).\nSave anyway as a duplicate?"))return;
@@ -487,7 +530,8 @@ async function poSave(){
     invoiceNo:document.getElementById("po-invoice").value.trim(),
     paidDate:document.getElementById("po-paid").value,
     receivedDate:document.getElementById("po-received").value,
-    attachments:PO_ATT.map(function(a){return{name:a.name,url:a.url};})
+    attachments:PO_ATT.map(function(a){return{name:a.name,url:a.url};}),
+    section:fireM?PO_FIRE:""
   };
   var lines=polReadRows();
   var m=document.getElementById("modal-po");
@@ -688,4 +732,138 @@ async function poBulkImport(pdfs){
   if(skipped.length)msg+="\nAlready recorded (skipped): "+skipped.join(", ");
   if(failed.length)msg+="\nFailed: "+failed.join("; ");
   alert(msg);
+}
+
+
+/* ===== Fire fighting expenses ===== */
+var PO_FIRE_CATS=["Office equipment (HC)","Project supplies"];
+/* what a line actually cost: price paid incl. VAT, else qty x unit price */
+function poFireLinePaid(l){
+  if(l.actualTotal!==null&&l.actualTotal!==undefined&&!isNaN(l.actualTotal))return l.actualTotal;
+  if(l.unitPrice!==null&&l.unitPrice!==undefined&&!isNaN(l.unitPrice)){
+    /* a line paid together with the one above it has no own amount */
+    return l.note&&/paid together/i.test(l.note)?0:l.qty*l.unitPrice;
+  }
+  return null;
+}
+/* category -> group -> lines, in a fixed category order */
+function poFireTree(lines){
+  var cats=[],byCat={};
+  lines.forEach(function(l){
+    var c=l.category||"Other",g=l.itemGroup||"Other";
+    if(!byCat[c]){byCat[c]={name:c,groups:[],byG:{}};cats.push(c);}
+    var C=byCat[c];
+    if(!C.byG[g]){C.byG[g]={name:g,lines:[]};C.groups.push(g);}
+    C.byG[g].lines.push(l);
+  });
+  cats.sort(function(a,b){
+    var ia=PO_FIRE_CATS.indexOf(a),ib=PO_FIRE_CATS.indexOf(b);
+    return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b);
+  });
+  return cats.map(function(c){
+    var C=byCat[c];
+    return {name:c,groups:C.groups.slice().sort().map(function(g){return C.byG[g];})};
+  });
+}
+function poSumPaid(lines){return lines.reduce(function(t,l){return t+(poFireLinePaid(l)||0);},0);}
+function poSumDlv(lines){return lines.reduce(function(t,l){return t+(l.delivery||0);},0);}
+function poFireStats(el,list){
+  var total=0,items=0,sup={},vat=0,dlv=0;
+  list.forEach(function(p){
+    total+=p.total||0;
+    poLinesFor(p._id).forEach(function(l){items++;if(l.supplier)sup[l.supplier.toLowerCase()]=1;vat+=poFireLinePaid(l)||0;dlv+=l.delivery||0;});
+  });
+  var scope=PO_FYEAR?PO_FYEAR:"all years";
+  el.innerHTML=
+    "<div class='stat'><div class='stat-label'>Expense sheets</div><div class='stat-value'>"+list.length+"</div><div class='stat-sub'>"+scope+"</div></div>"+
+    "<div class='stat'><div class='stat-label'>Total spent</div><div class='stat-value'>"+poFmtMoney(total,"IDR")+"</div><div class='stat-sub'>"+(typeof fxUsdText==="function"&&total?fxUsdText(total,"IDR"):"incl. VAT and delivery")+"</div></div>"+
+    "<div class='stat'><div class='stat-label'>Items bought</div><div class='stat-value'>"+items+"</div><div class='stat-sub'>delivery "+poFmtMoney(dlv,"IDR")+"</div></div>"+
+    "<div class='stat'><div class='stat-label'>Suppliers</div><div class='stat-value'>"+Object.keys(sup).length+"</div><div class='stat-sub'>across all sheets</div></div>";
+}
+function poFireLineHtml(l,cur){
+  var paid=poFireLinePaid(l),listT=(l.unitPrice!==null)?l.qty*l.unitPrice:null;
+  var meta=[l.pn,l.supplier].filter(Boolean).map(trkEsc).join(" &middot; ");
+  return "<div class='po-pl'>"+
+    "<div class='po-pl-main'><div class='po-pl-desc'>"+trkEsc(l.description||"—")+"</div>"+
+      (meta?"<div class='po-line-pn po-fire-meta'>"+meta+"</div>":"")+
+      "<div class='po-dim'>"+l.qty.toLocaleString()+" "+trkEsc(l.unit)+(l.unitPrice!==null?" &times; "+poFmtMoney(l.unitPrice,cur):"")+
+        (l.delivery?" &middot; delivery "+poFmtMoney(l.delivery,cur):"")+"</div>"+
+      (l.note?"<div class='po-fire-note'>"+trkEsc(l.note)+"</div>":"")+
+    "</div>"+
+    "<div class='po-pl-sub'>"+(l.actualTotal!==null?poFmtMoney(l.actualTotal,cur):(paid?poFmtMoney(paid,cur):"<span class='po-dim'>incl. above</span>"))+
+      (l.actualTotal!==null&&listT!==null&&Math.round(listT)!==Math.round(l.actualTotal)?"<div class='po-fire-list'>list "+poFmtMoney(listT,cur)+"</div>":"")+
+    "</div>"+
+  "</div>";
+}
+function poFirePanelHtml(p){
+  var lines=poLinesFor(p._id),cur=p.currency||"IDR";
+  var listT=lines.reduce(function(t,l){return t+(l.unitPrice!==null?l.qty*l.unitPrice:0);},0);
+  var paid=poSumPaid(lines),dlv=poSumDlv(lines);
+  var tree=poFireTree(lines);
+  var body=tree.map(function(c){
+    var cl=[];c.groups.forEach(function(g){cl=cl.concat(g.lines);});
+    return "<div class='po-fire-cat'><span>"+trkEsc(c.name)+"</span><span>"+poFmtMoney(poSumPaid(cl),cur)+"</span></div>"+
+      c.groups.map(function(g){
+        return "<div class='po-fire-grp'><span>"+trkEsc(g.name)+"</span><span>"+poFmtMoney(poSumPaid(g.lines),cur)+"</span></div>"+
+          g.lines.map(function(l){return poFireLineHtml(l,cur);}).join("");
+      }).join("");
+  }).join("");
+  var atts=(p.attachments||[]).map(function(a){
+    return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+trkFileIcon(a.name)+" "+trkEsc(a.name)+"</a>";
+  }).join(" ");
+  function row(k,v,b){return "<div class='po-st-row"+(b?" po-st-b":"")+"'><span>"+k+"</span><span>"+v+"</span></div>";}
+  return "<aside class='po-panel po-fire-panel'>"+
+    "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(p.poNumber)+"</span>"+
+      "<button class='po-panel-x' aria-label='Close' onclick='poSelect(\"\")'>&times;</button></div>"+
+    "<div class='po-panel-meta'><span class='trk-badge po-of-fire'>Fire fighting</span>"+(p.date?"<span>"+trkFmtDate(p.date)+"</span>":"")+"</div>"+
+    "<div class='po-panel-total'>"+poFmtMoney(p.total,cur)+
+      ((cur!=="USD"&&typeof fxUsdText==="function"&&p.total!==null)?" <span class='trk-value-usd'>"+fxUsdText(p.total,cur)+"</span>":"")+"</div>"+
+    "<div class='po-panel-sec'>Summary</div>"+
+      row("List price",poFmtMoney(listT,cur))+
+      row("Paid incl. VAT (PPN)",poFmtMoney(paid,cur))+
+      row("Delivery",poFmtMoney(dlv,cur))+
+      row("Total spent",poFmtMoney(paid+dlv,cur),1)+
+    (lines.length?"<div class='po-panel-sec'>"+lines.length+" item"+(lines.length===1?"":"s")+" by group</div>"+body:"")+
+    (atts?"<div class='po-panel-sec'>Files</div><div class='trk-tl-atts'>"+atts+"</div>":"")+
+    (p.notes?"<div class='po-panel-sec'>Note</div><div class='po-panel-note'>"+trkEsc(p.notes)+"</div>":"")+
+    "<div class='po-panel-acts'><button class='btn-save' onclick='poEdit(\""+p._id+"\")'>Edit</button></div>"+
+  "</aside>";
+}
+/* "By group": spend per category and item group across the sheets shown */
+function poFireGroupsHtml(list){
+  var ids={};list.forEach(function(p){ids[p._id]=p;});
+  var lines=PO_LINES.filter(function(l){return ids[l.poId];});
+  if(!lines.length)return poEmptyHtml();
+  var tree=poFireTree(lines);
+  var rows=tree.map(function(c){
+    var cl=[];c.groups.forEach(function(g){cl=cl.concat(g.lines);});
+    return "<tr class='po-grp'><td colspan='3'><span class='po-grp-name'>"+trkEsc(c.name)+"</span><span class='po-grp-n'>"+cl.length+" item"+(cl.length===1?"":"s")+"</span></td>"+
+      "<td class='num'><span class='po-grp-lbl'>Subtotal</span><span class='po-grp-sum'>"+poFmtMoney(poSumPaid(cl),"IDR")+"</span></td></tr>"+
+      c.groups.map(function(g){
+        return "<tr class='po-fire-grow'><td colspan='3'>"+trkEsc(g.name)+"</td><td class='num'>"+poFmtMoney(poSumPaid(g.lines),"IDR")+"</td></tr>"+
+          g.lines.map(function(l){
+            var p=ids[l.poId];
+            return "<tr class='po-row' onclick='PO_VIEW=\"list\";PO_SEL=\""+l.poId+"\";renderPOs()'>"+
+              "<td><div class='po-m-desc'>"+trkEsc(l.description||"—")+"</div>"+(l.pn?"<div class='po-m-pn'>"+trkEsc(l.pn)+"</div>":"")+"</td>"+
+              "<td class='num' data-label='Qty'>"+l.qty.toLocaleString()+" "+trkEsc(l.unit)+"</td>"+
+              "<td data-label='Supplier' class='po-dim'>"+trkEsc(l.supplier||"")+(p&&p.date?" &middot; "+trkFmtDate(p.date):"")+"</td>"+
+              "<td class='num' data-label='Paid'>"+(l.actualTotal!==null?poFmtMoney(l.actualTotal,"IDR"):(poFireLinePaid(l)?poFmtMoney(poFireLinePaid(l),"IDR"):"<span class='po-dim'>incl. above</span>"))+"</td>"+
+            "</tr>";
+          }).join("");
+      }).join("");
+  }).join("");
+  return "<div class='po-table-wrap'><table class='po-table po-models po-fire-groups'>"+
+    "<thead><tr><th>Item</th><th class='num'>Qty</th><th>Supplier &middot; date</th><th class='num'>Paid incl. VAT</th></tr></thead>"+
+    "<tbody>"+rows+"</tbody></table></div>";
+}
+/* switches the PO form between printer-PO and expense-sheet fields */
+function poModalMode(fire){
+  var m=document.getElementById("modal-po");
+  m.classList.toggle("po-fire",!!fire);
+  var lab=document.getElementById("po-number-label");if(lab)lab.textContent=fire?"Name *":"PO number *";
+  var num=document.getElementById("po-number");if(num)num.placeholder=fire?"e.g. Expenses 13 Nov 2026":"e.g. CUSTOM013-0925";
+  var dl=document.getElementById("po-date-label");if(dl)dl.textContent=fire?"Date":"PO date";
+  var tl=document.getElementById("po-total-label");if(tl)tl.textContent=fire?"Total spent (incl. VAT + delivery)":"PO total";
+  var sv=document.getElementById("btn-save-po");if(sv)sv.textContent=fire?"Save":"Save PO";
+  var dv=document.getElementById("btn-delete-po");if(dv)dv.textContent=fire?"Delete":"Delete PO";
 }

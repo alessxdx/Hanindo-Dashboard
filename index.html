@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-16.1";
+var APP_VERSION = "2026-11-16.2";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -371,28 +371,30 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
         </div>
         <span class="form-hint" id="po-parse-status"></span>
       </div>
-      <div class="form-group"><label>PO number *</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-number" placeholder="e.g. CUSTOM013-0925" style="font-family:'DM Mono',monospace"></div>
-      <div class="form-group"><label>Office</label><select id="po-office"><option value="">&mdash;</option><option>China</option><option>Indonesia</option><option>Singapore</option></select></div>
-      <div class="form-group"><label>PO date</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-date" type="date"></div>
+      <div class="form-group"><label id="po-number-label">PO number *</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-number" placeholder="e.g. CUSTOM013-0925" style="font-family:'DM Mono',monospace"></div>
+      <div class="form-group po-pr-only"><label>Office</label><select id="po-office"><option value="">&mdash;</option><option>China</option><option>Indonesia</option><option>Singapore</option></select></div>
+      <div class="form-group"><label id="po-date-label">PO date</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-date" type="date"></div>
       <div class="form-group"><label>Currency</label><select id="po-currency"><option value="USD">USD</option><option value="EUR">EUR</option><option value="RMB">RMB</option><option value="SGD">SGD</option><option value="IDR">IDR</option></select></div>
     </div>
     <div class="pj-items">
       <label class="pj-items-label">Line items <span style="font-size:10px;color:#aaa;font-weight:400">(usually filled by &#9889; &mdash; powers the units-per-model and price-change views)</span></label>
       <div class="pol-head"><span>Qty</span><span>Unit</span><span>Part number</span><span>Description / model</span><span>Unit price</span><span></span></div>
       <div id="pol-rows"></div>
+      <datalist id="pol-cat-list"><option>Office equipment (HC)</option><option>Project supplies</option></datalist>
+      <datalist id="pol-grp-list"><option>Welding equipment</option><option>Cutting &amp; grinding tools</option><option>Drills</option><option>Safety gear</option><option>Electrical</option><option>Welding electrodes</option><option>Cutting &amp; grinding discs</option><option>Pipes &amp; fittings</option></datalist>
       <button type="button" class="pj-add" onclick="polAddRow()">+ Add line</button>
     </div>
     <div class="form-grid">
-      <div class="form-group"><label>PO total</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-total" type="number" step="any" placeholder="auto-summed from lines"></div>
-      <div class="form-group"><label>Invoice no.</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-invoice" placeholder="e.g. 4026000013" style="font-family:'DM Mono',monospace"></div>
-      <div class="form-group"><label>Paid on</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-paid" type="date"></div>
-      <div class="form-group"><label>Received on</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-received" type="date"></div>
+      <div class="form-group"><label id="po-total-label">PO total</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-total" type="number" step="any" placeholder="auto-summed from lines"></div>
+      <div class="form-group po-pr-only"><label>Invoice no.</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-invoice" placeholder="e.g. 4026000013" style="font-family:'DM Mono',monospace"></div>
+      <div class="form-group po-pr-only"><label>Paid on</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-paid" type="date"></div>
+      <div class="form-group po-pr-only"><label>Received on</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-received" type="date"></div>
       <div class="form-group form-full"><label>Notes</label><textarea id="po-notes" placeholder="Anything worth remembering about this order&hellip;"></textarea></div>
     </div>
     <div class="modal-actions">
       <button id="btn-delete-po" class="delete-btn" style="margin-right:auto;font-size:13px;padding:9px 14px;display:none" onclick="poDelete()">Delete PO</button>
       <button class="btn-cancel" onclick="closeModal('modal-po')">Cancel</button>
-      <button class="btn-save" onclick="poSave()">Save PO</button>
+      <button class="btn-save" id="btn-save-po" onclick="poSave()">Save PO</button>
     </div>
   </div>
 </div>
