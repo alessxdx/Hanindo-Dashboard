@@ -3122,8 +3122,8 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .trk-simple .trk-r-sub{font-size:13px}
 .trk-simple .trk-tx,.trk-simple .trk-oftx{font-size:14px}
 .trk-simple .trk-tx-pay{font-size:13px}
-.trk-simple .trk-c-val{font-size:14px}
-.trk-simple .trk-c-last{font-size:14px}
+.trk-simple td.trk-c-val{font-size:14px}
+.trk-simple td.trk-c-last{font-size:14px}
 .trk-simple .trk-c-last .trk-r-sub{font-size:13px;max-width:240px}
 .trk-simple .trk-band2-name{font-size:17px}
 .trk-simple .trk-band2-n,.trk-simple .trk-band2-due{font-size:13.5px}
