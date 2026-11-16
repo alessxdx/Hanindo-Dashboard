@@ -33,6 +33,22 @@ function cbUSD(p){
   if(p.estValue===null||isNaN(p.estValue))return null;
   return (typeof fxToUSD==="function")?fxToUSD(p.estValue,p.currency):(p.currency==="USD"?p.estValue:null);
 }
+/* money in the currency it was recorded in (IDR stays IDR); several
+   currencies show one line each. The USD equivalent goes underneath, small. */
+function cbCurFmt(v,cur){
+  if(typeof poFmtMoney==="function")return poFmtMoney(Math.round(v*100)/100,cur);
+  return v.toLocaleString()+" "+cur;
+}
+function cbAddCur(into,map){Object.keys(map||{}).forEach(function(k){if(map[k])into[k]=(into[k]||0)+map[k];});return into;}
+function cbMoneyCur(map){
+  var curs=Object.keys(map||{}).filter(function(k){return map[k];}).sort(function(a,b){return a==="USD"?1:b==="USD"?-1:a.localeCompare(b);});
+  if(!curs.length)return "";
+  var usd=0,ok=true;
+  curs.forEach(function(k){var u=(typeof fxToUSD==="function")?fxToUSD(map[k],k):(k==="USD"?map[k]:null);if(u===null)ok=false;else usd+=u;});
+  var main=curs.map(function(k){return "<span class='cb-cur'>"+cbCurFmt(map[k],k)+"</span>";}).join("");
+  var sub=(curs.length===1&&curs[0]==="USD")||!ok?"":"<span class='cb-usd'>&asymp; "+cbMoney(usd)+" USD</span>";
+  return main+sub;
+}
 function cbMoney(v){return typeof fxFormatUSD==="function"?fxFormatUSD(v):"$"+Math.round(v).toLocaleString();}
 
 /* sales records (the By Customer data: POs, quotations, order line items) */
@@ -126,7 +142,7 @@ function cbCustomers(){
   var act=trkLastActivityMap(),by={},out=[];
   function rec(k,name){
     var c=by[k];
-    if(!c){c=by[k]={key:k,name:String(name).trim(),countries:{},offices:{},solutions:{},projects:[],n:{ongoing:0,won:0,done:0,lost:0},wonUSD:0,openUSD:0,last:"",
+    if(!c){c=by[k]={key:k,name:String(name).trim(),countries:{},offices:{},solutions:{},projects:[],n:{ongoing:0,won:0,done:0,lost:0},wonUSD:0,openUSD:0,wonCur:{},openCur:{},revCur:{},last:"",
       sales:{name:"",txs:[],projs:[]},pos:0,quotes:0,revUSD:0};out.push(c);}
     return c;
   }
@@ -141,6 +157,11 @@ function cbCustomers(){
     if(p.solution)c.solutions[p.solution]=1;
     var u=cbUSD(p);
     if(u!==null){if(cat==="won"||cat==="done")c.wonUSD+=u;else if(cat==="ongoing")c.openUSD+=u;}
+    /* the same values in the currency they were recorded in */
+    if(p.estValue!==null&&!isNaN(p.estValue)){
+      var pc=p.currency||"USD",bag=(cat==="won"||cat==="done")?c.wonCur:(cat==="ongoing"?c.openCur:null);
+      if(bag)bag[pc]=(bag[pc]||0)+p.estValue;
+    }
     var d=(act[p._id]&&act[p._id].d)||String(p.createdAt||"").slice(0,10);
     p._cbLast=d;
     if(d>c.last)c.last=d;
@@ -192,11 +213,13 @@ function cbCustomers(){
       c.quotes=sx.txs.concat(sx.projs).filter(function(e){return e.status==="Quotation";}).length;
       var rv=mdRollup(sx.txs,sx.projs).revenue;
       Object.keys(rv).forEach(function(cur){var u=fxToUSD(rv[cur],cur);if(u!==null)c.revUSD+=u;});
+      c.salesCur=rv;
     }
     /* revenue: the confirmed POs in the sales records; a customer with none
        there yet falls back to the tracker's won value (the two often describe
        the same deal, so they are not added together) */
     c.revenue=c.revUSD||c.wonUSD;
+    c.revCur=c.revUSD?(c.salesCur||{}):c.wonCur;
   });
   out.sort(function(a,b){return b.last.localeCompare(a.last)||a.name.localeCompare(b.name);});
   return out;
@@ -283,7 +306,7 @@ function renderCustBase(){
       "<td><div class='cb-name'>"+trkEsc(c.name)+"</div>"+(sub?"<div class='cb-sub'>"+sub+"</div>":"")+"</td>"+
       "<td class='num cb-c-n'>"+(cbUnits(c).units.length||"<span class='po-dim'>&mdash;</span>")+"</td>"+
       "<td><div class='cb-pills'>"+pills+"</div></td>"+
-      "<td class='num cb-c-val'>"+(c.revenue?"<span class='po-amt'>"+cbMoney(c.revenue)+"</span>":"<span class='po-dim'>&mdash;</span>")+"</td>"+
+      "<td class='num cb-c-val'>"+(c.revenue?"<span class='po-amt cb-money'>"+cbMoneyCur(c.revCur)+"</span>":"<span class='po-dim'>&mdash;</span>")+"</td>"+
       "<td class='cb-c-last po-dim'>"+(c.last?trkFmtDate(c.last):"")+"</td>"+
     "</tr>";
   };
@@ -302,12 +325,13 @@ function renderCustBase(){
   var rows=order.map(function(k){
     var g=groups[k].sort(function(a,b){return a.name.localeCompare(b.name);});
     var shut=!searching&&cbIsShut(k),won=0,ongoing=0;
-    g.forEach(function(c){won+=c.revenue;ongoing+=c.n.ongoing;});
+    var wonCur={};
+    g.forEach(function(c){won+=c.revenue;ongoing+=c.n.ongoing;cbAddCur(wonCur,c.revCur);});
     return "<tr class='po-grp cb-grp"+(shut?" shut":"")+"' onclick='cbToggleCountry("+JSON.stringify(k).replace(/'/g,"&#39;")+")' title='"+(shut?"Show":"Hide")+" these customers'>"+
         "<td colspan='3'><span class='cb-grp-in'><span class='cb-grp-chev'>&#9662;</span>"+(k?trkFlag(k,18)+" ":"")+"<span class='po-grp-name'>"+(k?trkEsc(k):"No country set")+"</span>"+
         "<span class='po-grp-n'>"+g.length+" customer"+(g.length===1?"":"s")+"</span>"+
         (ongoing?"<span class='cb-grp-open'>"+ongoing+" ongoing project"+(ongoing===1?"":"s")+"</span>":"")+"</span></td>"+
-        "<td class='num cb-c-val'>"+(won?"<span class='po-grp-lbl'>Revenue</span><span class='po-grp-sum'>"+cbMoney(won)+"</span>":"")+"</td><td class='cb-c-last'></td>"+
+        "<td class='num cb-c-val'>"+(won?"<span class='po-grp-lbl'>Revenue</span><span class='po-grp-sum cb-money'>"+cbMoneyCur(wonCur)+"</span>":"")+"</td><td class='cb-c-last'></td>"+
       "</tr>"+
       (shut?"":g.map(row).join(""));
   }).join("");
@@ -327,10 +351,11 @@ function cbRenderStats(all){
   if(!el)return;
   var bought=all.filter(function(c){return c.n.won+c.n.done+c.pos;}).length;
   var rev=0,pos=0,ongoing=0,activeC=0,quotes=0;
-  all.forEach(function(c){rev+=c.revenue;pos+=c.pos;ongoing+=c.n.ongoing;quotes+=c.quotes;if(c.n.ongoing)activeC++;});
+  var revCur={};
+  all.forEach(function(c){rev+=c.revenue;pos+=c.pos;ongoing+=c.n.ongoing;quotes+=c.quotes;if(c.n.ongoing)activeC++;cbAddCur(revCur,c.revCur);});
   el.innerHTML=
     "<div class='stat'><div class='stat-label'>Customers</div><div class='stat-value'>"+all.length+"</div><div class='stat-sub'>"+bought+" have bought</div></div>"+
-    "<div class='stat'><div class='stat-label'>Revenue</div><div class='stat-value'>"+(rev?cbMoney(rev):"&mdash;")+"</div><div class='stat-sub'>"+pos+" confirmed POs &middot; USD equiv.</div></div>"+
+    "<div class='stat'><div class='stat-label'>Revenue</div><div class='stat-value cb-money cb-stat-money'>"+(rev?cbMoneyCur(revCur):"&mdash;")+"</div><div class='stat-sub'>"+pos+" confirmed POs</div></div>"+
     "<div class='stat'><div class='stat-label'>Ongoing projects</div><div class='stat-value'>"+ongoing+"</div><div class='stat-sub'>with "+activeC+" customer"+(activeC===1?"":"s")+(quotes?" &middot; "+quotes+" open quotes":"")+"</div></div>";
 }
 
@@ -370,7 +395,7 @@ function cbPanelHtml(c){
   };
   var info=function(label,html){return html?"<div class='trk-pn-row'><span>"+label+"</span><div>"+html+"</div></div>":"";};
   var details=
-    info("Open pipeline",c.openUSD?cbMoney(c.openUSD)+" <span class='po-dim'>USD est.</span>":"")+
+    info("Open pipeline",c.openUSD?"<span class='cb-money'>"+cbMoneyCur(c.openCur)+"</span>":"")+
     info(contacts.length>1?"Contacts":"Contact",contacts.map(function(x){
       return "<div class='trk-xc-show'>"+trkEsc(x.name)+(x.position?" &middot; "+trkEsc(x.position):"")+(x.info?"<div class='trk-value-usd'>"+trkEsc(x.info)+"</div>":"")+"</div>";
     }).join(""));
@@ -467,7 +492,7 @@ function cbPanelHtml(c){
     (c.country?"<div class='trk-pn-cust'>"+trkFlag(c.country,16)+" "+Object.keys(c.countries).map(trkEsc).join(", ")+"</div>":"")+
     (sols?"<div class='cb-pn-sols'>"+sols+"</div>":"")+
     "<div class='cb-kpis'>"+
-      "<div><b>"+(c.revenue?cbMoney(c.revenue):"&mdash;")+"</b><span>revenue</span></div>"+
+      "<div><b class='cb-money'>"+(c.revenue?cbMoneyCur(c.revCur):"&mdash;")+"</b><span>revenue</span></div>"+
       "<div><b>"+(c.pos||"&mdash;")+"</b><span>confirmed PO"+(c.pos===1?"":"s")+"</span></div>"+
       "<div><b>"+(projCount||"&mdash;")+"</b><span>project"+(projCount===1?"":"s")+"</span></div>"+
     "</div>"+

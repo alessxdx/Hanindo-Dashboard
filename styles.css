@@ -3037,3 +3037,10 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .po-models .po-m-spend{color:var(--text)}
 .po-models .po-m-last{font-weight:600;color:var(--text-strong);white-space:nowrap}
 .po-m-trend{font-size:11px;font-weight:600;margin-top:1px}
+
+/* Customer Base money: recorded currency, USD equivalent small underneath */
+.cb-money .cb-cur{display:block;white-space:nowrap}
+.cb-money .cb-usd{display:block;font-size:11px;font-weight:400;color:var(--text-muted);white-space:nowrap;margin-top:1px}
+.cb-kpis b.cb-money{white-space:normal}
+.cb-kpis b.cb-money .cb-cur{overflow:hidden;text-overflow:ellipsis}
+.cb-stat-money .cb-usd{font-size:12px;margin-top:2px}
