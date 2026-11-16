@@ -810,11 +810,10 @@ function poFireLineHtml(l,cur,o){
   var paid=poFireLinePaid(l);
   return "<div class='po-fl'>"+
     "<div class='po-fl-main'>"+
-      "<div class='po-fl-name'>"+trkEsc(l.description||"—")+(l.pn?" <span class='po-fl-brand'>"+trkEsc(l.pn)+"</span>":"")+"</div>"+
+      "<div class='po-fl-name'>"+trkEsc(l.description||"—")+(l.pn&&!o.bySupplier?" <span class='po-fl-brand'>"+trkEsc(l.pn)+"</span>":"")+"</div>"+
       "<div class='po-fl-facts'>"+
-        "<span class='po-fl-qty'><b>"+l.qty.toLocaleString()+" "+trkEsc(l.unit)+"</b>"+(l.unitPrice!==null?" &times; "+poFmtMoney(l.unitPrice,cur):"")+"</span>"+
+        "<span class='po-fl-qty'>"+(l.pn&&o.bySupplier?trkEsc(l.pn)+" &middot; ":"")+l.qty.toLocaleString()+" "+trkEsc(l.unit)+(l.unitPrice!==null?" &times; "+poFmtMoney(l.unitPrice,cur):"")+"</span>"+
         (l.supplier&&!o.bySupplier?"<span class='po-fl-sup' title='Supplier'>"+PO_ICO_SHOP+trkEsc(l.supplier)+"</span>":"")+
-        (o.bySupplier&&l.itemGroup?"<span class='po-fl-type'>"+trkEsc(l.itemGroup)+"</span>":"")+
         (l.delivery&&!o.bySupplier?"<span class='po-fl-dlv' title='Delivery cost'>"+PO_ICO_TRUCK+poFmtMoney(l.delivery,cur)+"</span>":"")+
       "</div>"+
       (l.note?"<div class='po-fire-note'>"+trkEsc(l.note)+"</div>":"")+
@@ -833,12 +832,10 @@ function poFirePanelHtml(p){
     return "<div class='po-fcat' style='--cat:"+poCatColor(c.name)+"'><div class='po-fire-cat'><span>"+trkEsc(c.name)+poUseTag(p,c.name)+"</span><span>"+poFmtMoney(poSumPaid(cl)+poSumDlv(cl),cur)+"</span></div>"+
       poBySupplier(cl).map(function(g){
         var d=poSumDlv(g.lines);
-        return "<div class='po-fsup'>"+
-          "<div class='po-fsup-head'><span class='po-fsup-name'>"+PO_ICO_SHOP+trkEsc(g.name)+"</span>"+
-            "<span class='po-fsup-tot'>"+poFmtMoney(poSumPaid(g.lines)+d,cur)+"</span></div>"+
+        return "<div class='po-fsup2'>"+
+          "<div class='po-fsup2-head'><span>"+trkEsc(g.name)+"</span><span>"+poFmtMoney(poSumPaid(g.lines)+d,cur)+"</span></div>"+
           g.lines.map(function(l){return poFireLineHtml(l,cur,{bySupplier:1});}).join("")+
-          "<div class='po-fsup-dlv"+(d?"":" none")+"'><span>"+PO_ICO_TRUCK+(d?"Delivery from "+trkEsc(g.name)+" <em>one charge for this order</em>":"No delivery charge on the sheet")+"</span><b>"+(d?poFmtMoney(d,cur):"&mdash;")+"</b></div>"+
-          "<div class='po-fsup-sum'><span>Order total"+(d?" <em>items + delivery</em>":"")+"</span><b>"+poFmtMoney(poSumPaid(g.lines)+d,cur)+"</b></div>"+
+          (d?"<div class='po-fsup2-dlv'><span>Delivery</span><span>"+poFmtMoney(d,cur)+"</span></div>":"")+
         "</div>";
       }).join("")+"</div>";
   }).join("");

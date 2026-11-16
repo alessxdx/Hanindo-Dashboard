@@ -2972,3 +2972,17 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .po-fs-dlv span{display:inline-flex;align-items:center;gap:6px}
 .po-fs-dlv em{font-style:normal;font-weight:400;font-size:11px;opacity:.8}
 :root[data-theme="dark"] .po-fs-dlv td{background:#4e1d09;color:#fec84b;border-color:#93370d}
+
+/* simpler sheet panel: plain supplier headings, quiet item details */
+.po-fsup2{margin-top:14px}
+.po-fsup2-head{display:flex;justify-content:space-between;gap:10px;padding:0 0 6px;border-bottom:1px solid var(--border);font-size:13.5px;font-weight:700;color:var(--text-strong)}
+.po-fsup2 .po-fl{padding:9px 0;border-bottom:1px solid var(--divider)}
+.po-fsup2 .po-fl:hover{background:none}
+.po-fsup2 .po-fl-name{font-size:13.5px;font-weight:500}
+.po-fsup2 .po-fl-facts{margin-top:2px}
+.po-fsup2 .po-fl-qty{font-size:12px;color:var(--text-muted)}
+.po-fsup2 .po-fl-amt{font-size:13.5px;font-weight:600}
+.po-fsup2 .po-fire-note{color:var(--text-muted);font-size:11.5px}
+.po-fsup2-dlv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;font-size:12px;color:var(--text-muted)}
+.po-fsup2-dlv span:last-child{color:var(--text);font-weight:500}
+.po-fcat .po-fire-cat{border-left:none;background:none;padding:6px 0;border-bottom:2px solid var(--cat);border-radius:0;font-size:14.5px;color:var(--text-strong)}
