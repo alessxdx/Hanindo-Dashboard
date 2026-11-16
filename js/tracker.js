@@ -893,31 +893,34 @@ function trkPanelHtml(p,act){
     var atts=(e.attachments||[]).map(function(a){
       return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+trkFileIcon(a.name)+" "+trkEsc(a.name)+"</a>";
     }).join("");
-    return "<div class='trk-pn-e'><div class='trk-pn-e-meta'><strong>"+trkFmtDate(e.date)+"</strong> "+trkTypeBadge(e.type)+trkAmtTag(e)+
+    return "<div class='trk-pn-e'><div class='trk-pn-e-meta'><strong>"+trkFmtDate(e.date)+"</strong> <span class='trk-pn-type'>"+trkEsc(e.type)+"</span>"+trkAmtTag(e)+
         "<a href='#' class='trk-tl-edit' title='Edit' aria-label='Edit entry' onclick='trkEditEntry(event,\""+e._id+"\")'>"+EDIT_ICO+"</a></div>"+
       (e.title?"<div class='trk-pn-e-title'>"+trkEsc(e.title)+"</div>":"")+
       (e.details?"<div class='trk-pn-e-det'>"+trkLines(e.details)+"</div>":"")+
       (atts?"<div class='trk-tl-atts'>"+atts+"</div>":"")+
     "</div>";
   }).join("");
-  return "<aside class='po-panel trk-panel'>"+
+  var fu=trkFollowText(trkFollow(p,act));
+  var stLine=[p.done?"<span class='trk-tx trk-tx-won'>Done</span>":trkStatusText(p).replace("<div class='trk-tx-pay","<span class='trk-pn-dot'>&middot;</span><span class='trk-tx-pay").replace(/<\/div>$/,"</span>"),
+    fu,(!p.done&&p.lowPriority?"<span class='trk-tx trk-tx-dim'>Low priority</span>":"")].filter(Boolean).join("<span class='trk-pn-dot'>&middot;</span>");
+  return "<aside class='po-panel trk-panel trk-panel-simple'>"+
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkDisplayName(p)+"</span>"+
       "<button class='trk-pn-expand' title='Open full page' aria-label='Open full page' onclick='trkExpand()'>&#x2922;</button>"+
       "<button class='po-panel-x' aria-label='Close' onclick='trkBack()'>&times;</button></div>"+
-    "<div class='po-panel-meta'>"+trkStatusBadge(p.status)+trkPaymentBadge(p)+trkFollowBadge(trkFollow(p,act))+(p.done?trkDoneBadge():p.lowPriority?trkLowBadge():"")+"</div>"+
+    "<div class='trk-pn-st'>"+stLine+"</div>"+
     ((p.customer||p.country)?"<div class='trk-pn-cust'>"+(flag?flag+" ":"")+[trkEsc(p.customer),trkEsc(p.country)].filter(Boolean).join(" &middot; ")+"</div>":"")+
     "<div class='po-panel-acts'><button class='btn-save' onclick='trkOpenEntryModal()'>+ Add update</button><button class='edit-btn' onclick='trkEditProject()'>Edit project</button></div>"+trkLowBtn(p)+
     "<div class='po-panel-sec'>Details</div>"+
-    info("Office",p.office?"<span class='trk-badge po-of-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+" office</span>":"")+
-    info("Solution",trkSolutionBadge(p))+
-    info("Products",trkProductChips(p))+
+    info("Office",p.office?"<span class='trk-oftx trk-oftx-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+"</span>":"")+
+    info("Solution",p.solution?"<span class='trk-pn-sol' style='color:"+trkSolutionColor(p.solution)+"'>"+trkEsc(p.solution)+"</span>":"")+
+    info("Products",(p.products||[]).map(trkEsc).join(", "))+
     info("Value",p.estValue!==null?trkValueHtml(p):"")+
     info("Expected close",trkPeriodLabel(p))+
     info("Next follow-up",trkActiveFollowup(p,act)?trkFmtDate(trkActiveFollowup(p,act)):"")+
     info("Expenses",typeof poProjectExpensesHtml==="function"?poProjectExpensesHtml(p._id):"")+
     info(trkAllContacts(p).length>1?"Contacts":"Contact",trkAllContacts(p).map(function(c){return "<div class='trk-xc-show'>"+trkEsc(c.name)+(c.position?" &middot; "+trkEsc(c.position):"")+(c.info?"<div class='trk-value-usd'>"+trkEsc(c.info)+"</div>":"")+"</div>";}).join(""))+
     (p.notes?"<div class='po-panel-sec'>Description</div><div class='po-panel-note txt-lines'>"+trkLines(p.notes)+"</div>":"")+
-    "<div class='po-panel-sec'>Timeline &middot; "+entries.length+"</div>"+
+    "<div class='po-panel-sec'>Timeline</div>"+
     (tl||"<div class='trk-r-none' style='font-size:12px'>No updates yet. Add the enquiry, a call or a quotation.</div>")+
   "</aside>";
 }

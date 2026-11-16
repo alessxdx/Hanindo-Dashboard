@@ -3118,3 +3118,19 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .trk-simple .trk-row-parked td:first-child{box-shadow:none}
 /* Project Tracker: bigger business headings (Custom, Fire fighting...) */
 .trk-simple .trk-band2-name{font-size:18px}
+
+/* Project panel, simple: status as text, compact switches, plain details and timeline */
+.trk-pn-st{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 2px;margin-top:6px}
+.trk-pn-st .trk-tx,.trk-pn-st .trk-tx-pay{font-size:13px}
+.trk-pn-st .trk-tx-pay{margin:0;font-weight:600}
+.trk-pn-dot{color:var(--text-muted);margin:0 6px}
+.trk-panel-simple .trk-sw-row{display:flex;gap:18px;margin-top:12px}
+.trk-panel-simple .trk-low-sw{border:none;background:none;padding:0;width:auto;box-shadow:none;align-items:center}
+.trk-panel-simple .trk-low-sw small{display:none}
+.trk-panel-simple .trk-low-txt strong{font-size:13px;font-weight:600}
+.trk-panel-simple .trk-pn-sol{font-weight:600}
+.trk-panel-simple .trk-oftx{font-size:13px}
+.trk-panel-simple .trk-pn-e{border-left:none;margin-left:0;padding:10px 0;border-bottom:1px solid var(--divider)}
+.trk-panel-simple .trk-pn-e+.trk-pn-e{border-top:none}
+.trk-pn-type{font-size:12px;color:var(--text-muted);font-weight:500}
+.trk-panel-simple .trk-pn-e-det{color:var(--text-strong)}
