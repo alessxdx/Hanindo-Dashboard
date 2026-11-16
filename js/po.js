@@ -260,27 +260,25 @@ function poTableHtml(list){
     if(!byLabel[ml]){byLabel[ml]=[];groups.push(ml);}
     byLabel[ml].push(p);
   });
+  /* simple list: month heading with its total, then one row per PO */
+  var cols=fire?3:4;
   var rows=groups.map(function(ml){
     var g=byLabel[ml];
-    var noun=fire?"sheet":"PO";
-    return "<tr class='po-grp'><td colspan='"+(fire?3:4)+"'><span class='po-grp-name'>"+ml+"</span><span class='po-grp-n'>"+g.length+" "+noun+(g.length===1?"":"s")+"</span></td>"+
-      "<td class='num'><span class='po-grp-lbl'>Subtotal</span><span class='po-grp-sum'>"+(fire?poFmtMoney(g.reduce(function(t,p){return t+(p.total||0);},0),"IDR"):poUsdSum(g))+"</span></td><td></td></tr>"+
+    return "<tr class='po-grp2'><td colspan='"+(cols-1)+"'>"+ml+"</td>"+
+      "<td class='num'>"+(fire?poFmtMoney(g.reduce(function(t,p){return t+(p.total||0);},0),"IDR"):poUsdSum(g))+"</td></tr>"+
       g.map(function(p){
-        var n=poLinesFor(p._id).length,att=(p.attachments||[]).length;
         return "<tr class='po-row"+(PO_SEL===p._id?" sel":"")+"' onclick='poSelect(\""+p._id+"\")'>"+
-          "<td class='po-no'>"+(p.office?"<span class='trk-badge po-dot po-of-"+poOfficeSlug(p.office)+"' title='"+trkEsc(p.office)+"'></span>":"")+trkEsc(p.poNumber)+(p.notes?" <span class='po-has-note' title='Has a note'>&#9998;</span>":"")+(p.invoiceNo&&!p.paidDate?" <span class='po-unpaid' title='Invoiced, not yet paid'>Unpaid</span>":"")+"</td>"+
-          (fire?"":"<td>"+(p.office?"<span class='trk-badge po-of-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+"</span>":"")+"</td>")+
-          "<td class='po-dim'>"+(p.date?trkFmtDate(p.date):"&mdash;")+"</td>"+
-          "<td class='po-dim num'>"+n+"</td>"+
-          "<td class='num po-amt'>"+poFmtMoney(p.total,p.currency)+"</td>"+
-          "<td class='po-dim num'>"+(att?trkFileIcon(p.attachments[0].name)+(att>1?" "+att:""):"")+"</td>"+
+          "<td class='po-c-no'>"+trkEsc(p.poNumber)+(p.invoiceNo&&!p.paidDate?" <span class='po-unpaid' title='Invoiced, not yet paid'>Unpaid</span>":"")+"</td>"+
+          (fire?"":"<td class='po-c-of po-oftxt-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office||"")+"</td>")+
+          "<td class='po-c-date'>"+(p.date?trkFmtDate(p.date):"&mdash;")+"</td>"+
+          "<td class='num po-c-amt'>"+poFmtMoney(p.total,p.currency)+"</td>"+
         "</tr>";
       }).join("");
   }).join("");
   var sel=PO_SEL?PO_LIST.filter(function(p){return p._id===PO_SEL;})[0]:null;
   return "<div class='po-split"+(sel?" has-sel":"")+"'>"+
-    "<div class='po-table-wrap'><table class='po-table po-list'>"+
-      "<thead><tr><th>"+(fire?"Expense sheet":"PO")+"</th>"+(fire?"":"<th>Office</th>")+"<th>Date</th><th class='num'>Lines</th><th class='num'>Amount</th><th class='num'>Files</th></tr></thead>"+
+    "<div class='po-table-wrap'><table class='po-table po-list po-simple'>"+
+      "<thead><tr><th>"+(fire?"Expense sheet":"PO")+"</th>"+(fire?"":"<th>Office</th>")+"<th>Date</th><th class='num'>Amount</th></tr></thead>"+
       "<tbody>"+rows+"</tbody></table></div>"+
     (sel?(sel.section===PO_FIRE?poFirePanelHtml(sel):poPanelHtml(sel)):"")+
   "</div>";
