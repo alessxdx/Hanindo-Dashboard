@@ -812,7 +812,7 @@ function poFireLineHtml(l,cur,o){
     "<div class='po-fl-main'>"+
       "<div class='po-fl-name'>"+trkEsc(l.description||"—")+(l.pn&&!o.bySupplier?" <span class='po-fl-brand'>"+trkEsc(l.pn)+"</span>":"")+"</div>"+
       "<div class='po-fl-facts'>"+
-        "<span class='po-fl-qty'>"+(l.pn&&o.bySupplier?trkEsc(l.pn)+" &middot; ":"")+l.qty.toLocaleString()+" "+trkEsc(l.unit)+(l.unitPrice!==null?" &times; "+poFmtMoney(l.unitPrice,cur):"")+"</span>"+
+        "<span class='po-fl-qty'>"+(l.pn&&o.bySupplier?trkEsc(l.pn)+" &middot; ":"")+l.qty.toLocaleString()+" "+trkEsc(l.unit)+"</span>"+
         (l.supplier&&!o.bySupplier?"<span class='po-fl-sup' title='Supplier'>"+PO_ICO_SHOP+trkEsc(l.supplier)+"</span>":"")+
         (l.delivery&&!o.bySupplier?"<span class='po-fl-dlv' title='Delivery cost'>"+PO_ICO_TRUCK+poFmtMoney(l.delivery,cur)+"</span>":"")+
       "</div>"+
@@ -851,7 +851,6 @@ function poFirePanelHtml(p){
       ((cur!=="USD"&&typeof fxUsdText==="function"&&p.total!==null)?" <span class='trk-value-usd'>"+fxUsdText(p.total,cur)+"</span>":"")+"</div>"+
     poProjectRowHtml(p)+
     "<div class='po-panel-sec'>Summary</div>"+
-      row("List price",poFmtMoney(listT,cur))+
       row("Paid incl. VAT (PPN)",poFmtMoney(paid,cur))+
       row("Delivery",poFmtMoney(dlv,cur))+
       row("Total spent",poFmtMoney(paid+dlv,cur),1)+
