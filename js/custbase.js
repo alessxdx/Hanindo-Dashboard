@@ -328,8 +328,8 @@ function renderCustBase(){
     var wonCur={};
     g.forEach(function(c){won+=c.revenue;ongoing+=c.n.ongoing;cbAddCur(wonCur,c.revCur);});
     return "<tr class='cb-grp2"+(shut?" shut":"")+"' onclick='cbToggleCountry("+JSON.stringify(k).replace(/'/g,"&#39;")+")' title='"+(shut?"Show":"Hide")+" these customers'>"+
-        "<td colspan='2'><span class='cb-grp2-chev'>&#9662;</span>"+(k?trkFlag(k,16)+" ":"")+"<span class='cb-grp2-name'>"+(k?trkEsc(k):"No country set")+"</span>"+
-        "<span class='cb-grp2-n'>"+g.length+" customer"+(g.length===1?"":"s")+"</span></td>"+
+        "<td colspan='2'><span class='cb-grp2-in'><span class='cb-grp2-chev'>&#9662;</span>"+(k?trkFlag(k,16):"")+"<span class='cb-grp2-name'>"+(k?trkEsc(k):"No country set")+"</span>"+
+        "<span class='cb-grp2-n'>"+g.length+" customer"+(g.length===1?"":"s")+"</span></span></td>"+
         "<td class='num cb-c-val'>"+(won?"<span class='cb-money'>"+cbMoneyCur(wonCur)+"</span>":"")+"</td><td></td>"+
       "</tr>"+
       (shut?"":g.map(row).join(""));

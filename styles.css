@@ -3065,3 +3065,8 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .cb-grp2-chev{display:inline-block;font-size:10px;color:var(--text-muted);margin-right:6px;transition:transform .15s}
 .cb-grp2.shut .cb-grp2-chev{transform:rotate(-90deg)}
 .cb-grp2 td.cb-c-val{font-weight:700;color:var(--text-strong)}
+.cb-grp2-in{display:inline-flex;align-items:center;gap:7px}
+.cb-grp2-in img{display:inline-block;flex:none}
+.cb-grp2-n{margin-left:2px}
+.cb-grp2-chev{margin-right:0}
+.cb-simple .cb-row td:first-child{padding-left:16px}
