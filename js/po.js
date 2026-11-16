@@ -829,32 +829,40 @@ function poFirePanelHtml(p){
     "<div class='po-panel-acts'><button class='btn-save' onclick='poEdit(\""+p._id+"\")'>Edit</button></div>"+
   "</aside>";
 }
-/* "By group": spend per category and item group across the sheets shown */
+/* "By group": one block per expense sheet (its date is the heading, so
+   rows don't repeat it), then category > item group > items */
 function poFireGroupsHtml(list){
-  var ids={};list.forEach(function(p){ids[p._id]=p;});
-  var lines=PO_LINES.filter(function(l){return ids[l.poId];});
-  if(!lines.length)return poEmptyHtml();
-  var tree=poFireTree(lines);
-  var rows=tree.map(function(c){
-    var cl=[];c.groups.forEach(function(g){cl=cl.concat(g.lines);});
-    return "<tr class='po-grp'><td colspan='3'><span class='po-grp-name'>"+trkEsc(c.name)+"</span><span class='po-grp-n'>"+cl.length+" item"+(cl.length===1?"":"s")+"</span></td>"+
-      "<td class='num'><span class='po-grp-lbl'>Subtotal</span><span class='po-grp-sum'>"+poFmtMoney(poSumPaid(cl),"IDR")+"</span></td></tr>"+
-      c.groups.map(function(g){
-        return "<tr class='po-fire-grow'><td colspan='3'>"+trkEsc(g.name)+"</td><td class='num'>"+poFmtMoney(poSumPaid(g.lines),"IDR")+"</td></tr>"+
-          g.lines.map(function(l){
-            var p=ids[l.poId];
-            return "<tr class='po-row' onclick='PO_VIEW=\"list\";PO_SEL=\""+l.poId+"\";renderPOs()'>"+
-              "<td><div class='po-m-desc'>"+trkEsc(l.description||"—")+"</div>"+(l.pn?"<div class='po-m-pn'>"+trkEsc(l.pn)+"</div>":"")+"</td>"+
-              "<td class='num' data-label='Qty'>"+l.qty.toLocaleString()+" "+trkEsc(l.unit)+"</td>"+
-              "<td data-label='Supplier' class='po-dim'>"+trkEsc(l.supplier||"")+(p&&p.date?" &middot; "+trkFmtDate(p.date):"")+"</td>"+
-              "<td class='num' data-label='Paid'>"+(l.actualTotal!==null?poFmtMoney(l.actualTotal,"IDR"):(poFireLinePaid(l)?poFmtMoney(poFireLinePaid(l),"IDR"):"<span class='po-dim'>incl. above</span>"))+"</td>"+
-            "</tr>";
+  var sheets=list.filter(function(p){return poLinesFor(p._id).length;});
+  if(!sheets.length)return poEmptyHtml();
+  function paidCell(l){
+    var v=l.actualTotal!==null?l.actualTotal:poFireLinePaid(l);
+    return v?poFmtMoney(v,"IDR"):"<span class='po-dim'>incl. above</span>";
+  }
+  var body=sheets.map(function(p){
+    var tree=poFireTree(poLinesFor(p._id));
+    return "<tr class='po-fs-sheet'><td colspan='3'><span class='po-fs-date'>"+(p.date?trkFmtDate(p.date):"No date")+"</span><span class='po-fs-name'>"+trkEsc(p.poNumber)+"</span></td>"+
+        "<td class='num'><span class='po-fs-tot'>"+poFmtMoney(p.total,p.currency||"IDR")+"</span><span class='po-fs-sub'>incl. VAT + delivery</span></td></tr>"+
+      tree.map(function(c){
+        var cl=[];c.groups.forEach(function(g){cl=cl.concat(g.lines);});
+        return "<tr class='po-fs-cat'><td colspan='3'>"+trkEsc(c.name)+" <span class='po-fs-n'>"+cl.length+" item"+(cl.length===1?"":"s")+"</span></td>"+
+            "<td class='num'>"+poFmtMoney(poSumPaid(cl),"IDR")+"</td></tr>"+
+          c.groups.map(function(g){
+            return "<tr class='po-fs-grp'><td colspan='3'>"+trkEsc(g.name)+"</td><td class='num'>"+poFmtMoney(poSumPaid(g.lines),"IDR")+"</td></tr>"+
+              g.lines.map(function(l){
+                return "<tr class='po-fs-item' onclick='PO_VIEW=\"list\";PO_SEL=\""+l.poId+"\";renderPOs()'>"+
+                  "<td><span class='po-fs-desc'>"+trkEsc(l.description||"—")+"</span>"+(l.pn?"<span class='po-fs-brand'>"+trkEsc(l.pn)+"</span>":"")+"</td>"+
+                  "<td class='num po-fs-qty' data-label='Qty'>"+l.qty.toLocaleString()+" "+trkEsc(l.unit)+"</td>"+
+                  "<td class='po-fs-sup' data-label='Supplier'>"+trkEsc(l.supplier||"")+"</td>"+
+                  "<td class='num po-fs-paid' data-label='Paid'>"+paidCell(l)+"</td>"+
+                "</tr>";
+              }).join("");
           }).join("");
       }).join("");
   }).join("");
-  return "<div class='po-table-wrap'><table class='po-table po-models po-fire-groups'>"+
-    "<thead><tr><th>Item</th><th class='num'>Qty</th><th>Supplier &middot; date</th><th class='num'>Paid incl. VAT</th></tr></thead>"+
-    "<tbody>"+rows+"</tbody></table></div>";
+  return "<div class='po-table-wrap'><table class='po-table po-fire-groups'>"+
+    "<colgroup><col><col style='width:110px'><col style='width:28%'><col style='width:170px'></colgroup>"+
+    "<thead><tr><th>Item</th><th class='num'>Qty</th><th>Supplier</th><th class='num'>Paid incl. VAT</th></tr></thead>"+
+    "<tbody>"+body+"</tbody></table></div>";
 }
 /* switches the PO form between printer-PO and expense-sheet fields */
 function poModalMode(fire){
