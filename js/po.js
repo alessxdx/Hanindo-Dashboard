@@ -834,7 +834,7 @@ function poFirePanelHtml(p){
       poBySupplier(cl).map(function(g){
         var d=poSumDlv(g.lines);
         return "<div class='po-fsup'>"+
-          "<div class='po-fsup-head'><span class='po-fsup-name'>"+PO_ICO_SHOP+trkEsc(g.name)+" <span class='po-fs-n'>"+g.lines.length+" item"+(g.lines.length===1?"":"s")+"</span></span>"+
+          "<div class='po-fsup-head'><span class='po-fsup-name'>"+PO_ICO_SHOP+trkEsc(g.name)+"</span>"+
             "<span class='po-fsup-tot'>"+poFmtMoney(poSumPaid(g.lines)+d,cur)+"</span></div>"+
           g.lines.map(function(l){return poFireLineHtml(l,cur,{bySupplier:1});}).join("")+
           "<div class='po-fsup-dlv"+(d?"":" none")+"'><span>"+PO_ICO_TRUCK+(d?"Delivery from "+trkEsc(g.name)+" <em>one charge for this order</em>":"No delivery charge on the sheet")+"</span><b>"+(d?poFmtMoney(d,cur):"&mdash;")+"</b></div>"+
@@ -884,7 +884,7 @@ function poFireGroupsHtml(list){
             "<td class='num'>"+poFmtMoney(poSumPaid(cl)+poSumDlv(cl),"IDR")+"</td></tr>"+
           poBySupplier(cl).map(function(g){
             var d=poSumDlv(g.lines),t=poSumPaid(g.lines)+d;
-            return "<tr class='po-fs-grp po-fs-supg'"+cc+"><td colspan='3'><span class='po-fsup-name'>"+PO_ICO_SHOP+trkEsc(g.name)+"</span> <span class='po-fs-n'>"+g.lines.length+" item"+(g.lines.length===1?"":"s")+"</span></td><td class='num'>"+poFmtMoney(t,"IDR")+"</td></tr>"+
+            return "<tr class='po-fs-grp po-fs-supg'"+cc+"><td colspan='3'><span class='po-fsup-name'>"+PO_ICO_SHOP+trkEsc(g.name)+"</span></td><td class='num'>"+poFmtMoney(t,"IDR")+"</td></tr>"+
               g.lines.map(function(l){
                 return "<tr class='po-fs-item'"+cc+" onclick='PO_VIEW=\"list\";PO_SEL=\""+l.poId+"\";renderPOs()'>"+
                   "<td><span class='po-fs-desc'>"+trkEsc(l.description||"—")+"</span>"+(l.pn?"<span class='po-fs-brand'>"+trkEsc(l.pn)+"</span>":"")+"</td>"+
