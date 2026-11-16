@@ -293,21 +293,21 @@ function renderCustBase(){
     content.innerHTML="<button class='trk-back' onclick='cbToggleFull()'>&larr; All customers</button>"+cbPanelHtml(sel);
     return;
   }
+  /* simple row: bold name, solutions as grey text, outcome as plain coloured text */
   var row=function(c){
-    var pills=CB_CATS.map(function(x){
-      return c.n[x.k]?"<span class='cb-pill cb-"+x.k+"' title='"+x.label.replace("&middot;","·")+"'>"+c.n[x.k]+" "+(x.k==="won"?"won":x.k)+"</span>":"";
-    }).join("")+(c.pos?"<span class='cb-pill cb-po' title='Confirmed POs in the sales records'>"+c.pos+" PO"+(c.pos===1?"":"s")+"</span>":"")+
-      /* open quotes from the sales records, for customers the tracker doesn't follow yet */
-      (c.quotes&&!c.projects.length?"<span class='cb-pill cb-ongoing' title='Open quotations in the sales records'>"+c.quotes+" quote"+(c.quotes===1?"":"s")+"</span>":"");
-    // under the name: the solution types bought / quoted (Custom, Posiva, Fire...);
-    // the country is in the band above and the office is understood from it
-    var sub=Object.keys(c.solutions).sort().map(function(s){return trkSolutionBadge({solution:s});}).join("");
+    var st=[];
+    if(c.n.ongoing)st.push("<span class='cb-st-on'>"+c.n.ongoing+" ongoing</span>");
+    if(c.n.won)st.push("<span class='cb-st-won'>"+c.n.won+" won</span>");
+    if(c.n.done)st.push("<span class='cb-st-won'>"+c.n.done+" done</span>");
+    if(c.pos)st.push("<span class='cb-st-won'>"+c.pos+" PO"+(c.pos===1?"":"s")+"</span>");
+    if(c.n.lost)st.push("<span class='cb-st-lost'>"+c.n.lost+" lost</span>");
+    if(c.quotes&&!c.projects.length)st.push("<span class='cb-st-on'>"+c.quotes+" quote"+(c.quotes===1?"":"s")+"</span>");
+    var sub=Object.keys(c.solutions).sort().map(trkEsc).join(" &middot; ");
     return "<tr class='po-row cb-row"+(c.key===CB_SEL?" sel":"")+"' data-key='"+trkEsc(c.key)+"' onclick='cbRowClick("+JSON.stringify(c.key).replace(/'/g,"&#39;")+")'>"+
-      "<td><div class='cb-name'>"+trkEsc(c.name)+"</div>"+(sub?"<div class='cb-sub'>"+sub+"</div>":"")+"</td>"+
-      "<td class='num cb-c-n'>"+(cbUnits(c).units.length||"<span class='po-dim'>&mdash;</span>")+"</td>"+
-      "<td><div class='cb-pills'>"+pills+"</div></td>"+
-      "<td class='num cb-c-val'>"+(c.revenue?"<span class='po-amt cb-money'>"+cbMoneyCur(c.revCur)+"</span>":"<span class='po-dim'>&mdash;</span>")+"</td>"+
-      "<td class='cb-c-last po-dim'>"+(c.last?trkFmtDate(c.last):"")+"</td>"+
+      "<td><div class='cb-name'>"+trkEsc(c.name)+"</div>"+(sub?"<div class='cb-sub2'>"+sub+"</div>":"")+"</td>"+
+      "<td class='cb-st'>"+st.join(" &middot; ")+"</td>"+
+      "<td class='num cb-c-val'>"+(c.revenue?"<span class='cb-money'>"+cbMoneyCur(c.revCur)+"</span>":"<span class='po-dim'>&mdash;</span>")+"</td>"+
+      "<td class='cb-c-last'>"+(c.last?trkFmtDate(c.last):"")+"</td>"+
     "</tr>";
   };
   /* one band per country: most customers first, customers A-Z inside, no country last */
@@ -327,18 +327,17 @@ function renderCustBase(){
     var shut=!searching&&cbIsShut(k),won=0,ongoing=0;
     var wonCur={};
     g.forEach(function(c){won+=c.revenue;ongoing+=c.n.ongoing;cbAddCur(wonCur,c.revCur);});
-    return "<tr class='po-grp cb-grp"+(shut?" shut":"")+"' onclick='cbToggleCountry("+JSON.stringify(k).replace(/'/g,"&#39;")+")' title='"+(shut?"Show":"Hide")+" these customers'>"+
-        "<td colspan='3'><span class='cb-grp-in'><span class='cb-grp-chev'>&#9662;</span>"+(k?trkFlag(k,18)+" ":"")+"<span class='po-grp-name'>"+(k?trkEsc(k):"No country set")+"</span>"+
-        "<span class='po-grp-n'>"+g.length+" customer"+(g.length===1?"":"s")+"</span>"+
-        (ongoing?"<span class='cb-grp-open'>"+ongoing+" ongoing project"+(ongoing===1?"":"s")+"</span>":"")+"</span></td>"+
-        "<td class='num cb-c-val'>"+(won?"<span class='po-grp-lbl'>Revenue</span><span class='po-grp-sum cb-money'>"+cbMoneyCur(wonCur)+"</span>":"")+"</td><td class='cb-c-last'></td>"+
+    return "<tr class='cb-grp2"+(shut?" shut":"")+"' onclick='cbToggleCountry("+JSON.stringify(k).replace(/'/g,"&#39;")+")' title='"+(shut?"Show":"Hide")+" these customers'>"+
+        "<td colspan='2'><span class='cb-grp2-chev'>&#9662;</span>"+(k?trkFlag(k,16)+" ":"")+"<span class='cb-grp2-name'>"+(k?trkEsc(k):"No country set")+"</span>"+
+        "<span class='cb-grp2-n'>"+g.length+" customer"+(g.length===1?"":"s")+"</span></td>"+
+        "<td class='num cb-c-val'>"+(won?"<span class='cb-money'>"+cbMoneyCur(wonCur)+"</span>":"")+"</td><td></td>"+
       "</tr>"+
       (shut?"":g.map(row).join(""));
   }).join("");
   var table=list.length?
     "<div class='po-split"+(sel?" has-sel":"")+"'>"+
-      "<div class='po-table-wrap'><table class='po-table po-list cb-list'><thead><tr>"+
-        "<th>Customer</th><th class='num cb-c-n'>Projects</th><th>Outcome</th><th class='num cb-c-val'>Revenue</th><th class='cb-c-last'>Last update</th>"+
+      "<div class='po-table-wrap'><table class='po-table po-list cb-list cb-simple'><thead><tr>"+
+        "<th>Customer</th><th>Status</th><th class='num cb-c-val'>Revenue</th><th class='cb-c-last'>Last update</th>"+
       "</tr></thead><tbody>"+rows+"</tbody></table></div>"+
       (sel?cbPanelHtml(sel):"")+
     "</div>"
