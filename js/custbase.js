@@ -366,7 +366,7 @@ function cbPanelHtml(c){
       if(!k||seen[k])return;seen[k]=1;contacts.push(x);
     });
   });
-  var sols=Object.keys(c.solutions).sort().map(function(s){return trkSolutionBadge({solution:s});}).join(" ");
+  var sols=Object.keys(c.solutions).sort().map(trkEsc).join(" &middot; ");
   /* a project opens in place (its key facts and latest updates); the
      tracker is one click further, not where every click goes */
   var projBtn=function(p,k){
@@ -380,9 +380,7 @@ function cbPanelHtml(c){
     }).join("");
     return "<details class='cb-projd'><summary class='cb-proj'>"+
       "<span class='cb-proj-name'>"+trkDisplayName(p)+"</span>"+
-      "<span class='cb-proj-meta'>"+trkStatusBadge(p.status)+trkPaymentBadge(p)+(p.lowPriority&&k==="ongoing"?trkLowBadge():"")+
-        (p.solution?trkSolutionBadge(p):"")+"</span>"+
-      "<span class='cb-proj-foot'><span>"+(p._cbLast?trkFmtDate(p._cbLast):"")+"</span><span>"+u+"</span></span>"+
+      "<span class='cb-proj-foot'><span>"+[p.status?trkEsc(p.status):"",p._cbLast?trkFmtDate(p._cbLast):""].filter(Boolean).join(" &middot; ")+"</span><b>"+u+"</b></span>"+
     "</summary><div class='cb-projd-body'>"+
       row("Products",trkProductChips(p))+
       row("Value",p.estValue!==null?trkValueHtml(p):"")+
@@ -392,13 +390,17 @@ function cbPanelHtml(c){
       "<button class='cb-split-open' onclick='navTo(\"tracker\","+JSON.stringify(p._id).replace(/'/g,"&#39;")+")'>Open in Project Tracker &rsaquo;</button>"+
     "</div></details>";
   };
+  var units0=cbUnits(c).units.length;
   var info=function(label,html){return html?"<div class='trk-pn-row'><span>"+label+"</span><div>"+html+"</div></div>":"";};
   var details=
+    info("Revenue",c.revenue?"<span class='cb-money'>"+cbMoneyCur(c.revCur)+"</span>":"")+
+    info("Confirmed POs",c.pos?String(c.pos):"")+
+    info("Projects",units0?String(units0):"")+
     info("Open pipeline",c.openUSD?"<span class='cb-money'>"+cbMoneyCur(c.openCur)+"</span>":"")+
     info(contacts.length>1?"Contacts":"Contact",contacts.map(function(x){
       return "<div class='trk-xc-show'>"+trkEsc(x.name)+(x.position?" &middot; "+trkEsc(x.position):"")+(x.info?"<div class='trk-value-usd'>"+trkEsc(x.info)+"</div>":"")+"</div>";
     }).join(""));
-  if(details)details="<div class='po-panel-sec'>Details</div>"+details;
+  if(details)details="<div class='po-panel-sec'>Summary</div>"+details;
   var hasSales=c.sales.txs.length||c.sales.projs.length;
   var U=cbUnits(c),units=U.units,deals=U.deals;
   var dealTotal=function(d){return d.p?mdProjTotal(d.p):(d.t.totalOverride||d.t.price*(mdParseUnits(d.t.qty)||1));};
@@ -459,7 +461,7 @@ function cbPanelHtml(c){
   var secs=CB_CATS.map(function(x){
     var us=units.filter(function(u){return u.cat===x.k;});
     if(!us.length)return "";
-    return "<div class='po-panel-sec cb-sec cb-sec-"+x.k+"'>"+x.label+" &middot; "+us.length+"</div>"+us.map(unitHtml).join("");
+    return "<div class='po-panel-sec cb-sec cb-sec-"+x.k+"'>"+x.label+"</div>"+us.map(unitHtml).join("");
   }).join("");
   var docsHtml="",docCount=0,modelsHtml="";
   if(hasSales&&typeof mdDocsHtml==="function"){
@@ -488,13 +490,8 @@ function cbPanelHtml(c){
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(c.name)+"</span>"+
       (CB_FULL?"":"<button class='trk-pn-expand' title='Open full page' aria-label='Open full page' onclick='cbToggleFull()'>&#x2922;</button>"+
       "<button class='po-panel-x' aria-label='Close' onclick='cbOpen(\"\")'>&times;</button>")+"</div>"+
-    (c.country?"<div class='trk-pn-cust'>"+trkFlag(c.country,16)+" "+Object.keys(c.countries).map(trkEsc).join(", ")+"</div>":"")+
-    (sols?"<div class='cb-pn-sols'>"+sols+"</div>":"")+
-    "<div class='cb-kpis'>"+
-      "<div><b class='cb-money'>"+(c.revenue?cbMoneyCur(c.revCur):"&mdash;")+"</b><span>revenue</span></div>"+
-      "<div><b>"+(c.pos||"&mdash;")+"</b><span>confirmed PO"+(c.pos===1?"":"s")+"</span></div>"+
-      "<div><b>"+(projCount||"&mdash;")+"</b><span>project"+(projCount===1?"":"s")+"</span></div>"+
-    "</div>"+
+    "<div class='trk-pn-cust cb-pn-line'>"+(c.country?trkFlag(c.country,16)+"<span>"+Object.keys(c.countries).map(trkEsc).join(", ")+"</span>":"")+
+      (sols?"<span class='cb-pn-sol'>"+(c.country?"&middot; ":"")+sols+"</span>":"")+"</div>"+
     details+
     tabsHtml+
   "</div></aside>";
