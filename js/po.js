@@ -142,6 +142,11 @@ function renderPOs(){
     });
     return;
   }
+  /* an item opened from the address or another page: show its section */
+  if(PO_SEL){
+    var rec=PO_LIST.filter(function(p){return p._id===PO_SEL;})[0];
+    if(rec){var sec=rec.section===PO_FIRE?PO_FIRE:"";if(sec!==PO_SECTION){PO_SECTION=sec;PO_VIEW="list";}}
+  }
   var list=poFiltered();
   poRenderStats(list);
 
@@ -940,8 +945,8 @@ function poOpenSheet(id){
   if(!p)return;
   PO_SECTION=p.section===PO_FIRE?PO_FIRE:"";
   try{localStorage.setItem("cpd_po_section",PO_SECTION);}catch(e){}
-  PO_VIEW="list";PO_FOFFICE="";PO_FYEAR="";PO_SEARCH="";PO_SEL=id;PO_FULL=false;
-  navTo("po");
+  PO_VIEW="list";PO_FOFFICE="";PO_FYEAR="";PO_SEARCH="";
+  navTo("po",id);
 }
 /* "Expenses" row on a tracker project: linked sheets with their totals */
 function poProjectExpensesHtml(projId){

@@ -27,6 +27,9 @@ var TAB_TITLES = {
 function setTab(btn){ navTo(btn.dataset.tab, null); }
 
 function navTo(tab, sel){
+  /* "<id>/full" in the address = that item opened as a full page */
+  var full = false;
+  if(sel && /\/full$/.test(sel) && (tab === "tracker" || tab === "custbase" || tab === "po")){ full = true; sel = sel.slice(0, -5); }
   document.querySelectorAll(".nav-item[data-tab]").forEach(function(b){
     b.classList.toggle("active", b.dataset.tab === tab);
   });
@@ -40,6 +43,9 @@ function navTo(tab, sel){
      restores the customer stat row the tracker replaced. */
   if(typeof TRK_SEL !== "undefined") TRK_SEL = (tab === "tracker" && sel) ? sel : null;
   if(typeof CB_SEL !== "undefined") CB_SEL = (tab === "custbase" && sel && !isGroup) ? sel : "";
+  if(typeof TRK_EXPAND !== "undefined") TRK_EXPAND = tab === "tracker" && !!sel && full;
+  if(typeof CB_FULL !== "undefined") CB_FULL = tab === "custbase" && !!sel && full;
+  if(typeof PO_SEL !== "undefined" && tab === "po"){ PO_SEL = sel || ""; PO_FULL = !!sel && full; }
   if(currentTab !== "tracker" && currentTab !== "po" && currentTab !== "pricing" && currentTab !== "custbase" && currentTab !== "today" && typeof renderStats === "function") renderStats();
   /* restore the toolbar add button's label/visibility when leaving tracker */
   if(typeof trkSyncToolbar === "function") trkSyncToolbar();
@@ -278,8 +284,9 @@ var ROUTE_APPLYING = false;
 /* the route the current app state corresponds to */
 function routeState(){
   if(typeof MD_GROUP_SEL !== "undefined" && MD_GROUP_SEL) return { tab: "groups", sel: MD_GROUP_SEL };
-  if(currentTab === "tracker" && typeof TRK_SEL !== "undefined" && TRK_SEL) return { tab: "tracker", sel: TRK_SEL };
-  if(currentTab === "custbase" && typeof CB_SEL !== "undefined" && CB_SEL) return { tab: "custbase", sel: CB_SEL };
+  if(currentTab === "tracker" && typeof TRK_SEL !== "undefined" && TRK_SEL) return { tab: "tracker", sel: TRK_SEL + (TRK_EXPAND && TRK_VIEW !== "cal" ? "/full" : "") };
+  if(currentTab === "custbase" && typeof CB_SEL !== "undefined" && CB_SEL) return { tab: "custbase", sel: CB_SEL + (CB_FULL ? "/full" : "") };
+  if(currentTab === "po" && typeof PO_SEL !== "undefined" && PO_SEL) return { tab: "po", sel: PO_SEL + (PO_FULL ? "/full" : "") };
   return { tab: currentTab, sel: "" };
 }
 
@@ -307,10 +314,13 @@ function syncRoute(){
   if(ROUTE_APPLYING) return;
   var s = routeState(), p = parseHash();
   if(p.tab === s.tab && p.sel === (s.sel || "")) return;
-  var h = "#" + s.tab + (s.sel ? "/" + encodeURIComponent(s.sel) : "");
+  var isFull = function(x){ return /\/full$/.test(x || ""); };
+  var base = isFull(s.sel) ? s.sel.slice(0, -5) : s.sel;
+  var h = "#" + s.tab + (s.sel ? "/" + encodeURIComponent(base) + (isFull(s.sel) ? "/full" : "") : "");
   /* switching from one item straight to another on the same page
      (project → project) replaces the step, so Back returns to the
-     list instead of walking through every item clicked */
+     list instead of walking through every item clicked; the same for
+     opening it as a full page, so Back from a full page lands on the list */
   if(p.tab === s.tab && p.sel && s.sel){
     history.replaceState(null, "", location.pathname + location.search + h);
     return;
@@ -330,6 +340,12 @@ var _routeRenderContent = renderContent;
 renderContent = function(){ _routeRenderContent(); syncRoute(); bnSync(); };
 var _routeRenderTracker = renderTracker;
 renderTracker = function(){ _routeRenderTracker(); syncRoute(); };
+/* the PO page and Customer Base open items and full pages without a
+   page change, so they sync too (Back then steps out of them) */
+var _routeRenderPOs = renderPOs;
+renderPOs = function(){ _routeRenderPOs(); if(currentTab === "po") syncRoute(); };
+var _routeRenderCustBase = renderCustBase;
+renderCustBase = function(){ _routeRenderCustBase(); if(currentTab === "custbase") syncRoute(); };
 
 window.addEventListener("hashchange", applyRoute);
 function initRoute(){
