@@ -2101,19 +2101,37 @@ function trkOpenEntryModal(){
   trkRenderAttList();
   m.classList.add("open");
 }
-/* Logging an entry is when you know when to chase next, so the entry
-   form carries the project's next follow-up date (shared, not per entry). */
+/* The follow-up date lives on the project (shared, not per entry). The
+   entry form's box starts empty: left empty it keeps any upcoming
+   follow-up, a date replaces it, and Clear removes it. A note under the
+   box says what is set now. */
 function trkPrefillFollowup(){
   var p=TRK_PROJECTS.find(function(x){return x._id===TRK_SEL;});
   var el=document.getElementById("te-followup");
-  el.value=p?trkActiveFollowup(p):"";
+  el.value="";el.dataset.cleared="";
+  if(!el._fuWired){el._fuWired=1;el.addEventListener("input",function(){if(el.value)el.dataset.cleared="";trkFuHint();});}
   trkFollowupMin(el);
+  trkFuHint();
+}
+function trkFuHint(){
+  var el=document.getElementById("te-followup");
+  var p=TRK_PROJECTS.find(function(x){return x._id===TRK_SEL;});
+  var cur=p?trkActiveFollowup(p):"";
+  /* an overdue one is answered by this entry, so only mention upcoming ones */
+  var d=new Date(),today=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+  if(cur&&cur<=today)cur="";
+  var g=el.closest(".form-group"),h=g.querySelector(".trk-fu-hint");
+  if(!h){h=document.createElement("div");h.className="trk-fu-hint";g.appendChild(h);}
+  var t="";
+  if(cur&&!el.value)t=el.dataset.cleared==="1"?"The follow-up on "+trkFmtDate(cur)+" will be removed.":"Follow-up already set for "+trkFmtDate(cur)+" &mdash; leave empty to keep it.";
+  h.innerHTML=t;h.style.display=t?"":"none";
 }
 /* An entry on/after the date counts as the follow-up done, so the picker
    starts tomorrow — a date already covered would clear itself at once. */
 function trkFollowupMin(el){var d=new Date();d.setDate(d.getDate()+1);el.min=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
 function trkFollowupIn(id,days){
   var el=document.getElementById(id);
+  if(id==="te-followup"){el.dataset.cleared=days===null?"1":"";setTimeout(trkFuHint,0);}
   if(days===null){el.value="";return;}
   var d=new Date();d.setDate(d.getDate()+days);
   el.value=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
@@ -2207,8 +2225,10 @@ async function trkSaveEntry(){
   }catch(err){hideLoad();alert("Save failed: "+err.message);return;}
   /* The follow-up date lives on the project; save it when it changed. */
   var fuProj=TRK_PROJECTS.find(function(x){return x._id===TRK_SEL;});
-  var fu=document.getElementById("te-followup").value||"";
-  if(TRK_HAS_FU&&fuProj&&fu!==trkActiveFollowup(fuProj)){
+  var fuEl=document.getElementById("te-followup"),fu=fuEl.value||"";
+  /* empty without pressing Clear = keep what the project has */
+  var fuKeep=!fu&&fuEl.dataset.cleared!=="1";
+  if(TRK_HAS_FU&&fuProj&&!fuKeep&&fu!==trkActiveFollowup(fuProj)){
     try{
       var rf=await fetch(SB_URL+"/rest/v1/tracker_projects?id=eq."+fuProj._id,{method:"PATCH",headers:sbH(),body:JSON.stringify({next_followup:fu||null})});
       if(!rf.ok)throw new Error("HTTP "+rf.status);

@@ -2838,3 +2838,5 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .td-bk-btns{display:flex;gap:6px;flex-wrap:wrap}
 .td-card-bkdue{border-color:#fdb022}
 .td-card-bkdue .td-n{background:#fef0c7;color:#b54708}
+
+.trk-fu-hint{font-size:11.5px;color:var(--text-muted);margin-top:5px}
