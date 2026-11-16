@@ -3044,3 +3044,4 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .cb-kpis b.cb-money{white-space:normal}
 .cb-kpis b.cb-money .cb-cur{overflow:hidden;text-overflow:ellipsis}
 .cb-stat-money .cb-usd{font-size:12px;margin-top:2px}
+.cb-stat-money .cb-cur{font-size:19px;line-height:1.3}
