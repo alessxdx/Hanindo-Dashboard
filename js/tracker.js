@@ -209,6 +209,23 @@ function trkFollow(p,act){
   return days>=TRK_STALE_DAYS?{due:true,kind:"quiet",days:days,date:last}:null;
 }
 function trkFollowDue(p,act){var f=trkFollow(p,act);return f&&f.due?f:null;}
+/* simple style: status, payment and follow-up as plain coloured text */
+function trkStatusText(p){
+  var sl=trkStatusSlug(p.status),h="<span class='trk-tx trk-tx-"+sl+"'>"+trkEsc(p.status)+"</span>";
+  if(p.status==="Won"){
+    var pay=p.payment||"Not paid",ps={"Not paid":"not","Partially paid":"partial","Fully paid":"paid"}[pay]||"not";
+    h+="<div class='trk-tx-pay trk-pay-tx-"+ps+"'>"+trkEsc(pay)+(trkIsDelivered(p)?" &middot; delivered":"")+"</div>";
+  }
+  return h;
+}
+function trkFollowText(f){
+  if(!f)return"";
+  if(f.kind==="quiet")return "<span class='trk-tx "+(f.days>=30?"trk-tx-lost":"trk-tx-onhold")+"' title='No timeline entry for "+f.days+" days'>Quiet "+f.days+" days</span>";
+  var nice=trkFmtDate(f.date).replace(/ \d{4}$/,"");
+  if(!f.due)return "<span class='trk-tx trk-tx-dim' title='Next follow-up "+trkFmtDate(f.date)+"'>Follow up "+nice+"</span>";
+  if(f.days===0)return "<span class='trk-tx trk-tx-onhold'>Follow up today</span>";
+  return "<span class='trk-tx trk-tx-lost' title='Follow-up was planned for "+trkFmtDate(f.date)+"'>Overdue "+f.days+" days</span>";
+}
 function trkFollowBadge(f){
   if(!f)return"";
   if(f.kind==="quiet")
@@ -737,11 +754,11 @@ function trkRenderList(bodyOnly){
       "<td class='trk-c-proj'><div class='trk-r-name'>"+(q?hl(p.name):trkDisplayName(p))+"</div>"+
         (sub?"<div class='trk-r-sub'>"+(flag?flag+" ":"")+sub+"</div>":"")+
         (hit&&hit.why?"<div class='trk-card-why'>&#128269; "+hit.why+"</div>":"")+"</td>"+
-      "<td class='trk-c-st'>"+(done?"<span class='trk-badge trk-s-won'>&#10003; Done</span>":trkStatusBadge(p.status)+trkPaymentBadge(p))+"</td>"+
-      "<td class='trk-c-of'>"+(p.office?"<span class='trk-badge po-of-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+"</span>":"")+"</td>"+
-      "<td class='trk-c-val num'>"+(p.estValue!==null?p.estValue.toLocaleString()+" <span class='trk-r-cur'>"+trkEsc(p.currency)+"</span>":"<span class='trk-r-none'>&mdash;</span>")+"</td>"+
+      "<td class='trk-c-st'>"+(done?"<span class='trk-tx trk-tx-won'>Done</span>":trkStatusText(p))+"</td>"+
+      "<td class='trk-c-of'>"+(p.office?"<span class='trk-oftx trk-oftx-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+"</span>":"")+"</td>"+
+      "<td class='trk-c-val num'>"+(p.estValue!==null?"<b>"+p.estValue.toLocaleString()+"</b> <span class='trk-r-cur'>"+trkEsc(p.currency)+"</span>":"<span class='trk-r-none'>&mdash;</span>")+"</td>"+
       "<td class='trk-c-last'>"+(last?"<div>"+trkFmtDate(last.date)+"</div><div class='trk-r-sub'>"+trkEsc(last.type)+(last.title?" &mdash; "+trkEsc(last.title):"")+"</div>":"<span class='trk-r-none'>No activity yet</span>")+"</td>"+
-      "<td class='trk-c-fu'>"+(inParked?trkSolutionBadge(p):(trkFollowBadge(trkFollow(p,act))||(p.lowPriority&&!done?trkLowBadge():"")))+"</td>"+
+      "<td class='trk-c-fu'>"+(inParked?(p.solution?"<span class='trk-tx trk-tx-dim'>"+trkEsc(p.solution)+"</span>":""):(trkFollowText(trkFollow(p,act))||(p.lowPriority&&!done?"<span class='trk-tx trk-tx-dim'>Low priority</span>":"")))+"</td>"+
     "</tr>";
   }
   var COLS=6;
@@ -815,15 +832,15 @@ function trkRenderList(bodyOnly){
       });
       var due=grp.filter(function(p){return trkFollowDue(p,act);}).length;
       var col=x?trkSolutionColor(x):"var(--border-strong)";
-      return "<tr class='trk-band'><td colspan='"+COLS+"' style='--sol:"+col+";box-shadow:inset 4px 0 0 "+col+",inset 0 -1px 0 var(--border)'>"+
-        "<span class='trk-sol-dot'></span><span class='po-grp-name'>"+(x?trkEsc(x):"No tag yet")+"</span><span class='po-grp-n'>"+grp.length+"</span>"+
-        (due?"<span class='trk-band-due'>&#9200; "+due+" need follow-up</span>":"")+
+      return "<tr class='trk-band2'><td colspan='"+COLS+"' style='--sol:"+col+"'>"+
+        "<span class='trk-band2-name'>"+(x?trkEsc(x):"No tag yet")+"</span><span class='trk-band2-n'>"+grp.length+" project"+(grp.length===1?"":"s")+"</span>"+
+        (due?"<span class='trk-band2-due'>"+due+" need"+(due===1?"s":"")+" follow-up</span>":"")+
       "</td></tr>"+grp.map(rowHtml).join("");
     }).join("")+parkedSections(parked);
   }
   var selP=TRK_SEL?TRK_PROJECTS.find(function(x){return x._id===TRK_SEL;}):null;
   var cards=rows?"<div class='po-split trk-split"+(selP?" has-sel":"")+"'>"+
-    "<div class='po-table-wrap'><table class='po-table trk-list'><thead><tr>"+
+    "<div class='po-table-wrap'><table class='po-table trk-list trk-simple'><thead><tr>"+
       "<th>Project</th><th>Status</th><th class='trk-c-of'>Office</th><th class='trk-c-val num'>Value</th><th>Last update</th><th>Follow-up</th>"+
     "</tr></thead><tbody>"+rows+"</tbody></table></div>"+
     (selP?trkPanelHtml(selP,act):"")+
