@@ -2893,3 +2893,16 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
   .po-fs-item .po-fs-qty{text-align:left}
   .po-fs-item .po-fs-paid{grid-column:2;grid-row:2 / span 2;align-self:center}
 }
+
+/* PO / expense panel opened as a full page */
+.po-panel.po-full{position:static;width:auto;max-height:none;overflow:visible;padding:24px 28px 30px;border-radius:12px;max-width:980px}
+.po-panel.po-full .po-panel-no{font-size:22px}
+/* expense sheet <-> project links */
+.po-fire-only{display:none}
+#modal-po.po-fire .po-fire-only{display:flex}
+.po-proj-link,.po-exp-link{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;font-size:13px;color:var(--text-strong);background:var(--bg-soft);border:1px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;margin-top:4px}
+.po-proj-link:hover,.po-exp-link:hover{border-color:var(--border-strong);background:var(--bg-hover)}
+.po-proj-link span:first-child{font-weight:600}
+.po-proj-go{font-size:11.5px;color:var(--text-muted);white-space:nowrap}
+.po-exp-link{font-size:12.5px;padding:6px 10px}
+.po-exp-link b{white-space:nowrap}

@@ -108,3 +108,4 @@ alter table public.po_lines add column if not exists supplier text;
 alter table public.po_lines add column if not exists actual_total numeric;
 alter table public.po_lines add column if not exists delivery numeric;
 alter table public.po_lines add column if not exists note text;
+alter table public.purchase_orders add column if not exists project_id uuid references public.tracker_projects(id) on delete set null;

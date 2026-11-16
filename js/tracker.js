@@ -897,6 +897,7 @@ function trkPanelHtml(p,act){
     info("Value",p.estValue!==null?trkValueHtml(p):"")+
     info("Expected close",trkPeriodLabel(p))+
     info("Next follow-up",trkActiveFollowup(p,act)?trkFmtDate(trkActiveFollowup(p,act)):"")+
+    info("Expenses",typeof poProjectExpensesHtml==="function"?poProjectExpensesHtml(p._id):"")+
     info(trkAllContacts(p).length>1?"Contacts":"Contact",trkAllContacts(p).map(function(c){return "<div class='trk-xc-show'>"+trkEsc(c.name)+(c.position?" &middot; "+trkEsc(c.position):"")+(c.info?"<div class='trk-value-usd'>"+trkEsc(c.info)+"</div>":"")+"</div>";}).join(""))+
     (p.notes?"<div class='po-panel-sec'>Description</div><div class='po-panel-note txt-lines'>"+trkLines(p.notes)+"</div>":"")+
     "<div class='po-panel-sec'>Timeline &middot; "+entries.length+"</div>"+
@@ -1132,6 +1133,7 @@ function trkRenderDetail(){
         infoRow("Estimated value",p.estValue!==null?trkValueHtml(p):"")+
         infoRow("Expected close",trkPeriodLabel(p))+
         infoRow("Next follow-up",trkActiveFollowup(p)?trkFollowBadge(trkFollow(p))||trkFmtDate(p.nextFollowup):"")+
+        infoRow("Expenses",typeof poProjectExpensesHtml==="function"?poProjectExpensesHtml(p._id):"")+
         infoRow(trkAllContacts(p).length>1?"Contacts":"Contact",trkAllContacts(p).map(function(c){return "<div class='trk-xc-show'>"+trkEsc(c.name)+
           (c.position?" <span class='trk-contact-pos'>&middot; "+trkEsc(c.position)+"</span>":"")+
           (c.info?" <span class='trk-value-usd'>"+trkEsc(c.info)+"</span>":"")+"</div>";}).join(""))+

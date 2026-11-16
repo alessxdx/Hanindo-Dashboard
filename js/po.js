@@ -30,8 +30,8 @@ function poNum(v){return (v===null||v===undefined||v==="")?null:Number(v);}
 function poOfficeSlug(o){return String(o||"").toLowerCase().replace(/\s/g,"");}
 
 /* ===== converters ===== */
-function dbToPo(r){return{_id:r.id,poNumber:r.po_number||"",office:r.office||"",date:r.po_date||"",vendor:r.vendor||"CUSTOM S.p.A.",currency:r.currency||"USD",total:(r.total===null||r.total===undefined)?null:Number(r.total),notes:r.notes||"",invoiceNo:r.invoice_no||"",paidDate:r.paid_date||"",receivedDate:r.received_date||"",attachments:Array.isArray(r.attachments)?r.attachments:[],section:r.section||"",createdAt:r.created_at||""};}
-function poToDb(p){return{po_number:p.poNumber,office:p.office||null,po_date:p.date||null,vendor:p.vendor||"CUSTOM S.p.A.",currency:p.currency||"USD",total:(p.total===null||isNaN(p.total))?null:p.total,notes:p.notes||null,invoice_no:p.invoiceNo||null,paid_date:p.paidDate||null,received_date:p.receivedDate||null,attachments:p.attachments||[],section:p.section||null};}
+function dbToPo(r){return{_id:r.id,poNumber:r.po_number||"",office:r.office||"",date:r.po_date||"",vendor:r.vendor||"CUSTOM S.p.A.",currency:r.currency||"USD",total:(r.total===null||r.total===undefined)?null:Number(r.total),notes:r.notes||"",invoiceNo:r.invoice_no||"",paidDate:r.paid_date||"",receivedDate:r.received_date||"",attachments:Array.isArray(r.attachments)?r.attachments:[],section:r.section||"",projectId:r.project_id||"",createdAt:r.created_at||""};}
+function poToDb(p){return{po_number:p.poNumber,office:p.office||null,po_date:p.date||null,vendor:p.vendor||"CUSTOM S.p.A.",currency:p.currency||"USD",total:(p.total===null||isNaN(p.total))?null:p.total,notes:p.notes||null,invoice_no:p.invoiceNo||null,paid_date:p.paidDate||null,received_date:p.receivedDate||null,attachments:p.attachments||[],section:p.section||null,project_id:p.projectId||null};}
 function dbToPoLine(r){return{_id:r.id,poId:r.po_id,pn:r.pn||"",description:r.description||"",qty:Number(r.qty)||0,unit:r.unit||"pcs",unitPrice:(r.unit_price===null||r.unit_price===undefined)?null:Number(r.unit_price),sortOrder:Number(r.sort_order)||0,category:r.category||"",itemGroup:r.item_group||"",supplier:r.supplier||"",actualTotal:poNum(r.actual_total),delivery:poNum(r.delivery),note:r.note||""};}
 function poLineToDb(l){return{po_id:l.poId,pn:l.pn||null,description:l.description||null,qty:l.qty||0,unit:l.unit||"pcs",unit_price:(l.unitPrice===null||isNaN(l.unitPrice))?null:l.unitPrice,sort_order:l.sortOrder||0,category:l.category||null,item_group:l.itemGroup||null,supplier:l.supplier||null,actual_total:(l.actualTotal===null||l.actualTotal===undefined||isNaN(l.actualTotal))?null:l.actualTotal,delivery:(l.delivery===null||l.delivery===undefined||isNaN(l.delivery))?null:l.delivery,note:l.note||null};}
 
@@ -177,6 +177,13 @@ function renderPOs(){
     "</div>";
 
   if(PO_SEL&&!list.some(function(p){return p._id===PO_SEL;}))PO_SEL="";
+  if(!PO_SEL)PO_FULL=false;
+  if(PO_FULL){
+    var fp=PO_LIST.filter(function(p){return p._id===PO_SEL;})[0];
+    content.innerHTML="<button class='trk-back' onclick='poToggleFull()'>&larr; All "+(fire?"expense sheets":"purchase orders")+"</button>"+
+      (fp.section===PO_FIRE?poFirePanelHtml(fp):poPanelHtml(fp));
+    return;
+  }
   content.innerHTML=secSw+toolbar+(fire?(PO_VIEW==="models"?poFireGroupsHtml(list):poTableHtml(list)):(PO_VIEW==="models"?poModelsHtml(list):poTableHtml(list)));
 }
 
@@ -287,9 +294,9 @@ function poPanelHtml(p){
   var atts=(p.attachments||[]).map(function(a){
     return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+trkFileIcon(a.name)+" "+trkEsc(a.name)+"</a>";
   }).join(" ");
-  return "<aside class='po-panel'>"+
+  return "<aside class='po-panel"+(PO_FULL?" po-full":"")+"'>"+
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(p.poNumber)+"</span>"+
-      "<button class='po-panel-x' aria-label='Close' onclick='poSelect(\"\")'>&times;</button></div>"+
+      (PO_FULL?"":"<button class='trk-pn-expand' title='Open full page' aria-label='Open full page' onclick='poToggleFull()'>&#x2922;</button><button class='po-panel-x' aria-label='Close' onclick='poSelect(\"\")'>&times;</button>")+"</div>"+
     "<div class='po-panel-meta'>"+(p.office?"<span class='trk-badge po-of-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+" office</span>":"")+
       (p.date?"<span>"+trkFmtDate(p.date)+"</span>":"")+"</div>"+
     "<div class='po-panel-total'>"+poFmtMoney(p.total,p.currency)+
@@ -310,13 +317,21 @@ function poPanelStatusHtml(p){
     row("Paid",p.paidDate?trkFmtDate(p.paidDate):"<span class='po-unpaid'>Not yet</span>")+
     row("Received",p.receivedDate?trkFmtDate(p.receivedDate):"<span class='po-dim'>&mdash;</span>");
 }
-function poSelect(id){PO_SEL=(id&&PO_SEL!==id)?id:"";renderPOs();}
+var PO_FULL=false;
+/* a row click opens the side panel; clicking the open one again expands
+   it to the full page (as in the tracker and Customer Base) */
+function poSelect(id){
+  if(id&&id===PO_SEL){PO_FULL=true;renderPOs();window.scrollTo(0,0);return;}
+  PO_SEL=id||"";PO_FULL=false;renderPOs();
+}
+function poToggleFull(){PO_FULL=!PO_FULL;renderPOs();window.scrollTo(0,0);}
 /* Esc closes the panel; up/down step through the visible POs */
 document.addEventListener("keydown",function(e){
   if(typeof currentTab==="undefined"||currentTab!=="po"||PO_VIEW!=="list"||!PO_SEL)return;
+  if(PO_FULL&&e.key!=="Escape")return;
   if(/^(INPUT|TEXTAREA|SELECT)$/.test((e.target&&e.target.tagName)||""))return;
   if(document.querySelector(".modal-overlay.open"))return;
-  if(e.key==="Escape"){PO_SEL="";renderPOs();return;}
+  if(e.key==="Escape"){if(PO_FULL)PO_FULL=false;else PO_SEL="";renderPOs();return;}
   if(e.key==="ArrowDown"||e.key==="ArrowUp"){
     var ids=poFiltered().map(function(p){return p._id;}),at=ids.indexOf(PO_SEL);
     var nx=ids[at+(e.key==="ArrowDown"?1:-1)];
@@ -495,6 +510,7 @@ function poEdit(id){
   document.getElementById("po-invoice").value=p.invoiceNo||"";
   document.getElementById("po-paid").value=p.paidDate?String(p.paidDate).slice(0,10):"";
   document.getElementById("po-received").value=p.receivedDate?String(p.receivedDate).slice(0,10):"";
+  document.getElementById("po-project").value=p.projectId||"";
   document.getElementById("po-parse-status").textContent="";
   var rows=document.getElementById("pol-rows");
   rows.innerHTML="";
@@ -531,7 +547,8 @@ async function poSave(){
     paidDate:document.getElementById("po-paid").value,
     receivedDate:document.getElementById("po-received").value,
     attachments:PO_ATT.map(function(a){return{name:a.name,url:a.url};}),
-    section:fireM?PO_FIRE:""
+    section:fireM?PO_FIRE:"",
+    projectId:fireM?document.getElementById("po-project").value:""
   };
   var lines=polReadRows();
   var m=document.getElementById("modal-po");
@@ -812,12 +829,13 @@ function poFirePanelHtml(p){
     return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+trkFileIcon(a.name)+" "+trkEsc(a.name)+"</a>";
   }).join(" ");
   function row(k,v,b){return "<div class='po-st-row"+(b?" po-st-b":"")+"'><span>"+k+"</span><span>"+v+"</span></div>";}
-  return "<aside class='po-panel po-fire-panel'>"+
+  return "<aside class='po-panel po-fire-panel"+(PO_FULL?" po-full":"")+"'>"+
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(p.poNumber)+"</span>"+
-      "<button class='po-panel-x' aria-label='Close' onclick='poSelect(\"\")'>&times;</button></div>"+
+      (PO_FULL?"":"<button class='trk-pn-expand' title='Open full page' aria-label='Open full page' onclick='poToggleFull()'>&#x2922;</button><button class='po-panel-x' aria-label='Close' onclick='poSelect(\"\")'>&times;</button>")+"</div>"+
     "<div class='po-panel-meta'><span class='trk-badge po-of-fire'>Fire fighting</span>"+(p.date?"<span>"+trkFmtDate(p.date)+"</span>":"")+"</div>"+
     "<div class='po-panel-total'>"+poFmtMoney(p.total,cur)+
       ((cur!=="USD"&&typeof fxUsdText==="function"&&p.total!==null)?" <span class='trk-value-usd'>"+fxUsdText(p.total,cur)+"</span>":"")+"</div>"+
+    poProjectRowHtml(p)+
     "<div class='po-panel-sec'>Summary</div>"+
       row("List price",poFmtMoney(listT,cur))+
       row("Paid incl. VAT (PPN)",poFmtMoney(paid,cur))+
@@ -873,5 +891,69 @@ function poModalMode(fire){
   var dl=document.getElementById("po-date-label");if(dl)dl.textContent=fire?"Date":"PO date";
   var tl=document.getElementById("po-total-label");if(tl)tl.textContent=fire?"Total spent (incl. VAT + delivery)":"PO total";
   var sv=document.getElementById("btn-save-po");if(sv)sv.textContent=fire?"Save":"Save PO";
+  poFillProjectSelect();
   var dv=document.getElementById("btn-delete-po");if(dv)dv.textContent=fire?"Delete":"Delete PO";
+}
+
+/* ===== expense sheet <-> tracker project link ===== */
+function poProjectName(id){
+  var p=(typeof TRK_PROJECTS!=="undefined")?TRK_PROJECTS.find(function(x){return x._id===id;}):null;
+  return p?(p.name||p.customer||"Project"):"";
+}
+function poProjectRowHtml(p){
+  if(!p.projectId)return "";
+  if(typeof TRK_LOADED!=="undefined"&&!TRK_LOADED&&typeof trkLoad==="function"){
+    trkLoad().then(function(){if(currentTab==="po")renderPOs();});
+  }
+  var nm=poProjectName(p.projectId);
+  return "<div class='po-panel-sec'>Project</div>"+
+    "<button class='po-proj-link' onclick='navTo(\"tracker\",\""+p.projectId+"\")'>"+
+      "<span>"+(nm?trkEsc(nm):"Open project")+"</span><span class='po-proj-go'>Open in tracker &rarr;</span></button>";
+}
+/* the form's project picker: fire fighting projects first */
+function poFillProjectSelect(){
+  var sel=document.getElementById("po-project");
+  if(!sel)return;
+  var cur=sel.value;
+  if(typeof TRK_LOADED!=="undefined"&&!TRK_LOADED&&typeof trkLoad==="function"){
+    trkLoad().then(function(){poFillProjectSelect();});
+  }
+  var list=(typeof TRK_PROJECTS!=="undefined"?TRK_PROJECTS:[]).filter(function(p){return p.status!=="Other";});
+  function opt(p){return "<option value='"+p._id+"'>"+trkEsc(p.name||p.customer||"(no name)")+"</option>";}
+  var fire=list.filter(function(p){return /fire/i.test(p.solution||"");}),rest=list.filter(function(p){return !/fire/i.test(p.solution||"");});
+  function byName(a,b){return (a.name||"").localeCompare(b.name||"");}
+  sel.innerHTML="<option value=''>&mdash; none &mdash;</option>"+
+    (fire.length?"<optgroup label='Fire fighting'>"+fire.sort(byName).map(opt).join("")+"</optgroup>":"")+
+    (rest.length?"<optgroup label='Other projects'>"+rest.sort(byName).map(opt).join("")+"</optgroup>":"");
+  sel.value=cur;
+}
+function poSheetsForProject(id){
+  if(typeof PO_LIST==="undefined")return [];
+  return PO_LIST.filter(function(p){return p.projectId===id;})
+    .sort(function(a,b){return (b.date||"").localeCompare(a.date||"");});
+}
+/* opens an expense sheet from elsewhere (tracker project) */
+function poOpenSheet(id){
+  var p=PO_LIST.find(function(x){return x._id===id;});
+  if(!p)return;
+  PO_SECTION=p.section===PO_FIRE?PO_FIRE:"";
+  try{localStorage.setItem("cpd_po_section",PO_SECTION);}catch(e){}
+  PO_VIEW="list";PO_FOFFICE="";PO_FYEAR="";PO_SEARCH="";PO_SEL=id;PO_FULL=false;
+  navTo("po");
+}
+/* "Expenses" row on a tracker project: linked sheets with their totals */
+function poProjectExpensesHtml(projId){
+  if(typeof PO_LOADED==="undefined")return "";
+  if(!PO_LOADED){
+    poLoad().then(function(ok){
+      if(ok&&currentTab==="tracker"&&poSheetsForProject(projId).length&&typeof renderTracker==="function")renderTracker();
+    });
+    return "";
+  }
+  var sh=poSheetsForProject(projId);
+  if(!sh.length)return "";
+  var sum=sh.reduce(function(t,p){return t+(p.total||0);},0);
+  return sh.map(function(p){
+    return "<button class='po-exp-link' onclick='poOpenSheet(\""+p._id+"\")'><span>"+trkEsc(p.poNumber)+"</span><b>"+poFmtMoney(p.total,p.currency||"IDR")+"</b></button>";
+  }).join("")+(sh.length>1?"<div class='trk-value-usd'>Total "+poFmtMoney(sum,"IDR")+"</div>":"");
 }
