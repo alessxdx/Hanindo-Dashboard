@@ -2990,3 +2990,9 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .po-fsup2-head span:first-child{color:#175cd3}
 :root[data-theme="dark"] .po-fsup2-head span:first-child{color:#84caff}
 .po-fsup2 .po-fl-name{font-weight:700;color:var(--text-strong)}
+
+/* By group view: same simple layout as the sheet panel */
+.po-fg-sheet{background:var(--bg-stat);border:1px solid var(--border);border-radius:12px;padding:18px 22px 20px;margin-bottom:16px}
+.po-fg-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%;background:none;border:none;padding:0 0 4px;font:inherit;cursor:pointer;text-align:left;color:inherit}
+.po-fg-head:hover .po-fs-name{text-decoration:underline}
+.po-fg-head .po-fs-tot{display:inline}
