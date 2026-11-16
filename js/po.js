@@ -797,18 +797,28 @@ function poFireStats(el,list){
     "<div class='stat'><div class='stat-label'>Items bought</div><div class='stat-value'>"+items+"</div><div class='stat-sub'>delivery "+poFmtMoney(dlv,"IDR")+"</div></div>"+
     "<div class='stat'><div class='stat-label'>Suppliers</div><div class='stat-value'>"+Object.keys(sup).length+"</div><div class='stat-sub'>across all sheets</div></div>";
 }
+var PO_ICO_SHOP="<svg viewBox='0 0 24 24' width='12' height='12' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 9l1.5-5h15L21 9'/><path d='M4 9v11h16V9'/><path d='M3 9h18'/><path d='M9 20v-6h6v6'/></svg>";
+var PO_ICO_TRUCK="<svg viewBox='0 0 24 24' width='12' height='12' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M1 4h14v12H1z'/><path d='M15 8h4l4 4v4h-8'/><circle cx='6' cy='18' r='2'/><circle cx='18' cy='18' r='2'/></svg>";
+/* category colour: office equipment indigo, project supplies fire red */
+function poCatColor(cat){
+  if(poIsSharedCat(cat))return "#4f46e5";
+  if(/project/i.test(cat||""))return "#d92d20";
+  return "#0e9384";
+}
 function poFireLineHtml(l,cur){
   var paid=poFireLinePaid(l),listT=(l.unitPrice!==null)?l.qty*l.unitPrice:null;
-  var meta=[l.pn,l.supplier].filter(Boolean).map(trkEsc).join(" &middot; ");
-  return "<div class='po-pl'>"+
-    "<div class='po-pl-main'><div class='po-pl-desc'>"+trkEsc(l.description||"—")+"</div>"+
-      (meta?"<div class='po-line-pn po-fire-meta'>"+meta+"</div>":"")+
-      "<div class='po-dim'>"+l.qty.toLocaleString()+" "+trkEsc(l.unit)+(l.unitPrice!==null?" &times; "+poFmtMoney(l.unitPrice,cur):"")+
-        (l.delivery?" &middot; delivery "+poFmtMoney(l.delivery,cur):"")+"</div>"+
+  return "<div class='po-fl'>"+
+    "<div class='po-fl-main'>"+
+      "<div class='po-fl-name'>"+trkEsc(l.description||"—")+(l.pn?" <span class='po-fl-brand'>"+trkEsc(l.pn)+"</span>":"")+"</div>"+
+      "<div class='po-fl-facts'>"+
+        "<span class='po-fl-qty'><b>"+l.qty.toLocaleString()+" "+trkEsc(l.unit)+"</b>"+(l.unitPrice!==null?" &times; "+poFmtMoney(l.unitPrice,cur):"")+"</span>"+
+        (l.supplier?"<span class='po-fl-sup' title='Supplier'>"+PO_ICO_SHOP+trkEsc(l.supplier)+"</span>":"")+
+        (l.delivery?"<span class='po-fl-dlv' title='Delivery cost'>"+PO_ICO_TRUCK+poFmtMoney(l.delivery,cur)+"</span>":"")+
+      "</div>"+
       (l.note?"<div class='po-fire-note'>"+trkEsc(l.note)+"</div>":"")+
     "</div>"+
-    "<div class='po-pl-sub'>"+(l.actualTotal!==null?poFmtMoney(l.actualTotal,cur):(paid?poFmtMoney(paid,cur):"<span class='po-dim'>incl. above</span>"))+
-      (l.actualTotal!==null&&listT!==null&&Math.round(listT)!==Math.round(l.actualTotal)?"<div class='po-fire-list'>list "+poFmtMoney(listT,cur)+"</div>":"")+
+    "<div class='po-fl-amt'>"+(l.actualTotal!==null?poFmtMoney(l.actualTotal,cur):(paid?poFmtMoney(paid,cur):"<span class='po-fl-incl'>incl. above</span>"))+
+      (l.actualTotal!==null&&listT!==null&&Math.round(listT)!==Math.round(l.actualTotal)?"<div class='po-fire-list'>list <s>"+poFmtMoney(listT,cur)+"</s></div>":"")+
     "</div>"+
   "</div>";
 }
@@ -819,11 +829,11 @@ function poFirePanelHtml(p){
   var tree=poFireTree(lines);
   var body=tree.map(function(c){
     var cl=[];c.groups.forEach(function(g){cl=cl.concat(g.lines);});
-    return "<div class='po-fire-cat'><span>"+trkEsc(c.name)+"</span><span>"+poFmtMoney(poSumPaid(cl),cur)+"</span></div>"+
+    return "<div class='po-fcat' style='--cat:"+poCatColor(c.name)+"'><div class='po-fire-cat'><span>"+trkEsc(c.name)+poUseTag(p,c.name)+"</span><span>"+poFmtMoney(poSumPaid(cl),cur)+"</span></div>"+
       c.groups.map(function(g){
         return "<div class='po-fire-grp'><span>"+trkEsc(g.name)+"</span><span>"+poFmtMoney(poSumPaid(g.lines),cur)+"</span></div>"+
           g.lines.map(function(l){return poFireLineHtml(l,cur);}).join("");
-      }).join("");
+      }).join("")+"</div>";
   }).join("");
   var atts=(p.attachments||[]).map(function(a){
     return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+trkFileIcon(a.name)+" "+trkEsc(a.name)+"</a>";
@@ -862,15 +872,16 @@ function poFireGroupsHtml(list){
         "<td class='num'><span class='po-fs-tot'>"+poFmtMoney(p.total,p.currency||"IDR")+"</span><span class='po-fs-sub'>incl. VAT + delivery</span></td></tr>"+
       tree.map(function(c){
         var cl=[];c.groups.forEach(function(g){cl=cl.concat(g.lines);});
-        return "<tr class='po-fs-cat'><td colspan='3'>"+trkEsc(c.name)+" <span class='po-fs-n'>"+cl.length+" item"+(cl.length===1?"":"s")+"</span></td>"+
+        var cc=" style='--cat:"+poCatColor(c.name)+"'";
+        return "<tr class='po-fs-cat'"+cc+"><td colspan='3'>"+trkEsc(c.name)+" <span class='po-fs-n'>"+cl.length+" item"+(cl.length===1?"":"s")+"</span>"+poUseTag(p,c.name)+"</td>"+
             "<td class='num'>"+poFmtMoney(poSumPaid(cl),"IDR")+"</td></tr>"+
           c.groups.map(function(g){
-            return "<tr class='po-fs-grp'><td colspan='3'>"+trkEsc(g.name)+"</td><td class='num'>"+poFmtMoney(poSumPaid(g.lines),"IDR")+"</td></tr>"+
+            return "<tr class='po-fs-grp'"+cc+"><td colspan='3'>"+trkEsc(g.name)+"</td><td class='num'>"+poFmtMoney(poSumPaid(g.lines),"IDR")+"</td></tr>"+
               g.lines.map(function(l){
-                return "<tr class='po-fs-item' onclick='PO_VIEW=\"list\";PO_SEL=\""+l.poId+"\";renderPOs()'>"+
+                return "<tr class='po-fs-item'"+cc+" onclick='PO_VIEW=\"list\";PO_SEL=\""+l.poId+"\";renderPOs()'>"+
                   "<td><span class='po-fs-desc'>"+trkEsc(l.description||"—")+"</span>"+(l.pn?"<span class='po-fs-brand'>"+trkEsc(l.pn)+"</span>":"")+"</td>"+
                   "<td class='num po-fs-qty' data-label='Qty'>"+l.qty.toLocaleString()+" "+trkEsc(l.unit)+"</td>"+
-                  "<td class='po-fs-sup' data-label='Supplier'>"+trkEsc(l.supplier||"")+"</td>"+
+                  "<td class='po-fs-sup' data-label='Supplier'>"+(l.supplier?"<span class='po-fl-sup'>"+PO_ICO_SHOP+trkEsc(l.supplier)+"</span>":"")+"</td>"+
                   "<td class='num po-fs-paid' data-label='Paid'>"+paidCell(l)+"</td>"+
                 "</tr>";
               }).join("");
@@ -906,9 +917,15 @@ function poProjectRowHtml(p){
     trkLoad().then(function(){if(currentTab==="po")renderPOs();});
   }
   var nm=poProjectName(p.projectId);
+  var sp=poSplitForProject(p);
   return "<div class='po-panel-sec'>Project</div>"+
     "<button class='po-proj-link' onclick='navTo(\"tracker\",\""+p.projectId+"\")'>"+
-      "<span>"+(nm?trkEsc(nm):"Open project")+"</span><span class='po-proj-go'>Open in tracker &rarr;</span></button>";
+      "<span>"+(nm?trkEsc(nm):"Open project")+"</span><span class='po-proj-go'>Open in tracker &rarr;</span></button>"+
+    (sp.shared?"<div class='po-proj-split'>"+
+      "<div><span class='po-use po-use-proj'>For this project</span> "+sp.projNames.map(trkEsc).join(", ")+" &middot; <b>"+poFmtMoney(sp.proj,p.currency||"IDR")+"</b></div>"+
+      "<div><span class='po-use po-use-shared'>Shared</span> "+sp.sharedNames.map(trkEsc).join(", ")+" &middot; <b>"+poFmtMoney(sp.shared,p.currency||"IDR")+"</b> &mdash; can be used on other projects too</div>"+
+      "<div class='po-dim'>Amounts include VAT and delivery.</div>"+
+    "</div>":"");
 }
 /* the form's project picker: fire fighting projects first */
 function poFillProjectSelect(){
@@ -954,6 +971,27 @@ function poProjectExpensesHtml(projId){
   if(!sh.length)return "";
   var sum=sh.reduce(function(t,p){return t+(p.total||0);},0);
   return sh.map(function(p){
-    return "<button class='po-exp-link' onclick='poOpenSheet(\""+p._id+"\")'><span>"+trkEsc(p.poNumber)+"</span><b>"+poFmtMoney(p.total,p.currency||"IDR")+"</b></button>";
+    var sp=poSplitForProject(p);
+    return "<button class='po-exp-link' onclick='poOpenSheet(\""+p._id+"\")'><span>"+trkEsc(p.poNumber)+
+        (sp.shared?"<span class='po-exp-sub'>+ "+poFmtMoney(sp.shared,p.currency||"IDR")+" shared office equipment</span>":"")+"</span>"+
+      "<b>"+poFmtMoney(sp.shared?sp.proj:p.total,p.currency||"IDR")+"</b></button>";
   }).join("")+(sh.length>1?"<div class='trk-value-usd'>Total "+poFmtMoney(sum,"IDR")+"</div>":"");
+}
+
+/* Office equipment on a sheet is shared stock that other projects can use
+   too; everything else is for the sheet's linked project */
+function poIsSharedCat(cat){return /^office equipment/i.test(cat||"");}
+function poUseTag(p,cat){
+  if(!p||!p.projectId)return "";
+  if(poIsSharedCat(cat))return "<span class='po-use po-use-shared' title='Can be used on other projects too'>Shared</span>";
+  var nm=poProjectName(p.projectId);
+  return "<span class='po-use po-use-proj'>"+trkEsc(nm?nm.replace(/^PT\.?\s+/i,"").split(/\s+/)[0]:"Project")+"</span>";
+}
+function poSplitForProject(p){
+  var lines=poLinesFor(p._id),proj=0,shared=0,pn={},sn={};
+  lines.forEach(function(l){
+    var v=(poFireLinePaid(l)||0)+(l.delivery||0);
+    if(poIsSharedCat(l.category)){shared+=v;sn[l.category]=1;}else{proj+=v;pn[l.category||"Other"]=1;}
+  });
+  return {proj:proj,shared:shared,projNames:Object.keys(pn),sharedNames:Object.keys(sn)};
 }

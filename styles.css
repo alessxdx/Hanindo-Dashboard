@@ -2906,3 +2906,43 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .po-proj-go{font-size:11.5px;color:var(--text-muted);white-space:nowrap}
 .po-exp-link{font-size:12.5px;padding:6px 10px}
 .po-exp-link b{white-space:nowrap}
+
+/* who an expense category is for */
+.po-use{display:inline-block;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:8px;vertical-align:middle;letter-spacing:0;text-transform:none;border:1px solid transparent}
+.po-use-proj{background:#fef3f2;color:#b42318;border-color:#fecdca}
+.po-use-shared{background:var(--bg-soft);color:var(--text-muted);border-color:var(--border)}
+:root[data-theme="dark"] .po-use-proj{background:#55160c;color:#fda29b;border-color:#912018}
+.po-proj-split{margin-top:8px;font-size:12px;color:var(--text);display:flex;flex-direction:column;gap:5px;line-height:1.45}
+.po-proj-split .po-use{margin-left:0;margin-right:4px}
+.po-proj-split b{color:var(--text-strong)}
+.po-exp-sub{display:block;font-size:11px;color:var(--text-muted);font-weight:400}
+
+/* ===== expense lines: distinct item / brand / supplier / delivery ===== */
+.po-fcat{--cat:#0e9384;margin-top:16px}
+.po-fcat .po-fire-cat{margin:0 0 2px;background:color-mix(in srgb,var(--cat) 12%,var(--bg-stat));color:color-mix(in srgb,var(--cat) 80%,var(--text-strong));border-left:4px solid var(--cat);border-radius:6px;padding:9px 12px;font-size:14px}
+.po-fcat .po-fire-grp{color:var(--cat);border-bottom:2px solid color-mix(in srgb,var(--cat) 30%,transparent);margin-top:14px;padding:0 2px 4px;font-size:11.5px}
+.po-fl{display:flex;justify-content:space-between;gap:14px;padding:10px 2px 10px 10px;border-bottom:1px solid var(--divider);border-left:2px solid color-mix(in srgb,var(--cat,#999) 25%,transparent)}
+.po-fl:hover{background:var(--bg-hover)}
+.po-fl-main{min-width:0}
+.po-fl-name{font-size:14px;font-weight:600;color:var(--text-strong);line-height:1.35}
+.po-fl-brand{display:inline-block;font-size:11px;font-weight:500;color:var(--text-muted);background:var(--bg-soft);border:1px solid var(--border);border-radius:5px;padding:0 6px;margin-left:4px;vertical-align:1px}
+.po-fl-facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}
+.po-fl-qty{font-size:12.5px;color:var(--text)}
+.po-fl-qty b{color:var(--text-strong);font-weight:600}
+.po-fl-sup,.po-fl-dlv{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:500;border-radius:999px;padding:2px 9px 2px 7px;white-space:nowrap}
+.po-fl-sup{background:#eff8ff;color:#175cd3;border:1px solid #b2ddff}
+.po-fl-dlv{background:#fffaeb;color:#b54708;border:1px solid #fedf89}
+:root[data-theme="dark"] .po-fl-sup{background:#102a56;color:#84caff;border-color:#194185}
+:root[data-theme="dark"] .po-fl-dlv{background:#4e1d09;color:#fec84b;border-color:#93370d}
+.po-fl-amt{font-size:14.5px;font-weight:700;color:var(--text-strong);white-space:nowrap;text-align:right}
+.po-fl-incl{font-size:12px;font-weight:500;color:var(--text-muted);font-style:italic}
+.po-fl-amt .po-fire-list{font-size:11px;font-weight:400}
+.po-fire-note{color:#7a5af8;font-size:11.5px}
+:root[data-theme="dark"] .po-fire-note{color:#bdb4fe}
+/* By group table uses the same colours */
+.po-fs-cat td{background:color-mix(in srgb,var(--cat,#0e9384) 12%,var(--bg-stat));color:color-mix(in srgb,var(--cat,#0e9384) 80%,var(--text-strong))}
+.po-fs-cat td:first-child{box-shadow:inset 4px 0 0 var(--cat,#0e9384)}
+.po-fs-grp td{color:var(--cat,var(--text-muted));border-bottom:2px solid color-mix(in srgb,var(--cat,#999) 30%,transparent)}
+.po-fs-item td:first-child{box-shadow:inset 2px 0 0 color-mix(in srgb,var(--cat,#999) 25%,transparent)}
+.po-fs-desc{font-weight:600}
+.po-fs-brand{display:inline-block;font-size:11px;color:var(--text-muted);background:var(--bg-soft);border:1px solid var(--border);border-radius:5px;padding:0 6px;margin-top:3px}
