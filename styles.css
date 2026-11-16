@@ -2986,3 +2986,7 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .po-fsup2-dlv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;font-size:12px;color:var(--text-muted)}
 .po-fsup2-dlv span:last-child{color:var(--text);font-weight:500}
 .po-fcat .po-fire-cat{border-left:none;background:none;padding:6px 0;border-bottom:2px solid var(--cat);border-radius:0;font-size:14.5px;color:var(--text-strong)}
+/* supplier names in colour, item names bold black */
+.po-fsup2-head span:first-child{color:#175cd3}
+:root[data-theme="dark"] .po-fsup2-head span:first-child{color:#84caff}
+.po-fsup2 .po-fl-name{font-weight:700;color:var(--text-strong)}
