@@ -805,15 +805,17 @@ function poCatColor(cat){
   if(/project/i.test(cat||""))return "#d92d20";
   return "#0e9384";
 }
-function poFireLineHtml(l,cur){
+function poFireLineHtml(l,cur,o){
+  o=o||{};
   var paid=poFireLinePaid(l);
   return "<div class='po-fl'>"+
     "<div class='po-fl-main'>"+
       "<div class='po-fl-name'>"+trkEsc(l.description||"—")+(l.pn?" <span class='po-fl-brand'>"+trkEsc(l.pn)+"</span>":"")+"</div>"+
       "<div class='po-fl-facts'>"+
         "<span class='po-fl-qty'><b>"+l.qty.toLocaleString()+" "+trkEsc(l.unit)+"</b>"+(l.unitPrice!==null?" &times; "+poFmtMoney(l.unitPrice,cur):"")+"</span>"+
-        (l.supplier?"<span class='po-fl-sup' title='Supplier'>"+PO_ICO_SHOP+trkEsc(l.supplier)+"</span>":"")+
-        (l.delivery?"<span class='po-fl-dlv' title='Delivery cost'>"+PO_ICO_TRUCK+poFmtMoney(l.delivery,cur)+"</span>":"")+
+        (l.supplier&&!o.bySupplier?"<span class='po-fl-sup' title='Supplier'>"+PO_ICO_SHOP+trkEsc(l.supplier)+"</span>":"")+
+        (o.bySupplier&&l.itemGroup?"<span class='po-fl-type'>"+trkEsc(l.itemGroup)+"</span>":"")+
+        (l.delivery&&!o.bySupplier?"<span class='po-fl-dlv' title='Delivery cost'>"+PO_ICO_TRUCK+poFmtMoney(l.delivery,cur)+"</span>":"")+
       "</div>"+
       (l.note?"<div class='po-fire-note'>"+trkEsc(l.note)+"</div>":"")+
     "</div>"+
@@ -828,10 +830,16 @@ function poFirePanelHtml(p){
   var tree=poFireTree(lines);
   var body=tree.map(function(c){
     var cl=[];c.groups.forEach(function(g){cl=cl.concat(g.lines);});
-    return "<div class='po-fcat' style='--cat:"+poCatColor(c.name)+"'><div class='po-fire-cat'><span>"+trkEsc(c.name)+poUseTag(p,c.name)+"</span><span>"+poFmtMoney(poSumPaid(cl),cur)+"</span></div>"+
-      c.groups.map(function(g){
-        return "<div class='po-fire-grp'><span>"+trkEsc(g.name)+"</span><span>"+poFmtMoney(poSumPaid(g.lines),cur)+"</span></div>"+
-          g.lines.map(function(l){return poFireLineHtml(l,cur);}).join("");
+    return "<div class='po-fcat' style='--cat:"+poCatColor(c.name)+"'><div class='po-fire-cat'><span>"+trkEsc(c.name)+poUseTag(p,c.name)+"</span><span>"+poFmtMoney(poSumPaid(cl)+poSumDlv(cl),cur)+"</span></div>"+
+      poBySupplier(cl).map(function(g){
+        var d=poSumDlv(g.lines);
+        return "<div class='po-fsup'>"+
+          "<div class='po-fsup-head'><span class='po-fsup-name'>"+PO_ICO_SHOP+trkEsc(g.name)+" <span class='po-fs-n'>"+g.lines.length+" item"+(g.lines.length===1?"":"s")+"</span></span>"+
+            "<span class='po-fsup-tot'>"+poFmtMoney(poSumPaid(g.lines)+d,cur)+"</span></div>"+
+          g.lines.map(function(l){return poFireLineHtml(l,cur,{bySupplier:1});}).join("")+
+          "<div class='po-fsup-dlv"+(d?"":" none")+"'><span>"+PO_ICO_TRUCK+(d?"Delivery from "+trkEsc(g.name)+" <em>one charge for this order</em>":"No delivery charge on the sheet")+"</span><b>"+(d?poFmtMoney(d,cur):"&mdash;")+"</b></div>"+
+          "<div class='po-fsup-sum'><span>Order total"+(d?" <em>items + delivery</em>":"")+"</span><b>"+poFmtMoney(poSumPaid(g.lines)+d,cur)+"</b></div>"+
+        "</div>";
       }).join("")+"</div>";
   }).join("");
   var atts=(p.attachments||[]).map(function(a){
@@ -993,4 +1001,16 @@ function poSplitForProject(p){
     if(poIsSharedCat(l.category)){shared+=v;sn[l.category]=1;}else{proj+=v;pn[l.category||"Other"]=1;}
   });
   return {proj:proj,shared:shared,projNames:Object.keys(pn),sharedNames:Object.keys(sn)};
+}
+
+/* one block per supplier order, in the sheet's own order; the delivery
+   charge belongs to the order, not to one item */
+function poBySupplier(lines){
+  var out=[],by={};
+  lines.slice().sort(function(a,b){return a.sortOrder-b.sortOrder;}).forEach(function(l){
+    var k=(l.supplier||"Unknown supplier").toLowerCase();
+    if(!by[k]){by[k]={name:l.supplier||"Unknown supplier",lines:[]};out.push(by[k]);}
+    by[k].lines.push(l);
+  });
+  return out;
 }
