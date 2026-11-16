@@ -3116,15 +3116,5 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .trk-simple .trk-low-div td{background:none;color:var(--text-muted);border-bottom:2px solid var(--border);padding-top:20px}
 .trk-simple .trk-low-n{background:none;color:var(--text-muted);font-weight:400;padding:0;margin-left:6px}
 .trk-simple .trk-row-parked td:first-child{box-shadow:none}
-/* Project Tracker list: bigger text, easier to read */
-.trk-simple td{padding:12px 14px}
-.trk-simple .trk-r-name{font-size:15px}
-.trk-simple .trk-r-sub{font-size:13px}
-.trk-simple .trk-tx,.trk-simple .trk-oftx{font-size:14px}
-.trk-simple .trk-tx-pay{font-size:13px}
-.trk-simple td.trk-c-val{font-size:14px}
-.trk-simple td.trk-c-last{font-size:14px}
-.trk-simple .trk-c-last .trk-r-sub{font-size:13px;max-width:240px}
-.trk-simple .trk-band2-name{font-size:17px}
-.trk-simple .trk-band2-n,.trk-simple .trk-band2-due{font-size:13.5px}
-.trk-simple th{font-size:12px}
+/* Project Tracker: bigger business headings (Custom, Fire fighting...) */
+.trk-simple .trk-band2-name{font-size:18px}
