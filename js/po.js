@@ -806,7 +806,7 @@ function poCatColor(cat){
   return "#0e9384";
 }
 function poFireLineHtml(l,cur){
-  var paid=poFireLinePaid(l),listT=(l.unitPrice!==null)?l.qty*l.unitPrice:null;
+  var paid=poFireLinePaid(l);
   return "<div class='po-fl'>"+
     "<div class='po-fl-main'>"+
       "<div class='po-fl-name'>"+trkEsc(l.description||"—")+(l.pn?" <span class='po-fl-brand'>"+trkEsc(l.pn)+"</span>":"")+"</div>"+
@@ -818,7 +818,6 @@ function poFireLineHtml(l,cur){
       (l.note?"<div class='po-fire-note'>"+trkEsc(l.note)+"</div>":"")+
     "</div>"+
     "<div class='po-fl-amt'>"+(l.actualTotal!==null?poFmtMoney(l.actualTotal,cur):(paid?poFmtMoney(paid,cur):"<span class='po-fl-incl'>incl. above</span>"))+
-      (l.actualTotal!==null&&listT!==null&&Math.round(listT)!==Math.round(l.actualTotal)?"<div class='po-fire-list'>list <s>"+poFmtMoney(listT,cur)+"</s></div>":"")+
     "</div>"+
   "</div>";
 }
