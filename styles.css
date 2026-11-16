@@ -2963,3 +2963,12 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 :root[data-theme="dark"] .po-fsup-dlv:not(.none){background:#4e1d09;color:#fec84b;border-color:#93370d}
 .po-fsup-sum{border-top:1px solid var(--border);font-weight:700;color:var(--text-strong)}
 .po-fl-type{font-size:11px;font-weight:600;color:var(--cat,var(--text-muted));background:color-mix(in srgb,var(--cat,#999) 10%,transparent);border-radius:5px;padding:1px 7px}
+
+/* By group view grouped by supplier */
+.po-fs-supg td{background:#eff8ff;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text-strong);border-bottom:1px solid #b2ddff;padding:9px 16px}
+:root[data-theme="dark"] .po-fs-supg td{background:#102a56;border-color:#194185}
+.po-fs-supg .po-fsup-name svg{width:14px;height:14px}
+.po-fs-dlv td{background:#fffaeb;color:#b54708;font-size:12.5px;font-weight:600;border-bottom:1px solid #fedf89;padding:7px 16px}
+.po-fs-dlv span{display:inline-flex;align-items:center;gap:6px}
+.po-fs-dlv em{font-style:normal;font-weight:400;font-size:11px;opacity:.8}
+:root[data-theme="dark"] .po-fs-dlv td{background:#4e1d09;color:#fec84b;border-color:#93370d}

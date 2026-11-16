@@ -881,23 +881,25 @@ function poFireGroupsHtml(list){
         var cl=[];c.groups.forEach(function(g){cl=cl.concat(g.lines);});
         var cc=" style='--cat:"+poCatColor(c.name)+"'";
         return "<tr class='po-fs-cat'"+cc+"><td colspan='3'>"+trkEsc(c.name)+" <span class='po-fs-n'>"+cl.length+" item"+(cl.length===1?"":"s")+"</span>"+poUseTag(p,c.name)+"</td>"+
-            "<td class='num'>"+poFmtMoney(poSumPaid(cl),"IDR")+"</td></tr>"+
-          c.groups.map(function(g){
-            return "<tr class='po-fs-grp'"+cc+"><td colspan='3'>"+trkEsc(g.name)+"</td><td class='num'>"+poFmtMoney(poSumPaid(g.lines),"IDR")+"</td></tr>"+
+            "<td class='num'>"+poFmtMoney(poSumPaid(cl)+poSumDlv(cl),"IDR")+"</td></tr>"+
+          poBySupplier(cl).map(function(g){
+            var d=poSumDlv(g.lines),t=poSumPaid(g.lines)+d;
+            return "<tr class='po-fs-grp po-fs-supg'"+cc+"><td colspan='3'><span class='po-fsup-name'>"+PO_ICO_SHOP+trkEsc(g.name)+"</span> <span class='po-fs-n'>"+g.lines.length+" item"+(g.lines.length===1?"":"s")+"</span></td><td class='num'>"+poFmtMoney(t,"IDR")+"</td></tr>"+
               g.lines.map(function(l){
                 return "<tr class='po-fs-item'"+cc+" onclick='PO_VIEW=\"list\";PO_SEL=\""+l.poId+"\";renderPOs()'>"+
                   "<td><span class='po-fs-desc'>"+trkEsc(l.description||"—")+"</span>"+(l.pn?"<span class='po-fs-brand'>"+trkEsc(l.pn)+"</span>":"")+"</td>"+
                   "<td class='num po-fs-qty' data-label='Qty'>"+l.qty.toLocaleString()+" "+trkEsc(l.unit)+"</td>"+
-                  "<td class='po-fs-sup' data-label='Supplier'>"+(l.supplier?"<span class='po-fl-sup'>"+PO_ICO_SHOP+trkEsc(l.supplier)+"</span>":"")+"</td>"+
+                  "<td class='po-fs-sup' data-label='Type'>"+(l.itemGroup?"<span class='po-fl-type'>"+trkEsc(l.itemGroup)+"</span>":"")+"</td>"+
                   "<td class='num po-fs-paid' data-label='Paid'>"+paidCell(l)+"</td>"+
                 "</tr>";
-              }).join("");
+              }).join("")+
+              (d?"<tr class='po-fs-dlv'><td colspan='3'><span>"+PO_ICO_TRUCK+"Delivery from "+trkEsc(g.name)+" <em>one charge for this order</em></span></td><td class='num'>"+poFmtMoney(d,"IDR")+"</td></tr>":"");
           }).join("");
       }).join("");
   }).join("");
   return "<div class='po-table-wrap'><table class='po-table po-fire-groups'>"+
     "<colgroup><col><col style='width:110px'><col style='width:28%'><col style='width:170px'></colgroup>"+
-    "<thead><tr><th>Item</th><th class='num'>Qty</th><th>Supplier</th><th class='num'>Paid incl. VAT</th></tr></thead>"+
+    "<thead><tr><th>Item</th><th class='num'>Qty</th><th>Type</th><th class='num'>Paid incl. VAT</th></tr></thead>"+
     "<tbody>"+body+"</tbody></table></div>";
 }
 /* switches the PO form between printer-PO and expense-sheet fields */
