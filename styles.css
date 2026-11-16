@@ -3031,3 +3031,9 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .po-models .po-m-desc{font-size:13.5px;font-weight:700;color:var(--text-strong)}
 .po-models .po-m-pn{font-family:inherit;font-size:12px;color:var(--text-muted)}
 .po-models td{padding-top:10px;padding-bottom:10px}
+/* simple By model table */
+.po-models td{border-bottom:1px solid var(--divider);vertical-align:middle}
+.po-models .po-m-units{font-weight:700;color:var(--text-strong)}
+.po-models .po-m-spend{color:var(--text)}
+.po-models .po-m-last{font-weight:600;color:var(--text-strong);white-space:nowrap}
+.po-m-trend{font-size:11px;font-weight:600;margin-top:1px}

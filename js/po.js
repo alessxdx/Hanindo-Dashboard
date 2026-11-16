@@ -386,21 +386,18 @@ function poModelsHtml(list){
     var trend="";
     if(changed&&first&&last&&first.price!==last.price){
       var up=last.price>first.price;
-      trend=" <span class='"+(up?"po-up":"po-down")+"'>"+(up?"&#9650;":"&#9660;")+" "+
-        poFmtMoney(first.price,first.cur)+" &rarr; "+poFmtMoney(last.price,last.cur)+"</span>";
+      trend="<div class='po-m-trend "+(up?"po-up":"po-down")+"'>"+(up?"&#9650; up":"&#9660; down")+" from "+poFmtMoney(first.price,first.cur)+"</div>";
     }
     return "<tr>"+
       "<td><div class='po-m-desc'>"+trkEsc(g.desc||"—")+"</div>"+(g.pn?"<div class='po-m-pn'>"+trkEsc(g.pn)+"</div>":"")+"</td>"+
-      "<td class='num' data-label='Units'><strong>"+g.units.toLocaleString()+"</strong></td>"+
-      "<td class='num' data-label='POs'>"+Object.keys(g.pos).length+"</td>"+
-      "<td class='num' data-label='Spend (USD)'>"+(typeof fxFormatUSD==="function"?fxFormatUSD(g.spend):"$"+g.spend.toLocaleString())+"</td>"+
-      "<td class='num' data-label='Last price'>"+(last?poFmtMoney(last.price,last.cur):"—")+(last&&last.date?" <span class='trk-value-usd'>("+trkFmtDate(last.date)+")</span>":"")+trend+"</td>"+
+      "<td class='num po-m-units' data-label='Units'>"+g.units.toLocaleString()+"</td>"+
+      "<td class='num po-m-spend' data-label='Spend'>"+(typeof fxFormatUSD==="function"?fxFormatUSD(g.spend):"$"+g.spend.toLocaleString())+"</td>"+
+      "<td class='num po-m-last' data-label='Last price'>"+(last?poFmtMoney(last.price,last.cur):"—")+trend+"</td>"+
     "</tr>";
   }).join("");
   return "<div class='po-table-wrap'><table class='po-table po-models'>"+
-    "<thead><tr><th>Model / part</th><th class='num'>Units</th><th class='num'>POs</th><th class='num'>Spend (USD)</th><th class='num'>Last price</th></tr></thead>"+
-    "<tbody>"+html+"</tbody></table></div>"+
-    "<div class='empty' style='padding:14px;text-align:left'>&#9650;/&#9660; shows a unit-price change between the first and latest PO in the selected range.</div>";
+    "<thead><tr><th>Model</th><th class='num'>Units</th><th class='num'>Spend (USD)</th><th class='num'>Last price</th></tr></thead>"+
+    "<tbody>"+html+"</tbody></table></div>";
 }
 
 /* ===== modal ===== */
