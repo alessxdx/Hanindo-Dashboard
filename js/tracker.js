@@ -226,11 +226,11 @@ function trkStatusLine(p,act){
 }
 function trkFollowText(f){
   if(!f)return"";
-  if(f.kind==="quiet")return "<span class='trk-tx "+(f.days>=30?"trk-tx-lost":"trk-tx-onhold")+"' title='No timeline entry for "+f.days+" days'>Quiet "+f.days+" days</span>";
+  if(f.kind==="quiet")return "<span class='trk-tx "+(f.days>=30?"trk-tx-lost":"trk-tx-onhold")+"' title='No timeline entry for "+f.days+" days'>Quiet "+f.days+" day"+(f.days===1?"":"s")+"</span>";
   var nice=trkFmtDate(f.date).replace(/ \d{4}$/,"");
   if(!f.due)return "<span class='trk-tx trk-tx-dim' title='Next follow-up "+trkFmtDate(f.date)+"'>Follow up "+nice+"</span>";
   if(f.days===0)return "<span class='trk-tx trk-tx-onhold'>Follow up today</span>";
-  return "<span class='trk-tx trk-tx-lost' title='Follow-up was planned for "+trkFmtDate(f.date)+"'>Overdue "+f.days+" days</span>";
+  return "<span class='trk-tx trk-tx-lost' title='Follow-up was planned for "+trkFmtDate(f.date)+"'>Overdue "+f.days+" day"+(f.days===1?"":"s")+"</span>";
 }
 function trkFollowBadge(f){
   if(!f)return"";

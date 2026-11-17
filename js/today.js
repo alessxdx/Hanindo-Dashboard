@@ -16,6 +16,7 @@ var TD_NOINV_DAYS=60;  /* won with a PO this long ago and still no invoice → N
 
 function tdEsc(s){return typeof trkEsc==="function"?trkEsc(s):String(s==null?"":s);}
 function tdAddDays(iso,n){var d=new Date(iso+"T00:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+function tdDaysTxt(n){return n+" day"+(n===1?"":"s");}
 function tdDays(a,b){return trkDaysBetween(a,b);} /* b - a, in days */
 
 /* "July 31, 2026", "31st Oct 2025", "31 Oct 2026", "2026-10-31", "31/10/2026" → "YYYY-MM-DD" */
@@ -115,7 +116,7 @@ function tdRow(o){
   "</button>";
 }
 function tdCard(title,count,body,empty,cls){
-  return "<section class='td-card"+(cls?" "+cls:"")+"'><div class='td-card-head'><h2>"+title+"</h2>"+(count?"<span class='td-n'>"+count+"</span>":"")+"</div>"+
+  return "<section class='td-card"+(cls?" "+cls:"")+"'><div class='td-card-head'><h2>"+title+"</h2>"+(count?"<span class='td-n2'>"+count+"</span>":"")+"</div>"+
     (body||"<div class='td-empty'>"+empty+"</div>")+"</section>";
 }
 
@@ -146,7 +147,7 @@ function renderToday(){
   soon.sort(function(a,b){return a.f.date.localeCompare(b.f.date);});
   var fuRow=function(x){
     var last=trkLastDate(x.p,act);
-    return tdRow({name:x.p.name,cust:x.p.customer,country:x.p.country,badge:trkFollowBadge(x.f),
+    return tdRow({name:x.p.name,cust:x.p.customer,country:x.p.country,badge:trkFollowText(x.f),
       sub:last?"last update "+trkFmtDate(last):"",go:"tracker",sel:x.p._id});
   };
 
@@ -164,19 +165,19 @@ function renderToday(){
     var termTxt=r.terms.days+" days"+(r.terms.assumed?" (assumed)":"");
     if(r.state==="noinv"){
       sub=(r.po?"PO "+trkFmtDate(r.po)+" &middot; ":"")+"no invoice on the timeline yet";
-      badge="<span class='trk-badge td-b-wait'>Not invoiced</span>";
+      badge="";
     }else{
       sub="invoiced "+trkFmtDate(r.inv)+" &middot; "+termTxt+" &middot; due "+trkFmtDate(r.due);
-      badge=r.state==="overdue"?"<span class='trk-badge trk-stale trk-stale-hot'>Overdue "+(-r.days)+"d</span>":
-        r.state==="soon"?"<span class='trk-badge trk-stale'>"+(r.days===0?"Due today":"Due in "+r.days+"d")+"</span>":
-        "<span class='trk-badge trk-fu'>Due "+trkFmtDate(r.due).replace(/ \d{4}$/,"")+"</span>";
+      badge=r.state==="overdue"?"<span class='trk-tx trk-tx-lost'>Overdue "+tdDaysTxt(-r.days)+"</span>":
+        r.state==="soon"?"<span class='trk-tx trk-tx-onhold'>"+(r.days===0?"Due today":"Due in "+tdDaysTxt(r.days))+"</span>":
+        "<span class='trk-tx trk-tx-dim'>Due "+trkFmtDate(r.due).replace(/ \d{4}$/,"")+"</span>";
     }
-    if(r.partial)badge+=" <span class='trk-badge td-b-part'>"+(r.paid?"Paid "+tdEsc(r.paid.toLocaleString()):"Partly paid")+"</span>";
+    if(r.partial)badge+=(badge?"<span class='trk-pn-dot'>&middot;</span>":"")+"<span class='trk-tx trk-tx-onhold'>"+(r.paid?"Paid "+tdEsc(r.paid.toLocaleString()):"Partly paid")+"</span>";
     return tdRow({name:r.p.name,cust:r.p.customer,country:r.p.country,sub:sub,badge:badge,right:tdAmt(r),go:"tracker",sel:r.p._id});
   };
   var paySec=function(label,arr,cls){
     if(!arr.length)return "";
-    return "<div class='td-sec "+cls+"'><span>"+label+" &middot; "+arr.length+"</span><span>"+(sumUSD(arr)?tdUSD(sumUSD(arr)):"")+"</span></div>"+arr.map(payRow).join("");
+    return "<div class='td-sec "+cls+"'><span>"+label+"</span><span>"+(sumUSD(arr)?tdUSD(sumUSD(arr)):"")+"</span></div>"+arr.map(payRow).join("");
   };
   /* per customer, largest first */
   var custTot={};
@@ -188,25 +189,25 @@ function renderToday(){
       "<span>"+(c.over?"<span class='td-over'>"+tdUSD(c.over)+" overdue</span> &middot; ":"")+"<b>"+(c.usd?tdUSD(c.usd):"&mdash;")+"</b></span></button>";
   }).join("");
   var moneyBody=money.length?
-    "<div class='td-money-sum'>"+
-      "<div class='td-ms td-ms-over'><b>"+tdUSD(sumUSD(by.overdue))+"</b><span>overdue &middot; "+by.overdue.length+"</span></div>"+
-      "<div class='td-ms'><b>"+tdUSD(sumUSD(by.soon))+"</b><span>due in "+TD_SOON+" days &middot; "+by.soon.length+"</span></div>"+
-      "<div class='td-ms'><b>"+tdUSD(sumUSD(by.noinv))+"</b><span>not invoiced yet &middot; "+by.noinv.length+"</span></div>"+
-      "<div class='td-ms'><b>"+tdUSD(sumUSD(money))+"</b><span>owed in total</span></div>"+
+    "<div class='td-sum'>"+
+      (by.overdue.length?"<div class='td-sum-row td-sum-over'><span>Overdue</span><b>"+tdUSD(sumUSD(by.overdue))+"</b></div>":"")+
+      (by.soon.length?"<div class='td-sum-row'><span>Due in the next "+TD_SOON+" days</span><b>"+tdUSD(sumUSD(by.soon))+"</b></div>":"")+
+      (by.noinv.length?"<div class='td-sum-row'><span>Not invoiced yet</span><b>"+tdUSD(sumUSD(by.noinv))+"</b></div>":"")+
+      "<div class='td-sum-row td-sum-tot'><span>Owed in total</span><b>"+tdUSD(sumUSD(money))+"</b></div>"+
     "</div>"+
     paySec("Overdue",by.overdue,"td-sec-over")+
     paySec("Due in the next "+TD_SOON+" days",by.soon,"td-sec-soon")+
     paySec("Invoiced, due later",by.later,"td-sec-later")+
     paySec("Won, not invoiced yet",by.noinv,"td-sec-wait")+
     (custHtml?"<details class='td-bycust'><summary>By customer</summary>"+custHtml+"</details>":"")+
-    "<div class='td-note'>Due date = the project's Invoice timeline entry + its payment terms (read from the description, e.g. &ldquo;30 days after invoice&rdquo;; "+TD_DEFAULT_TERMS+" days when none is written). Add a &ldquo;Payment received&rdquo; entry with the amount received; what is left is shown, and the last payment marks it Fully paid. Amounts in USD equivalent.</div>"
+    "<div class='td-note' title='Due date = the Invoice timeline entry + the payment terms in the description ("+TD_DEFAULT_TERMS+" days when none is written). A Payment received entry with the amount lowers what is left.'>Totals in USD equivalent.</div>"
     :"";
 
   /* quotes */
   var quotes=tdQuotes();
   var qRow=function(q){
-    var badge=q.days<0?"<span class='trk-badge trk-stale trk-stale-hot'>Expired "+(-q.days)+"d ago</span>":
-      "<span class='trk-badge trk-stale'>"+(q.days===0?"Expires today":"Expires in "+q.days+"d")+"</span>";
+    var badge=q.days<0?"<span class='trk-tx trk-tx-lost'>Expired "+tdDaysTxt(-q.days)+" ago</span>":
+      "<span class='trk-tx trk-tx-onhold'>"+(q.days===0?"Expires today":"Expires in "+tdDaysTxt(q.days))+"</span>";
     return tdRow({name:q.name,cust:q.cust,country:q.country,sub:"valid till "+trkFmtDate(q.valid),badge:badge,go:q.go,sel:q.sel});
   };
 
@@ -227,7 +228,7 @@ function renderToday(){
     if(r.state==="noinv"&&r.po&&tdDays(r.po,today)>=TD_NOINV_DAYS)gaps.push({r:r,why:"PO "+trkFmtDate(r.po)+", "+tdDays(r.po,today)+" days ago, still no invoice on the timeline",fix:"add the Invoice entry"});
     if(r.state==="noinv"&&!r.po)gaps.push({r:r,why:"Won but no Purchase order or Invoice on the timeline",fix:"add the PO / invoice"});
   });
-  var gapRow=function(g){return tdRow({name:g.r.p.name,cust:g.r.p.customer,country:g.r.p.country,sub:g.why,badge:"<span class='trk-badge td-b-wait'>"+g.fix+"</span>",go:"tracker",sel:g.r.p._id});};
+  var gapRow=function(g){return tdRow({name:g.r.p.name,cust:g.r.p.customer,country:g.r.p.country,sub:g.why,badge:"<span class='trk-tx trk-tx-onhold'>"+g.fix.charAt(0).toUpperCase()+g.fix.slice(1)+"</span>",go:"tracker",sel:g.r.p._id});};
 
   /* backup reminder */
   var bkDays=typeof bkDaysSince==="function"?bkDaysSince():null;
@@ -245,14 +246,14 @@ function renderToday(){
   content.innerHTML="<div class='td-date'>"+tdEsc(dateStr)+"</div><div class='td-grid'>"+
     "<div class='td-col'>"+
       tdCard("Follow up",due.length+quiet.length,
-        (due.length?"<div class='td-sec td-sec-over'><span>Due &middot; "+due.length+"</span></div>"+due.map(fuRow).join(""):"")+
-        (quiet.length?"<div class='td-sec td-sec-soon'><span>Gone quiet &middot; no update for "+TRK_STALE_DAYS+"+ days &middot; "+quiet.length+"</span></div>"+quiet.map(fuRow).join(""):""),
+        (due.length?"<div class='td-sec td-sec-over'><span>Due</span></div>"+due.map(fuRow).join(""):"")+
+        (quiet.length?"<div class='td-sec td-sec-soon'><span>Gone quiet (no update for "+TRK_STALE_DAYS+"+ days)</span></div>"+quiet.map(fuRow).join(""):""),
         "Nothing to follow up today. &#127881;")+
       tdCard("Coming up this week",soon.length+upPay.length,
         soon.map(fuRow).join("")+upPay.map(payRow).join(""),
         "No follow-ups or payments due in the next 7 days.")+
       tdCard("Quotes expiring",quotes.length,quotes.map(qRow).join(""),
-        "No quotes expire in the next "+TD_QUOTE_WIN+" days. (Read from &ldquo;Prices valid till &hellip;&rdquo; in the quote notes.)")+
+        "No quotes expire in the next "+TD_QUOTE_WIN+" days.")+
     "</div>"+
     "<div class='td-col'>"+
       tdCard("Money owed",money.length,moneyBody,"Every won project is fully paid. &#128176;","td-card-money")+

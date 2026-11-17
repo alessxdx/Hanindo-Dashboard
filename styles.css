@@ -3154,3 +3154,25 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .trk-tl-simple .trk-pn-type{font-size:13px}
 .trk-tl-simple .trk-tl-title{font-size:15px;font-weight:700;margin-top:4px}
 .trk-tl-simple .trk-tl-details{font-size:14.5px;line-height:1.6;margin-top:4px}
+
+/* Today page, simple: plain cards, coloured text instead of badges, summary rows */
+.td-card{background:var(--bg-stat);border-radius:10px;padding:16px 18px}
+.td-card-head h2{font-size:17px}
+.td-n2{font-size:13px;color:var(--text-muted);font-weight:400}
+.td-card-bkdue .td-n2{color:#b54708;font-weight:700}
+.td-sec{font-size:13px;text-transform:none;letter-spacing:0;border-bottom:2px solid var(--border);margin:14px 0 2px;padding-bottom:5px}
+.td-row{border-radius:0;padding:10px 2px}
+.td-name{font-weight:700}
+.td-badge{align-items:baseline;gap:0}
+.td-badge .trk-tx{font-size:12.5px}
+.td-go{display:none}
+.td-sum{margin:2px 0 4px}
+.td-sum-row{display:flex;justify-content:space-between;gap:10px;padding:6px 2px;font-size:13.5px;color:var(--text);border-bottom:1px solid var(--divider)}
+.td-sum-row b{color:var(--text-strong)}
+.td-sum-over,.td-sum-over b{color:#d92d20}
+:root[data-theme="dark"] .td-sum-over,:root[data-theme="dark"] .td-sum-over b{color:#fda29b}
+.td-sum-tot{font-weight:700;color:var(--text-strong);border-bottom:2px solid var(--border)}
+.td-bycust{border:none;border-top:1px solid var(--divider);border-radius:0;margin-top:14px}
+.td-bycust>summary{padding:10px 2px}
+.td-cust{padding:8px 2px}
+.td-note{font-size:11.5px;color:var(--text-muted)}
