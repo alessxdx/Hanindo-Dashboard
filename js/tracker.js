@@ -218,6 +218,12 @@ function trkStatusText(p){
   }
   return h;
 }
+/* one line of coloured text: status · payment · follow-up (panel and full page) */
+function trkStatusLine(p,act){
+  var fu=trkFollowText(trkFollow(p,act));
+  return [p.done?"<span class='trk-tx trk-tx-won'>Done</span>":trkStatusText(p).replace("<div class='trk-tx-pay","<span class='trk-pn-dot'>&middot;</span><span class='trk-tx-pay").replace(/<\/div>$/,"</span>"),
+    fu,(!p.done&&p.lowPriority?"<span class='trk-tx trk-tx-dim'>Low priority</span>":"")].filter(Boolean).join("<span class='trk-pn-dot'>&middot;</span>");
+}
 function trkFollowText(f){
   if(!f)return"";
   if(f.kind==="quiet")return "<span class='trk-tx "+(f.days>=30?"trk-tx-lost":"trk-tx-onhold")+"' title='No timeline entry for "+f.days+" days'>Quiet "+f.days+" days</span>";
@@ -900,9 +906,7 @@ function trkPanelHtml(p,act){
       (atts?"<div class='trk-tl-atts'>"+atts+"</div>":"")+
     "</div>";
   }).join("");
-  var fu=trkFollowText(trkFollow(p,act));
-  var stLine=[p.done?"<span class='trk-tx trk-tx-won'>Done</span>":trkStatusText(p).replace("<div class='trk-tx-pay","<span class='trk-pn-dot'>&middot;</span><span class='trk-tx-pay").replace(/<\/div>$/,"</span>"),
-    fu,(!p.done&&p.lowPriority?"<span class='trk-tx trk-tx-dim'>Low priority</span>":"")].filter(Boolean).join("<span class='trk-pn-dot'>&middot;</span>");
+  var stLine=trkStatusLine(p,act);
   return "<aside class='po-panel trk-panel trk-panel-simple'>"+
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkDisplayName(p)+"</span>"+
       "<button class='trk-pn-expand' title='Open full page' aria-label='Open full page' onclick='trkExpand()'>&#x2922;</button>"+
@@ -1138,21 +1142,21 @@ function trkRenderDetail(){
   var infoRow=function(label,html){return html?"<div class='trk-info'><div class='trk-info-label'>"+label+"</div><div class='trk-info-val'>"+html+"</div></div>":"";};
   var header=
     "<button class='trk-back' onclick='trkBack()'>&larr; All projects</button>"+
-    "<div class='trk-detail-card'>"+
+    "<div class='trk-detail-card trk-detail-simple'>"+
       "<div class='trk-detail-head'>"+
-        "<div class='trk-detail-name'>"+trkDisplayName(p)+" "+trkStatusBadge(p.status)+trkPaymentBadge(p)+(p.done?trkDoneBadge():p.lowPriority?trkLowBadge():"")+"</div>"+
+        "<div><div class='trk-detail-name'>"+trkDisplayName(p)+"</div><div class='trk-pn-st'>"+trkStatusLine(p)+"</div></div>"+
         "<button class='edit-btn' onclick='trkEditProject()'>Edit project</button>"+
       "</div>"+trkLowBtn(p)+
       "<div class='trk-info-grid'>"+
         infoRow("Customer",(p.customer?flag+" "+trkEsc(p.customer):""))+
         infoRow("Country",trkEsc(p.country))+
         infoRow("Project date",trkProjectDate(p))+
-        infoRow("Handling office",p.office?"<span class='trk-badge trk-office po-of-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+" office</span>":"")+
-        infoRow("Solution type",trkSolutionBadge(p))+
-        infoRow("Products of interest",trkProductChips(p))+
+        infoRow("Handling office",p.office?"<span class='trk-oftx trk-oftx-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+"</span>":"")+
+        infoRow("Solution type",p.solution?"<span class='trk-pn-sol' style='color:"+trkSolutionColor(p.solution)+"'>"+trkEsc(p.solution)+"</span>":"")+
+        infoRow("Products of interest",(p.products||[]).map(trkEsc).join(", "))+
         infoRow("Estimated value",p.estValue!==null?trkValueHtml(p):"")+
         infoRow("Expected close",trkPeriodLabel(p))+
-        infoRow("Next follow-up",trkActiveFollowup(p)?trkFollowBadge(trkFollow(p))||trkFmtDate(p.nextFollowup):"")+
+        infoRow("Next follow-up",trkActiveFollowup(p)?trkFmtDate(trkActiveFollowup(p)):"")+
         infoRow("Expenses",typeof poProjectExpensesHtml==="function"?poProjectExpensesHtml(p._id):"")+
         infoRow(trkAllContacts(p).length>1?"Contacts":"Contact",trkAllContacts(p).map(function(c){return "<div class='trk-xc-show'>"+trkEsc(c.name)+
           (c.position?" <span class='trk-contact-pos'>&middot; "+trkEsc(c.position)+"</span>":"")+
@@ -1166,7 +1170,7 @@ function trkRenderDetail(){
       return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+trkFileIcon(a.name)+" "+trkEsc(a.name)+"</a>";
     }).join("");
     return "<div class='trk-tl-item trk-t-"+trkTypeSlug(e.type)+"'><div class='trk-tl-dot'></div><div class='trk-tl-body'>"+
-      "<div class='trk-tl-meta'><strong>"+trkFmtDate(e.date)+"</strong> "+trkTypeBadge(e.type)+trkAmtTag(e)+
+      "<div class='trk-tl-meta'><strong>"+trkFmtDate(e.date)+"</strong> <span class='trk-pn-type'>"+trkEsc(e.type)+"</span>"+trkAmtTag(e)+
         "<a href='#' class='trk-tl-edit' title='Edit' aria-label='Edit entry' onclick='trkEditEntry(event,\""+e._id+"\")'>"+EDIT_ICO+"</a></div>"+
       (e.title?"<div class='trk-tl-title'>"+trkEsc(e.title)+"</div>":"")+
       (e.details?"<div class='trk-tl-details'>"+trkLines(e.details)+"</div>":"")+
@@ -1179,7 +1183,7 @@ function trkRenderDetail(){
       "<button class='btn-add' onclick='trkOpenEntryModal()'>"+
         "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' style='width:13px;height:13px'><line x1='12' y1='5' x2='12' y2='19'/><line x1='5' y1='12' x2='19' y2='12'/></svg>"+
         " Add entry</button></div>"+
-    (tl?"<div class='trk-timeline'>"+tl+"</div>"
+    (tl?"<div class='trk-timeline trk-tl-simple'>"+tl+"</div>"
        :"<div class='empty'>No timeline entries yet. Click <strong>+ Add entry</strong> to record the enquiry, meeting minutes or a quotation &mdash; that's also where you attach the PDF / Excel files.</div>");
 }
 

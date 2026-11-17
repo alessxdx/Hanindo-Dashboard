@@ -3134,3 +3134,23 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .trk-panel-simple .trk-pn-e+.trk-pn-e{border-top:none}
 .trk-pn-type{font-size:12px;color:var(--text-muted);font-weight:500}
 .trk-panel-simple .trk-pn-e-det{color:var(--text-strong)}
+
+/* Full project page, simple: plain card, sentence-case labels, timeline as rows */
+.trk-detail-simple{border-top:1px solid var(--border)}
+.trk-detail-simple .trk-detail-name{font-size:19px}
+.trk-detail-simple .trk-pn-st .trk-tx,.trk-detail-simple .trk-pn-st .trk-tx-pay{font-size:14px}
+.trk-detail-simple .trk-info-label{font-size:12.5px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-muted)}
+.trk-detail-simple .trk-info-val{font-size:14px;color:var(--text-strong)}
+.trk-detail-simple .trk-sw-row{display:flex;gap:22px;margin-top:14px}
+.trk-detail-simple .trk-low-sw{border:none;background:none;padding:0;width:auto;box-shadow:none;align-items:center;flex:none}
+.trk-detail-simple .trk-low-sw small{display:none}
+.trk-detail-simple .trk-low-txt strong{font-size:13px;font-weight:600}
+.trk-detail-simple .trk-pn-sol{font-weight:600}
+.trk-tl-simple{padding-left:0;border-top:1px solid var(--divider)}
+.trk-tl-simple:before,.trk-tl-simple .trk-tl-dot{display:none}
+.trk-tl-simple .trk-tl-item{margin:0}
+.trk-tl-simple .trk-tl-body{background:none;border:none;border-bottom:1px solid var(--divider);border-radius:0;padding:14px 2px}
+.trk-tl-simple .trk-tl-meta{font-size:14px}
+.trk-tl-simple .trk-pn-type{font-size:13px}
+.trk-tl-simple .trk-tl-title{font-size:15px;font-weight:700;margin-top:4px}
+.trk-tl-simple .trk-tl-details{font-size:14.5px;line-height:1.6;margin-top:4px}
