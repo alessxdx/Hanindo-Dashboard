@@ -136,73 +136,23 @@ async function loadFromDB(){
     if(projRows){PROJECTS.length=0;projRows.forEach(function(r){PROJECTS.push(dbToProject(r));});}
     if(liRows){LINE_ITEMS.length=0;liRows.forEach(function(r){LINE_ITEMS.push(dbToLineItem(r));});}
 
-    // Seed the built-in reference rows ONLY into a genuinely empty table
-    // (first-time bootstrap). Once a table has any rows we always trust the
-    // DB, so the user's own edits and deletions are never reverted. Deals
-    // are never seeded — they only ever come from the database.
-    var BUYING_CODE_COUNT=BUYING_SEED.length;
-    var OTHERS_CODE_COUNT=OTHERS_SEED.length;
-
     // Legacy flat deals. Nothing writes to this table any more — every deal
     // is a project + line items — but existing rows are still rendered and
     // reconciled by resolveDeals() if any are ever restored.
     TX.length=0;
     if(txRows)txRows.forEach(function(r){TX.push(dbToTx(r));});
 
-    if(buyRows&&buyRows.length>0){
-      BUYING.length=0;buyRows.forEach(function(r){BUYING.push(dbToB(r));});
-    } else {
-      showLoad("Seeding buying prices ("+BUYING_CODE_COUNT+" entries)...");
-      await fetch(SB_URL+"/rest/v1/buying_prices?id=neq.00000000-0000-0000-0000-000000000000",{method:"DELETE",headers:sbH()});
-      BUYING.length=0;
-      for(var j=0;j<BUYING_SEED.length;j++){
-        var b=Object.assign({},BUYING_SEED[j]);delete b._id;
-        var rb=await sbInsert("buying_prices",bToDb(b));
-        if(rb&&rb[0])b._id=rb[0].id;
-        BUYING.push(b);
-      }
-    }
-
-    if(othRows&&othRows.length>0){
-      OTHERS.length=0;othRows.forEach(function(r){OTHERS.push(dbToO(r));});
-    } else {
-      showLoad("Seeding notes ("+OTHERS_CODE_COUNT+" entries)...");
-      await fetch(SB_URL+"/rest/v1/others?id=neq.00000000-0000-0000-0000-000000000000",{method:"DELETE",headers:sbH()});
-      OTHERS.length=0;
-      for(var k=0;k<OTHERS_SEED.length;k++){
-        var o=Object.assign({},OTHERS_SEED[k]);delete o._id;
-        var ro=await sbInsert("others",oToDb(o));
-        if(ro&&ro[0])o._id=ro[0].id;
-        OTHERS.push(o);
-      }
-    }
-
-    // SPARES — load from DB if any rows exist, otherwise seed defaults
-    if(spareRows&&spareRows.length>0){
-      SPARES.length=0;spareRows.forEach(function(r){SPARES.push(dbToS(r));});
-    } else {
-      showLoad("Seeding spares ("+SPARES_SEED.length+" entries)...");
-      await fetch(SB_URL+"/rest/v1/spares?id=neq.00000000-0000-0000-0000-000000000000",{method:"DELETE",headers:sbH()});
-      SPARES.length=0;
-      for(var sIdx=0;sIdx<SPARES_SEED.length;sIdx++){
-        var sp=Object.assign({},SPARES_SEED[sIdx]);delete sp._id;
-        var rs=await sbInsert("spares",sToDb(sp));
-        if(rs&&rs[0])sp._id=rs[0].id;
-        SPARES.push(sp);
-      }
-    }
-
-    // MODELS — load from DB if any rows exist, otherwise seed defaults
-    if(modelRows&&modelRows.length>0){
-      CUSTOM_MODELS=modelRows.map(dbToM);
-    } else {
-      showLoad("Seeding models ("+MODELS_SEED.length+" entries)...");
-      await fetch(SB_URL+"/rest/v1/models?id=neq.00000000-0000-0000-0000-000000000000",{method:"DELETE",headers:sbH()});
-      for(var mIdx=0;mIdx<MODELS_SEED.length;mIdx++){
-        await sbInsert("models",{name:MODELS_SEED[mIdx]});
-      }
-      CUSTOM_MODELS=MODELS_SEED.slice();
-    }
+    /* Reference tables are only ever READ here. They used to be wiped and
+       re-seeded whenever a load came back empty, and on 12 Nov 2026 a failed
+       load (wrong sign-in token) was taken as "empty" and erased Notes,
+       Buying Prices, Spare Parts and Models. Now: a load that worked is used
+       as it is (even if empty); a load that failed changes nothing and says so. */
+    var failed=[];
+    if(Array.isArray(buyRows)){BUYING.length=0;buyRows.forEach(function(r){BUYING.push(dbToB(r));});}else failed.push("Buying Prices");
+    if(Array.isArray(othRows)){OTHERS.length=0;othRows.forEach(function(r){OTHERS.push(dbToO(r));});}else failed.push("Notes");
+    if(Array.isArray(spareRows)){SPARES.length=0;spareRows.forEach(function(r){SPARES.push(dbToS(r));});}else failed.push("Spare Parts");
+    if(Array.isArray(modelRows)){if(modelRows.length)CUSTOM_MODELS=modelRows.map(dbToM);}else failed.push("Models");
+    if(failed.length)alert("Couldn't load "+failed.join(", ")+" from the database. Nothing was changed. Reload the page; if it keeps happening, sign out and back in.");
 
   }catch(e){console.error(e);alert("Could not connect to database. Using local data.");}
   /* renderContent: with URL routing the app can
@@ -224,10 +174,13 @@ async function saveModelList(){
   var lines=document.getElementById("model-list-editor").value.split("\n").map(function(l){return l.trim();}).filter(Boolean);
   showLoad("Saving model list...");
   try{
-    await fetch(SB_URL+"/rest/v1/models?id=neq.00000000-0000-0000-0000-000000000000",{method:"DELETE",headers:sbH()});
+    /* add the new list first; the old rows go only once every insert worked */
+    var old=await sbGet("models");
+    if(!Array.isArray(old))throw new Error("couldn't read the current list");
     for(var i=0;i<lines.length;i++){
-      await sbInsert("models",{name:lines[i]});
+      if(!await sbInsert("models",{name:lines[i]}))throw new Error("couldn't save "+lines[i]);
     }
+    for(var k=0;k<old.length;k++)await sbDelete("models",old[k].id);
     CUSTOM_MODELS=lines;
     localStorage.setItem("cpd_models",JSON.stringify(lines));
   }catch(e){console.error(e);alert("Save failed: "+e.message);hideLoad();return;}
