@@ -3270,3 +3270,8 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 :root[data-theme="dark"] .exp-amt.exp-in{color:#75e0a7}
 @media (max-width:700px){.exp-sum-row small{width:auto}.exp-row{flex-wrap:wrap}.exp-row .nt-body{flex-basis:calc(100% - 70px)}.exp-amt{margin-left:66px}}
 .exp-desc-more{font-size:13.5px;color:var(--text);line-height:1.6;margin-top:1px}
+
+/* Expenses: department headings in the tracker's solution colours; source files */
+.nt-simple .nt-h.exp-dept{font-size:18px}
+.exp-files{align-items:center}
+.exp-files>div{display:flex;flex-wrap:wrap;gap:6px}

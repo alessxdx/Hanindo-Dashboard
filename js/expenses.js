@@ -11,7 +11,14 @@ var EXP_DEPTS=["Fire fighting office","POSIVA"]; /* shown first, in this order *
 
 function expFromDb(r){return{_id:r.id,department:r.department||"",date:r.entry_date||"",period:r.period||"",description:r.description||"",
   category:r.category||"",amount:Number(r.amount)||0,currency:r.currency||"IDR",kind:r.kind==="received"?"received":"spent",
-  paidBy:r.paid_by||"",note:r.note||"",createdAt:r.created_at||""};}
+  paidBy:r.paid_by||"",note:r.note||"",attachments:Array.isArray(r.attachments)?r.attachments:[],createdAt:r.created_at||""};}
+/* department heading colour = the matching Project Tracker solution colour
+   ("Fire fighting office" → Fire fighting red, "POSIVA" → Posiva violet) */
+function expDeptColor(d){
+  var low=String(d||"").toLowerCase(),keys=typeof TRK_SOLUTION_COLORS!=="undefined"?Object.keys(TRK_SOLUTION_COLORS):[];
+  for(var k=0;k<keys.length;k++)if(low.indexOf(keys[k].toLowerCase())===0)return TRK_SOLUTION_COLORS[keys[k]];
+  return typeof trkSolutionColor==="function"?trkSolutionColor(d):"";
+}
 function expToDb(e){return{department:e.department,entry_date:e.date||null,period:e.period||null,description:e.description,
   category:e.category||null,amount:e.amount,currency:e.currency||"IDR",kind:e.kind,paid_by:e.paidBy||null,note:e.note||null};}
 
@@ -64,7 +71,7 @@ function renderExpenses(){
   };
   var body=depts.map(function(dept){
     var list=EXPENSES.filter(function(e){return e.department===dept;})
-      .sort(function(a,b){return (b.date||"").localeCompare(a.date||"")||(a.createdAt||"").localeCompare(b.createdAt||"");});
+      .sort(function(a,b){return (b.date||"").localeCompare(a.date||"")||b.amount-a.amount;}); /* same date: biggest first */
     if(!list.length&&EXP_DEPTS.indexOf(dept)<0)return "";
     /* totals per currency: spent, received, and what it cost after money came back */
     var cur={};
@@ -92,7 +99,13 @@ function renderExpenses(){
           (e.kind==="received"?"<small>received</small>":"")+"</div>"+
         "<div class='nt-acts'>"+ico("edit","Edit","expOpenModal("+i+")")+ico("trash","Remove","expDelete("+i+")")+"</div></div>";
     }).join("");
-    return "<div class='nt-card'><div class='nt-head'><span class='nt-h'>"+trkEsc(dept)+"</span><span class='nt-n2'>"+list.length+" entr"+(list.length===1?"y":"ies")+"</span></div>"+
+    /* source files (the same file can be on several rows): listed once */
+    var seen={},files=[];
+    list.forEach(function(e){(e.attachments||[]).forEach(function(a){if(a&&a.url&&!seen[a.url]){seen[a.url]=1;files.push(a);}});});
+    if(files.length)sum+="<div class='exp-sum-row exp-files'><span>Source file"+(files.length>1?"s":"")+"</span><div>"+files.map(function(a){
+      return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+(typeof trkFileIcon==="function"?trkFileIcon(a.name)+" ":"")+trkEsc(a.name)+"</a>";
+    }).join("")+"</div></div>";
+    return "<div class='nt-card'><div class='nt-head'><span class='nt-h exp-dept' style='color:"+expDeptColor(dept)+"'>"+trkEsc(dept)+"</span><span class='nt-n2'>"+list.length+" entr"+(list.length===1?"y":"ies")+"</span></div>"+
       (list.length?"<div class='exp-sum'>"+sum+"</div>"+rows:"<div class='nt-empty'>No expenses recorded yet.</div>")+"</div>";
   }).join("");
   content.innerHTML="<div class='nt-page nt-simple'>"+head+body+"</div>";
