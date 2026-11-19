@@ -766,19 +766,18 @@ function renderBuying(bodyOnly){
   };
   function makeRow(b){
     return "<tr class='buy-row'>"+
-      "<td class='buy-c-model'>"+trkEsc(b.model)+"</td>"+
-      "<td class='buy-c-pn'>"+(b.pn?trkEsc(b.pn):"<span class='trk-r-none'>&mdash;</span>")+"</td>"+
+      "<td class='buy-c-model'><div class='buy-name'>"+trkEsc(b.model)+"</div>"+(b.pn?"<div class='buy-pn'>"+trkEsc(b.pn)+"</div>":"")+"</td>"+
       "<td class='num buy-c-price'>"+money(b.price,b.currency)+"</td>"+
-      "<td class='num buy-c-sp'>"+(b.specialPrice?"<div class='buy-sp'>"+money(b.specialPrice,b.currency)+"</div><div class='buy-sp-who'>"+trkEsc(b.specialCustomer||"Special")+"</div>":"<span class='trk-r-none'>&mdash;</span>")+"</td>"+
+      "<td class='num buy-c-sp'>"+(b.specialPrice?"<div class='buy-sp'>"+money(b.specialPrice,b.currency)+"</div><div class='buy-sp-who'>for "+trkEsc(b.specialCustomer||"special deal")+"</div>":"")+"</td>"+
       "<td class='buy-c-acts'><div class='nt-acts'>"+ico("edit","Edit","editBuying("+b._i+")")+ico("trash","Remove","sbDeleteBuying("+b._i+")")+"</div></td>"+
     "</tr>";
   }
-  var band=function(name,n){return "<tr class='trk-band buy-band'><td colspan='5'><span class='po-grp-name'>"+trkEsc(name)+"</span><span class='po-grp-n'>"+n+"</span></td></tr>";};
+  var band=function(name,n){return "<tr class='buy-band2'><td colspan='4'><span class='buy-band2-name'>"+trkEsc(name)+"</span><span class='buy-band2-n'>"+n+" item"+(n===1?"":"s")+"</span></td></tr>";};
   var grpNames=Object.keys(groups).sort();
   var rows="";
   if(noGroup.length)rows+=(grpNames.length?band("General",noGroup.length):"")+noGroup.map(makeRow).join("");
   grpNames.forEach(function(g){rows+=band(g,groups[g].length)+groups[g].map(makeRow).join("");});
-  if(!rows)rows="<tr><td colspan='5' class='empty'>"+(words.length?"Nothing matches that search.":"No buying prices yet.")+"</td></tr>";
+  if(!rows)rows="<tr><td colspan='4' class='empty'>"+(words.length?"Nothing matches that search.":"No buying prices yet.")+"</td></tr>";
 
   var bgl=document.getElementById("b-group-list");
   if(bgl){var grps=[...new Set(BUYING.map(function(b){return b.group;}).filter(Boolean))].sort();bgl.innerHTML=grps.map(function(g){return "<option value='"+g+"'>";}).join("");}
@@ -797,7 +796,7 @@ function renderBuying(bodyOnly){
       sortMenu+
       "<span id='buy-count' class='pg-summary'>"+count+"</span>"+
     "</div>"+
-    "<div class='po-table-wrap buy-table'><table class='po-table buy-list'><thead><tr><th>Model</th><th>Part number</th><th class='num'>Buying price</th><th class='num'>Special price</th><th></th></tr></thead>"+
+    "<div class='po-table-wrap buy-table'><table class='po-table buy-list buy-simple'><thead><tr><th>Model</th><th class='num'>Buying price</th><th class='num'>Special price</th><th></th></tr></thead>"+
     "<tbody id='buy-tbody'>"+rows+"</tbody></table></div>";
   var inp=document.getElementById("buy-search");
   /* not on touch screens: focusing would pop the keyboard up on every visit */

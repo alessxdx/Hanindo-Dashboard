@@ -3176,3 +3176,24 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .td-bycust>summary{padding:10px 2px}
 .td-cust{padding:8px 2px}
 .td-note{font-size:11.5px;color:var(--text-muted)}
+
+/* Buying Prices, simple: bold model with grey part number, plain group headings */
+.buy-simple td{padding:10px 16px;vertical-align:top}
+.buy-simple .buy-name{font-weight:700;color:var(--text-strong)}
+.buy-simple .buy-pn{font-size:12px;color:var(--text-muted);margin-top:2px;font-family:inherit}
+.buy-simple .buy-c-price{font-weight:700;color:var(--text-strong);white-space:nowrap}
+.buy-simple .buy-sp{font-weight:700;color:#b54708;white-space:nowrap}
+.buy-simple .buy-sp-who{font-size:12px;color:var(--text-muted)}
+:root[data-theme="dark"] .buy-simple .buy-sp{color:#fec84b}
+.buy-band2 td{padding:20px 16px 6px;background:none;border-bottom:2px solid var(--border)}
+.buy-band2-name{font-size:15px;font-weight:700;color:var(--text-strong)}
+.buy-band2-n{font-size:12px;color:var(--text-muted);margin-left:8px}
+.buy-simple .nt-acts{opacity:0;transition:opacity .15s}
+.buy-simple tr:hover .nt-acts,.buy-simple .nt-acts:focus-within{opacity:1}
+@media (hover:none){.buy-simple .nt-acts{opacity:1}}
+@media (max-width:700px){
+  .buy-band2{display:block}
+  .buy-band2 td{display:block;padding:16px 12px 6px}
+  .buy-row .buy-c-sp:empty{display:none}
+  .buy-simple .buy-row td{padding:0}
+}
