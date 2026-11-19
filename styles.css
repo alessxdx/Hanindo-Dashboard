@@ -3275,3 +3275,7 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .nt-simple .nt-h.exp-dept{font-size:18px}
 .exp-files{align-items:center}
 .exp-files>div{display:flex;flex-wrap:wrap;gap:6px}
+
+/* coloured group headings: lifted a little on the dark theme */
+:root[data-theme="dark"] .buy-band2-name{filter:brightness(1.6)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .buy-band2-name{filter:brightness(1.6)}}
