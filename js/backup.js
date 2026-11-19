@@ -9,7 +9,7 @@
    the file); the file keeps their addresses.
    ============================================================ */
 var BK_TABLES=["tracker_projects","tracker_entries","projects","line_items","purchase_orders","po_lines",
-  "buying_prices","spares","models","pricing_profiles","others","transactions"];
+  "buying_prices","spares","models","pricing_profiles","others","expenses","transactions"];
 var BK_REMIND_DAYS=7;
 var BK_KEY="hanindo_last_backup";
 

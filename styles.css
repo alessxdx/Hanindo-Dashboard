@@ -3250,3 +3250,23 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .nt-simple .nt-code{background:none;color:var(--text-strong);padding:0;font-size:13px;min-width:44px}
 .nt-simple .nt-term .nt-ico{opacity:0}.nt-simple .nt-term:hover .nt-ico{opacity:1}
 @media (max-width:700px){.nt-day2{width:56px;font-size:12.5px}.nt-simple .nt-upd,.nt-simple .nt-rec{gap:10px}}
+
+/* Notes page: Notes / Expenses switch, and the Expenses view */
+.nt-views{margin:0 0 4px}
+.exp-sum{margin:4px 0 6px;max-width:560px}
+.exp-sum-row{display:flex;align-items:baseline;gap:10px;padding:6px 2px;font-size:13.5px;border-bottom:1px solid var(--divider)}
+.exp-sum-row span{flex:1;color:var(--text-muted)}
+.exp-sum-row b{color:var(--text-strong);white-space:nowrap}
+.exp-sum-row small{width:120px;text-align:right;font-size:12px;color:var(--text-muted);white-space:nowrap}
+.exp-sum-in b{color:#067647}
+.exp-sum-tot span{color:var(--text-strong);font-weight:700}
+:root[data-theme="dark"] .exp-sum-in b{color:#75e0a7}
+.exp-desc{font-size:14px;font-weight:700;color:var(--text-strong);line-height:1.5}
+.exp-note{font-size:12.5px;color:#b54708;margin-top:3px}
+:root[data-theme="dark"] .exp-note{color:#fec84b}
+.exp-amt{flex:none;text-align:right;font-weight:700;color:var(--text-strong);white-space:nowrap;font-size:14px}
+.exp-amt small{display:block;font-size:11.5px;font-weight:400;color:var(--text-muted)}
+.exp-amt.exp-in{color:#067647}
+:root[data-theme="dark"] .exp-amt.exp-in{color:#75e0a7}
+@media (max-width:700px){.exp-sum-row small{width:auto}.exp-row{flex-wrap:wrap}.exp-row .nt-body{flex-basis:calc(100% - 70px)}.exp-amt{margin-left:66px}}
+.exp-desc-more{font-size:13.5px;color:var(--text);line-height:1.6;margin-top:1px}

@@ -814,6 +814,7 @@ function renderBuying(bodyOnly){
    first two; the terms are A-Z and folded away since they rarely change. */
 function renderOthers(){
   pgHideStats();
+  if(typeof NT_VIEW!=="undefined"&&NT_VIEW==="expenses")return renderExpenses();
   const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
   const all=OTHERS.map((o,i)=>({o:o,i:i}));
   const newest=(a,b)=>(b.o.created||"").localeCompare(a.o.created||"")||b.i-a.i;
@@ -846,7 +847,7 @@ function renderOthers(){
     <div class="nt-term-h"><span class="nt-code">${esc(parts[0])}</span><span class="nt-term-name">${esc(parts.slice(1).join(" — "))}</span>${btn("edit","Edit",`editOther(${i})`)}</div>
     ${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>`;};
   const head=(title,n,hint)=>`<div class="nt-head"><span class="nt-h">${title}</span><span class="nt-n2">${n}</span>${hint?`<span class="nt-hint">${hint}</span>`:""}</div>`;
-  document.getElementById("content").innerHTML=`<div class="nt-page nt-simple">
+  document.getElementById("content").innerHTML=`<div class="nt-page nt-simple">${typeof ntViewChips==="function"?ntViewChips():""}
     <div class="nt-card nt-compose">
       <textarea id="others-quick" rows="6" placeholder="Write an update… start a line with - or 1. for a list" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();postOtherQuick();}else listKeys(event)" oninput="listInput(event)"></textarea>
       <div class="nt-compose-foot">
@@ -1337,6 +1338,9 @@ function openModal(){
   }
   else if(currentTab==="po"){
     poOpenModal();
+  }
+  else if(currentTab==="others"&&typeof NT_VIEW!=="undefined"&&NT_VIEW==="expenses"){
+    expOpenModal();
   }
   else if(currentTab==="others"){
     closeOtherModal();

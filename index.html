@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-19.4";
+var APP_VERSION = "2026-11-19.5";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -226,6 +226,28 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <button id="btn-delete-other" class="delete-btn" style="margin-right:auto;font-size:13px;padding:9px 14px;display:none" onclick="deleteOtherFromModal()">Delete entry</button>
       <button class="btn-cancel" onclick="closeOtherModal()">Cancel</button>
       <button class="btn-save" id="btn-save-other" onclick="sbSaveOther()">Save entry</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-expense">
+  <div class="modal">
+    <div class="modal-title" id="exp-modal-title">Add expense</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Department *</label><input id="exp-dept" list="exp-dept-list" placeholder="e.g. Fire fighting office"><datalist id="exp-dept-list"></datalist></div>
+      <div class="form-group"><label>Type</label><select id="exp-kind"><option value="spent">Money spent</option><option value="received">Money received</option></select></div>
+      <div class="form-group"><label>Date</label><input id="exp-date" type="date"></div>
+      <div class="form-group"><label>Period (optional)</label><input id="exp-period" placeholder="Shown instead of the date, e.g. Jan–Oct 2026"></div>
+      <div class="form-group form-full"><label>Description *</label><textarea id="exp-desc" rows="3" placeholder="e.g. Office stationery"></textarea></div>
+      <div class="form-group"><label>Amount *</label><input id="exp-amount" type="number" step="any" placeholder="e.g. 1199500"></div>
+      <div class="form-group"><label>Currency</label><select id="exp-currency"><option value="IDR">IDR</option><option value="CNY">CNY</option><option value="USD">USD</option><option value="SGD">SGD</option><option value="EUR">EUR</option></select></div>
+      <div class="form-group"><label>Category</label><input id="exp-cat" placeholder="e.g. Website, Goods, Office"></div>
+      <div class="form-group"><label>Paid by (company)</label><input id="exp-paidby" placeholder="e.g. HANINDO"></div>
+      <div class="form-group form-full"><label>Note</label><input id="exp-note" placeholder="e.g. Remaining CNY 79,516 not yet paid"></div>
+    </div>
+    <div class="modal-actions">
+      <button id="btn-delete-expense" class="delete-btn" style="margin-right:auto;font-size:13px;padding:9px 14px;display:none" onclick="expDeleteFromModal()">Delete</button>
+      <button class="btn-cancel" onclick="closeModal('modal-expense')">Cancel</button>
+      <button class="btn-save" onclick="expSave()">Save</button>
     </div>
   </div>
 </div>
@@ -453,7 +475,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
 </div>
 <script>
 /* document.write keeps classic scripts executing in listed order. */
-["js/config.js","js/data.js","js/render.js","js/richtext.js","js/fx.js","js/detail.js","js/supabase.js","js/auth.js","js/projects.js","js/parse.js","js/tracker.js","js/custbase.js","js/today.js","js/backup.js","js/po.js","js/pricing.js","js/app.js"]
+["js/config.js","js/data.js","js/render.js","js/richtext.js","js/fx.js","js/detail.js","js/supabase.js","js/auth.js","js/projects.js","js/parse.js","js/tracker.js","js/custbase.js","js/today.js","js/backup.js","js/po.js","js/pricing.js","js/expenses.js","js/app.js"]
   .forEach(function(src){document.write('<script src="'+src+'?v='+ASSET_V+'"><\/script>');});
 </script>
 <!-- Phone tab bar: the four main pages plus More (opens the full menu).
