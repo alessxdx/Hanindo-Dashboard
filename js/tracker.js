@@ -156,6 +156,27 @@ function trkValueHtml(p){
   var usd=(p.currency!=="USD"&&typeof fxUsdText==="function")?fxUsdText(p.estValue,p.currency):"";
   return "<span class='trk-value'>"+p.estValue.toLocaleString()+" "+trkEsc(p.currency)+"</span>"+(usd?" <span class='trk-value-usd'>"+usd+"</span>":"");
 }
+/* money received so far (sum of Payment received amounts) and what is left
+   of the project's value; empty when nothing has been paid and it isn't won */
+function trkPaidSum(p){
+  return trkEntriesFor(p._id).filter(function(e){return e.type==="Payment received"&&e.amount!==null&&e.amount!==undefined;})
+    .reduce(function(n,e){return n+Number(e.amount);},0);
+}
+function trkReceivedHtml(p){
+  var paid=trkPaidSum(p);
+  if(!paid&&p.status!=="Won")return"";
+  return "<span class='trk-value'>"+paid.toLocaleString()+" "+trkEsc(p.currency)+"</span>";
+}
+function trkLeftHtml(p){
+  var paid=trkPaidSum(p);
+  if(!paid&&p.status!=="Won")return"";
+  if(p.estValue===null)return "<span class='trk-tx trk-tx-dim'>Add the project value to see this</span>";
+  var left=p.estValue-paid;
+  if(left<=0.005||p.payment==="Fully paid")return "<span class='trk-tx trk-tx-won'>Fully paid</span>";
+  var usd=(p.currency!=="USD"&&typeof fxUsdText==="function")?fxUsdText(left,p.currency):"";
+  return "<span class='trk-left'>"+left.toLocaleString()+" "+trkEsc(p.currency)+"</span>"+(usd?" <span class='trk-value-usd'>"+usd+"</span>":"")+
+    "<div class='trk-value-usd'>"+Math.round(paid/p.estValue*100)+"% paid</div>";
+}
 /* Newest entry per project id, in one pass over the entries. Keeps the
    entry's created_at alongside its date so two entries on the same day
    can still be ordered by which was logged last. */
@@ -361,6 +382,25 @@ function trkFileIcon(name){
   if(/\.pdf$/.test(n))return "&#128196;";                    /* 📄 */
   if(/\.(png|jpe?g|gif|webp)$/.test(n))return "&#128247;";   /* 📷 */
   return "&#128206;";                                        /* 📎 */
+}
+
+/* Attachment chip: a coloured file-type tag (PDF red, Excel green, image
+   blue, Word indigo) on a tinted chip, so files stand out from the notes.
+   Older attachments can have a bare name, so the URL's extension is the
+   fallback. */
+function trkFileKind(name,url){
+  var n=String(name||"").toLowerCase(),u=String(url||"").toLowerCase().split(/[?#]/)[0];
+  var t=/\.[a-z0-9]+$/.test(n)?n:u;
+  if(/\.(xls|xlsx|xlsm|csv)$/.test(t))return{k:"xls",l:/\.csv$/.test(t)?"CSV":"XLS"};
+  if(/\.pdf$/.test(t))return{k:"pdf",l:"PDF"};
+  if(/\.(png|jpe?g|gif|webp)$/.test(t))return{k:"img",l:"IMG"};
+  if(/\.(doc|docx)$/.test(t))return{k:"doc",l:"DOC"};
+  return{k:"other",l:"FILE"};
+}
+function trkAttHtml(a){
+  var f=trkFileKind(a.name,a.url);
+  return "<a class='trk-att trk-att-"+f.k+"' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' title='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+
+    "<span class='trk-att-tag'>"+f.l+"</span><span class='trk-att-name'>"+trkEsc(a.name)+"</span></a>";
 }
 
 /* Insert that surfaces the server's reason on failure — a bare "insert
@@ -896,9 +936,7 @@ function trkPanelHtml(p,act){
   var info=function(label,html){return html?"<div class='trk-pn-row'><span>"+label+"</span><div>"+html+"</div></div>":"";};
   var flag=trkFlag(p.country,16);
   var tl=entries.map(function(e){
-    var atts=(e.attachments||[]).map(function(a){
-      return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+trkFileIcon(a.name)+" "+trkEsc(a.name)+"</a>";
-    }).join("");
+    var atts=(e.attachments||[]).map(trkAttHtml).join("");
     return "<div class='trk-pn-e'><div class='trk-pn-e-meta'><strong>"+trkFmtDate(e.date)+"</strong> <span class='trk-pn-type'>"+trkEsc(e.type)+"</span>"+trkAmtTag(e)+
         "<a href='#' class='trk-tl-edit' title='Edit' aria-label='Edit entry' onclick='trkEditEntry(event,\""+e._id+"\")'>"+EDIT_ICO+"</a></div>"+
       (e.title?"<div class='trk-pn-e-title'>"+trkEsc(e.title)+"</div>":"")+
@@ -919,6 +957,8 @@ function trkPanelHtml(p,act){
     info("Solution",p.solution?"<span class='trk-pn-sol' style='color:"+trkSolutionColor(p.solution)+"'>"+trkEsc(p.solution)+"</span>":"")+
     info("Products",(p.products||[]).map(trkEsc).join(", "))+
     info("Value",p.estValue!==null?trkValueHtml(p):"")+
+    info("Received",trkReceivedHtml(p))+
+    info("Left to pay",trkLeftHtml(p))+
     info("Expected close",trkPeriodLabel(p))+
     info("Next follow-up",trkActiveFollowup(p,act)?trkFmtDate(trkActiveFollowup(p,act)):"")+
     info("Expenses",typeof poProjectExpensesHtml==="function"?poProjectExpensesHtml(p._id):"")+
@@ -1155,6 +1195,8 @@ function trkRenderDetail(){
         infoRow("Solution type",p.solution?"<span class='trk-pn-sol' style='color:"+trkSolutionColor(p.solution)+"'>"+trkEsc(p.solution)+"</span>":"")+
         infoRow("Products of interest",(p.products||[]).map(trkEsc).join(", "))+
         infoRow("Estimated value",p.estValue!==null?trkValueHtml(p):"")+
+        infoRow("Received",trkReceivedHtml(p))+
+        infoRow("Left to pay",trkLeftHtml(p))+
         infoRow("Expected close",trkPeriodLabel(p))+
         infoRow("Next follow-up",trkActiveFollowup(p)?trkFmtDate(trkActiveFollowup(p)):"")+
         infoRow("Expenses",typeof poProjectExpensesHtml==="function"?poProjectExpensesHtml(p._id):"")+
@@ -1166,9 +1208,7 @@ function trkRenderDetail(){
     "</div>";
 
   var tl=entries.map(function(e){
-    var atts=(e.attachments||[]).map(function(a){
-      return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+trkFileIcon(a.name)+" "+trkEsc(a.name)+"</a>";
-    }).join("");
+    var atts=(e.attachments||[]).map(trkAttHtml).join("");
     return "<div class='trk-tl-item trk-t-"+trkTypeSlug(e.type)+"'><div class='trk-tl-dot'></div><div class='trk-tl-body'>"+
       "<div class='trk-tl-meta'><strong>"+trkFmtDate(e.date)+"</strong> <span class='trk-pn-type'>"+trkEsc(e.type)+"</span>"+trkAmtTag(e)+
         "<a href='#' class='trk-tl-edit' title='Edit' aria-label='Edit entry' onclick='trkEditEntry(event,\""+e._id+"\")'>"+EDIT_ICO+"</a></div>"+

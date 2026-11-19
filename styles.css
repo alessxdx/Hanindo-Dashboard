@@ -1165,12 +1165,23 @@ details.others-sec:not([open]) > summary{border-bottom:none}
 .po-panel-note.txt-lines{white-space:normal}
 .trk-tl-atts{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
 .trk-att{
-  display:inline-flex;align-items:center;gap:5px;
-  font-size:11px;color:var(--accent-text);text-decoration:none;
-  background:var(--bg-soft);border:1px solid var(--border);border-radius:6px;
-  padding:4px 9px;
+  display:inline-flex;align-items:center;gap:7px;max-width:100%;
+  font-size:12px;font-weight:500;color:var(--text);text-decoration:none;
+  background:var(--att-bg,var(--badge-term-bg));border:1px solid transparent;border-radius:7px;
+  padding:4px 10px 4px 4px;cursor:pointer;
 }
-.trk-att:hover{border-color:var(--border-strong);background:var(--bg-hover)}
+.trk-att-tag{
+  flex:none;font-size:10px;font-weight:700;letter-spacing:.03em;line-height:1;
+  color:#fff;background:var(--att-fg,var(--badge-term-fg));border-radius:4px;padding:4px 5px;
+}
+.trk-att-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trk-att:hover{border-color:var(--att-fg,var(--border-strong))}
+.trk-att:hover .trk-att-name{text-decoration:underline}
+.trk-att-pdf{--att-bg:var(--badge-ls-bg);--att-fg:var(--badge-ls-fg)}
+.trk-att-xls{--att-bg:var(--badge-po-bg);--att-fg:var(--badge-po-fg)}
+.trk-att-img{--att-bg:var(--badge-qt-bg);--att-fg:var(--badge-qt-fg)}
+.trk-att-doc{--att-bg:var(--badge-order-bg);--att-fg:var(--badge-order-fg)}
+:root[data-theme="dark"] .trk-att-tag{color:#111}
 
 @media (max-width:640px){
   .trk-toolbar{flex-direction:column;align-items:stretch}
@@ -3214,3 +3225,7 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .cmp-sum-v{width:130px;flex:none;font-weight:700;color:var(--text-strong);white-space:nowrap}
 .cmp-sum-s{color:var(--text-muted);font-size:12.5px}
 @media (max-width:700px){.cmp-sum-l{width:90px}.cmp-sum-v{width:auto}.cmp-sum-row{flex-wrap:wrap;gap:4px 10px}.cmp-sum-s{width:100%}}
+
+/* Received / Left to pay rows (project panel and full page) */
+.trk-left{font-weight:700;color:#b54708}
+:root[data-theme="dark"] .trk-left{color:#fec84b}
