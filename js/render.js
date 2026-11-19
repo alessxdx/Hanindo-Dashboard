@@ -8,14 +8,6 @@ function bStatus(s){
 function bTerm(t){const m={DDP:"b-ddp",DAP:"b-dap",EXW:"b-exw"};return`<span class="badge ${m[t]||"b-exw"}">${t}</span>`;}
 function bWarranty(w){if(!w)return"";const m={"5Y":"b-5y","3Y":"b-3y","2Y":"b-2y","1Y":"b-1y"};return`<span class="badge ${m[w]||"b-1y"}">${w} warranty</span>`;}
 
-/* Group heading colour (Buying Prices, Spare Parts, Model Comparison): each
-   page hands out a readable palette in heading order (grpReset at the start
-   of the render), so headings next to each other never share a colour */
-var GRP_COLORS=["#1d4ed8","#7c3aed","#0f766e","#c2410c","#be185d","#15803d","#b91c1c","#0369a1","#a16207","#4338ca"];
-var GRP_SEEN={},GRP_N=0;
-function grpReset(){GRP_SEEN={};GRP_N=0;}
-function grpColor(name){var k=String(name||"");if(!(k in GRP_SEEN))GRP_SEEN[k]=GRP_COLORS[GRP_N++%GRP_COLORS.length];return GRP_SEEN[k];}
-
 let currentTab="today",expandedRows={};
 /* pencil used in place of the word "Edit" on row / entry edit buttons */
 var EDIT_ICO='<svg class="edit-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/></svg>';
@@ -640,7 +632,6 @@ function cmpStatusText(s){
   return"<span class='trk-tx trk-tx-lost'>Lost quote</span>";
 }
 function renderModel(){
-  grpReset();
   pgHideStats(); /* the customer summary boxes don't describe this page */
   /* Comparable rows come from both tables: a flat transaction is one row, and
      so is each printer line item on a project. Without this the tab empties
@@ -687,7 +678,7 @@ function renderModel(){
   let rows="",i=0;
   custs.forEach(c=>{
     const list=byCust[c];
-    rows+=`<tr class="buy-band2"><td colspan="${nCols}"><span class="buy-band2-name" style="color:${grpColor(c)}">${c}</span><span class="buy-band2-n">${list.length} price${list.length!==1?"s":""}</span></td></tr>`;
+    rows+=`<tr class="buy-band2"><td colspan="${nCols}"><span class="buy-band2-name">${c}</span><span class="buy-band2-n">${list.length} price${list.length!==1?"s":""}</span></td></tr>`;
     list.forEach(u=>{
       const tx=u.tx,all=[tx].concat(u.dupes);
       const margin=tx.bp&&tx.currency==="USD"?(tx.price-tx.bp).toFixed(0):null;
@@ -755,7 +746,6 @@ function toggleRow(i){
 function buyPickSort(v){window._buySort=v;renderBuying();}
 function buySearchInput(){renderBuying(true);}
 function renderBuying(bodyOnly){
-  grpReset();
   pgHideStats(); /* the customer summary boxes don't describe this page */
   var sortBuy=window._buySort||"model";
   var searchVal=document.getElementById("buy-search")?document.getElementById("buy-search").value:"";
@@ -788,7 +778,7 @@ function renderBuying(bodyOnly){
       "<td class='buy-c-acts'><div class='nt-acts'>"+ico("edit","Edit","editBuying("+b._i+")")+ico("trash","Remove","sbDeleteBuying("+b._i+")")+"</div></td>"+
     "</tr>";
   }
-  var band=function(name,n){return "<tr class='buy-band2'><td colspan='4'><span class='buy-band2-name' style='color:"+grpColor(name)+"'>"+trkEsc(name)+"</span><span class='buy-band2-n'>"+n+" item"+(n===1?"":"s")+"</span></td></tr>";};
+  var band=function(name,n){return "<tr class='buy-band2'><td colspan='4'><span class='buy-band2-name'>"+trkEsc(name)+"</span><span class='buy-band2-n'>"+n+" item"+(n===1?"":"s")+"</span></td></tr>";};
   var grpNames=Object.keys(groups).sort();
   var rows="";
   if(noGroup.length)rows+=(grpNames.length?band("General",noGroup.length):"")+noGroup.map(makeRow).join("");
@@ -1039,7 +1029,6 @@ MODELS_SEED=["TK180 Plastic","TK180 Plastic AEA","TK180 Metal Cutter","TK180 Met
 function spPickSort(v){window._spSort=v;renderSpares();}
 function spSearchInput(){renderSpares(true);}
 function renderSpares(bodyOnly){
-  grpReset();
   pgHideStats(); /* the customer summary boxes don't describe this page */
   var searchVal=document.getElementById("sp-search")?document.getElementById("sp-search").value:"";
   var sortVal=window._spSort||"customer";
@@ -1072,7 +1061,7 @@ function renderSpares(bodyOnly){
       "<td class='buy-c-acts'><div class='nt-acts'>"+ico("edit","Edit","editSpare("+x._i+")")+ico("trash","Remove","deleteSpare("+x._i+")")+"</div></td>"+
     "</tr>";
   }
-  var band=function(name,n,unit){return "<tr class='buy-band2'><td colspan='6'><span class='buy-band2-name' style='color:"+grpColor(name||"No customer")+"'>"+trkEsc(name||"No customer")+"</span><span class='buy-band2-n'>"+n+" "+unit+(n!==1?"s":"")+"</span></td></tr>";};
+  var band=function(name,n,unit){return "<tr class='buy-band2'><td colspan='6'><span class='buy-band2-name'>"+trkEsc(name||"No customer")+"</span><span class='buy-band2-n'>"+n+" "+unit+(n!==1?"s":"")+"</span></td></tr>";};
   var rows="";
   if(sortVal==="customer"){
     var order=[],grp={};
