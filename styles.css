@@ -3197,3 +3197,20 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
   .buy-row .buy-c-sp:empty{display:none}
   .buy-simple .buy-row td{padding:0}
 }
+
+/* Spare Parts + Model Comparison, simple: plain headings, coloured text, summary rows */
+.sp-list.buy-simple .sp-c-terms{color:var(--text-muted);font-size:13px}
+.sp-list.buy-simple .sp-c-note{font-style:normal;color:var(--text-muted);font-size:13px}
+.cmp-simple td{padding:10px 16px;vertical-align:top}
+.cmp-simple .cmp-c-model{font-weight:700;color:var(--text-strong)}
+.cmp-simple .cmp-c-price{font-weight:700;color:var(--text-strong);white-space:nowrap}
+.cmp-simple .cmp-c-terms{color:var(--text-muted);font-size:13px;white-space:nowrap}
+.cmp-simple .cmp-wty{font-size:12px;color:var(--text-muted)}
+.cmp-simple .trk-tx{font-size:13px}
+.cmp-sum{margin:4px 0 14px;max-width:720px}
+.cmp-sum-row{display:flex;align-items:baseline;gap:14px;padding:7px 2px;border-bottom:1px solid var(--divider);font-size:13.5px}
+.cmp-sum-row:last-child{border-bottom:2px solid var(--border)}
+.cmp-sum-l{width:120px;flex:none;color:var(--text-muted)}
+.cmp-sum-v{width:130px;flex:none;font-weight:700;color:var(--text-strong);white-space:nowrap}
+.cmp-sum-s{color:var(--text-muted);font-size:12.5px}
+@media (max-width:700px){.cmp-sum-l{width:90px}.cmp-sum-v{width:auto}.cmp-sum-row{flex-wrap:wrap;gap:4px 10px}.cmp-sum-s{width:100%}}

@@ -625,6 +625,12 @@ function cmpFamily(m){
   }
   return m;
 }
+/* plain coloured status text (the simple style used across the dashboard) */
+function cmpStatusText(s){
+  if(s==="PO")return"<span class='trk-tx trk-tx-won'>PO confirmed</span>";
+  if(s==="Quotation")return"<span class='trk-tx trk-tx-quoted'>Quotation</span>";
+  return"<span class='trk-tx trk-tx-lost'>Lost quote</span>";
+}
 function renderModel(){
   pgHideStats(); /* the customer summary boxes don't describe this page */
   /* Comparable rows come from both tables: a flat transaction is one row, and
@@ -672,7 +678,7 @@ function renderModel(){
   let rows="",i=0;
   custs.forEach(c=>{
     const list=byCust[c];
-    rows+=`<tr class="trk-band cmp-band"><td colspan="${nCols}"><span class="po-grp-name">${c}</span><span class="po-grp-n">${list.length} price${list.length!==1?"s":""}</span></td></tr>`;
+    rows+=`<tr class="buy-band2"><td colspan="${nCols}"><span class="buy-band2-name">${c}</span><span class="buy-band2-n">${list.length} price${list.length!==1?"s":""}</span></td></tr>`;
     list.forEach(u=>{
       const tx=u.tx,all=[tx].concat(u.dupes);
       const margin=tx.bp&&tx.currency==="USD"?(tx.price-tx.bp).toFixed(0):null;
@@ -684,8 +690,8 @@ function renderModel(){
         ${showModel?`<td class="cmp-c-model">${mdls.map(m=>`<div>${m}</div>`).join("")}</td>`:""}
         <td class="cmp-c-proj">${tx.project||"—"}${more>0?`<span class="cmp-more">+${more} more</span>`:""}</td>
         <td class="cmp-c-cty"><span class="cmp-country">${flagImg(tx.country,16)}${tx.country}</span></td>
-        <td class="cmp-c-st">${bStatus(tx.status)}</td>
-        <td class="cmp-c-terms">${tx.terms.map(bTerm).join("")}${bWarranty(tx.warranty)}</td>
+        <td class="cmp-c-st">${cmpStatusText(tx.status)}</td>
+        <td class="cmp-c-terms">${tx.terms.join(" \xb7 ")}${tx.warranty?`<div class="cmp-wty">${tx.warranty} warranty</div>`:""}</td>
         <td class="num cmp-c-price">${tx.price.toLocaleString()} <span class="trk-r-cur">${tx.currency}</span></td>
         <td class="num cmp-c-margin">${margin?`$${margin}<span>${mPct}%</span>`:"<span class='trk-r-none'>—</span>"}</td>
       </tr><tr class="cmp-detail${expandedRows[i]?" open":""}" id="erow-${i}">
@@ -701,8 +707,8 @@ function renderModel(){
   const fmt=t=>t?`${t.price.toLocaleString()} <span class="trk-r-cur">${t.currency}</span>`:"—";
   const sub=t=>t?`${t.customer}${dDisplay(t)?" \xb7 "+dDisplay(t):""}`:"";
   const latest=uniq.length?uniq[0].tx:null;
-  const stat=(lbl,val,note)=>`<div class="cmp-stat"><div class="cmp-stat-l">${lbl}</div><div class="cmp-stat-v">${val}</div><div class="cmp-stat-s">${note||"&nbsp;"}</div></div>`;
-  const summary=uniq.length?`<div class="cmp-stats">
+  const stat=(lbl,val,note)=>`<div class="cmp-sum-row"><span class="cmp-sum-l">${lbl}</span><span class="cmp-sum-v">${val}</span><span class="cmp-sum-s">${note||""}</span></div>`;
+  const summary=uniq.length?`<div class="cmp-sum">
     ${stat("Lowest price",fmt(ranked[0]),sub(ranked[0]))}
     ${stat("Highest price",fmt(ranked[ranked.length-1]),sub(ranked[ranked.length-1]))}
     ${stat("Latest price",fmt(latest),sub(latest))}
@@ -716,7 +722,7 @@ function renderModel(){
     </div>
     ${searching?`<div class="trk-search-count">${uniq.length} price${uniq.length!==1?"s":""} across ${new Set(txs.map(t=>t.displayModel||t.model)).size} models match <strong>${srch.replace(/</g,"&lt;")}</strong></div>`:""}
     ${summary}
-    <div class="po-table-wrap cmp-table"><table class="po-table cmp-list">
+    <div class="po-table-wrap cmp-table"><table class="po-table cmp-list cmp-simple">
     <thead><tr><th>Date</th>${showModel?"<th>Model</th>":""}<th>Project</th><th>Country</th><th>Status</th><th>Terms</th><th class="num">Price</th><th class="num">Margin</th></tr></thead>
     <tbody>${rows||`<tr><td colspan="${nCols}" class="empty">${searching?"No models match “"+srch.replace(/</g,"&lt;")+"”.":"No data."}</td></tr>`}</tbody>
   </table></div>`;
@@ -1046,15 +1052,15 @@ function renderSpares(bodyOnly){
   };
   function row(x){
     return "<tr class='buy-row sp-row'>"+
-      "<td class='sp-c-name'><div class='buy-c-model'>"+trkEsc(x.name)+"</div>"+(x.pn?"<div class='buy-c-pn'>"+trkEsc(x.pn)+"</div>":"")+"</td>"+
+      "<td class='sp-c-name'><div class='buy-name'>"+trkEsc(x.name)+"</div>"+(x.pn?"<div class='buy-pn'>"+trkEsc(x.pn)+"</div>":"")+"</td>"+
       "<td class='sp-c-cust'>"+(x.customer?trkEsc(x.customer):"<span class='trk-r-none'>&mdash;</span>")+"</td>"+
       "<td class='num buy-c-price'>"+money(x.price,x.currency)+"</td>"+
-      "<td class='sp-c-terms"+(x.terms?"":" sp-empty")+"'>"+(x.terms?"<span class='badge "+({DDP:"b-ddp",DAP:"b-dap",EXW:"b-exw"}[x.terms]||"b-exw")+"'>"+trkEsc(x.terms)+"</span>":"<span class='trk-r-none'>&mdash;</span>")+"</td>"+
+      "<td class='sp-c-terms"+(x.terms?"":" sp-empty")+"'>"+(x.terms?trkEsc(x.terms):"")+"</td>"+
       "<td class='sp-c-note'>"+(x.note?trkEsc(x.note):"")+"</td>"+
       "<td class='buy-c-acts'><div class='nt-acts'>"+ico("edit","Edit","editSpare("+x._i+")")+ico("trash","Remove","deleteSpare("+x._i+")")+"</div></td>"+
     "</tr>";
   }
-  var band=function(name,n,unit){return "<tr class='trk-band buy-band'><td colspan='6'><span class='po-grp-name'>"+trkEsc(name||"No customer")+"</span><span class='po-grp-n'>"+n+" "+unit+(n!==1?"s":"")+"</span></td></tr>";};
+  var band=function(name,n,unit){return "<tr class='buy-band2'><td colspan='6'><span class='buy-band2-name'>"+trkEsc(name||"No customer")+"</span><span class='buy-band2-n'>"+n+" "+unit+(n!==1?"s":"")+"</span></td></tr>";};
   var rows="";
   if(sortVal==="customer"){
     var order=[],grp={};
@@ -1079,7 +1085,7 @@ function renderSpares(bodyOnly){
       sortMenu+
       "<span id='sp-count' class='pg-summary'>"+count+"</span>"+
     "</div>"+
-    "<div class='po-table-wrap buy-table'><table class='po-table buy-list sp-list"+(sortVal==="customer"?" sp-by-cust":"")+"'><thead><tr><th>Part</th><th class='sp-c-cust'>Customer</th><th class='num'>Unit price</th><th>Terms</th><th>Note</th><th></th></tr></thead>"+
+    "<div class='po-table-wrap buy-table'><table class='po-table buy-list buy-simple sp-list"+(sortVal==="customer"?" sp-by-cust":"")+"'><thead><tr><th>Part</th><th class='sp-c-cust'>Customer</th><th class='num'>Unit price</th><th>Terms</th><th>Note</th><th></th></tr></thead>"+
     "<tbody id='sp-tbody'>"+rows+"</tbody></table></div>";
   var inp=document.getElementById("sp-search");
   /* not on touch screens: focusing would pop the keyboard up on every visit */
