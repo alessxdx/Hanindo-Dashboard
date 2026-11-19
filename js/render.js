@@ -833,7 +833,7 @@ function renderOthers(){
      "Sep–Oct 2025", or no date) falls back to the plain text */
   const dateBlock=d=>{
     const m=/^(\d{1,2})\s+([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{4})$/.exec(String(d||"").trim());
-    return m?`<div class="nt-day"><b>${m[1]}</b><span>${m[2]}</span><i>${m[3]}</i></div>`:`<div class="nt-day nt-day-txt">${esc(d||"")}</div>`;
+    return m?`<div class="nt-day2">${m[1]} ${m[2]}<span>${m[3]}</span></div>`:`<div class="nt-day2">${esc(d||"")}</div>`;
   };
   const update=x=>{const o=x.o,i=x.i;return `<div class="nt-upd">${dateBlock(o.date)}
     <div class="nt-body"><div class="nt-text">${fmtInline(esc(fmtSpan(o.desc)))}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
@@ -845,8 +845,8 @@ function renderOthers(){
   const term=x=>{const o=x.o,i=x.i,parts=String(o.desc).split(/\s+[—–-]\s+/);return `<div class="nt-term">
     <div class="nt-term-h"><span class="nt-code">${esc(parts[0])}</span><span class="nt-term-name">${esc(parts.slice(1).join(" — "))}</span>${btn("edit","Edit",`editOther(${i})`)}</div>
     ${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>`;};
-  const head=(title,n,hint)=>`<div class="nt-head"><span class="nt-h">${title}</span><span class="nt-n">${n}</span>${hint?`<span class="nt-hint">${hint}</span>`:""}</div>`;
-  document.getElementById("content").innerHTML=`<div class="nt-page">
+  const head=(title,n,hint)=>`<div class="nt-head"><span class="nt-h">${title}</span><span class="nt-n2">${n}</span>${hint?`<span class="nt-hint">${hint}</span>`:""}</div>`;
+  document.getElementById("content").innerHTML=`<div class="nt-page nt-simple">
     <div class="nt-card nt-compose">
       <textarea id="others-quick" rows="6" placeholder="Write an update… start a line with - or 1. for a list" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();postOtherQuick();}else listKeys(event)" oninput="listInput(event)"></textarea>
       <div class="nt-compose-foot">

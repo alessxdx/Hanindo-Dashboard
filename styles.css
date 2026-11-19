@@ -3229,3 +3229,24 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 /* Received / Left to pay rows (project panel and full page) */
 .trk-left{font-weight:700;color:#b54708}
 :root[data-theme="dark"] .trk-left{color:#fec84b}
+
+/* Notes, simple: no cards around the lists, plain headings, plain dates */
+.nt-simple{gap:8px}
+.nt-simple .nt-card:not(.nt-compose){background:none;border:none;border-radius:0;overflow:visible}
+.nt-simple .nt-head{padding:20px 2px 6px;border-bottom:2px solid var(--border)}
+.nt-simple .nt-terms:not([open])>summary .nt-head{border-bottom:2px solid var(--border)}
+.nt-simple .nt-n2{font-size:12px;color:var(--text-muted)}
+.nt-simple .nt-upd,.nt-simple .nt-rec{padding:12px 2px}
+.nt-simple .nt-upd:last-child,.nt-simple .nt-rec:last-child{border-bottom:1px solid var(--divider)}
+.nt-simple .nt-upd:hover,.nt-simple .nt-rec:hover{background:none}
+.nt-day2{flex:none;width:72px;font-size:13.5px;font-weight:700;color:var(--text-strong);line-height:1.6}
+.nt-day2 span{display:block;font-size:12px;font-weight:400;color:var(--text-muted);line-height:1.3}
+.nt-simple .nt-acts{opacity:0}
+.nt-simple .nt-upd:hover .nt-acts,.nt-simple .nt-rec:hover .nt-acts,.nt-simple .nt-acts:focus-within{opacity:1}
+@media (hover:none){.nt-simple .nt-acts{opacity:1}}
+.nt-simple .nt-empty{padding:14px 2px}
+.nt-simple .nt-term-grid{display:block;padding:0}
+.nt-simple .nt-term{border:none;border-bottom:1px solid var(--divider);border-radius:0;background:none;padding:10px 2px}
+.nt-simple .nt-code{background:none;color:var(--text-strong);padding:0;font-size:13px;min-width:44px}
+.nt-simple .nt-term .nt-ico{opacity:0}.nt-simple .nt-term:hover .nt-ico{opacity:1}
+@media (max-width:700px){.nt-day2{width:56px;font-size:12.5px}.nt-simple .nt-upd,.nt-simple .nt-rec{gap:10px}}
