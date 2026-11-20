@@ -3280,3 +3280,8 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .buy-band2-name{color:#1d4ed8}
 :root[data-theme="dark"] .buy-band2-name{color:#84adff}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .buy-band2-name{color:#84adff}}
+
+/* PO list month headings in the same blue as the other group headings */
+.po-grp2 td:first-child{color:#1d4ed8}
+:root[data-theme="dark"] .po-grp2 td:first-child{color:#84adff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .po-grp2 td:first-child{color:#84adff}}
