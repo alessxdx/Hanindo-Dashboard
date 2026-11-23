@@ -294,9 +294,7 @@ function poPanelHtml(p){
       "<div class='po-pl-sub'>"+(sub!==null?poFmtMoney(sub,p.currency):"")+"</div>"+
     "</div>";
   }).join("");
-  var atts=(p.attachments||[]).map(function(a){
-    return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+trkFileIcon(a.name)+" "+trkEsc(a.name)+"</a>";
-  }).join(" ");
+  var atts=(p.attachments||[]).map(trkAttHtml).join(" ");
   return "<aside class='po-panel"+(PO_FULL?" po-full":"")+"'>"+
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(p.poNumber)+"</span>"+
       (PO_FULL?"":"<button class='trk-pn-expand' title='Open full page' aria-label='Open full page' onclick='poToggleFull()'>&#x2922;</button><button class='po-panel-x' aria-label='Close' onclick='poSelect(\"\")'>&times;</button>")+"</div>"+
@@ -827,26 +825,49 @@ function poFirePanelHtml(p){
   var listT=lines.reduce(function(t,l){return t+(l.unitPrice!==null?l.qty*l.unitPrice:0);},0);
   var paid=poSumPaid(lines),dlv=poSumDlv(lines);
   var body=poFireBodyHtml(p);
-  var atts=(p.attachments||[]).map(function(a){
-    return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+trkFileIcon(a.name)+" "+trkEsc(a.name)+"</a>";
-  }).join(" ");
+  var atts=(p.attachments||[]).map(trkAttHtml).join(" ");
   function row(k,v,b){return "<div class='po-st-row"+(b?" po-st-b":"")+"'><span>"+k+"</span><span>"+v+"</span></div>";}
   return "<aside class='po-panel po-fire-panel"+(PO_FULL?" po-full":"")+"'>"+
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(p.poNumber)+"</span>"+
       (PO_FULL?"":"<button class='trk-pn-expand' title='Open full page' aria-label='Open full page' onclick='poToggleFull()'>&#x2922;</button><button class='po-panel-x' aria-label='Close' onclick='poSelect(\"\")'>&times;</button>")+"</div>"+
-    "<div class='po-panel-meta'><span class='trk-badge po-of-fire'>Fire fighting</span>"+(p.date?"<span>"+trkFmtDate(p.date)+"</span>":"")+"</div>"+
-    "<div class='po-panel-total'>"+poFmtMoney(p.total,cur)+
-      ((cur!=="USD"&&typeof fxUsdText==="function"&&p.total!==null)?" <span class='trk-value-usd'>"+fxUsdText(p.total,cur)+"</span>":"")+"</div>"+
+    "<div class='po-panel-meta'><span class='po-fire-tag'>Fire fighting</span>"+(p.date?"<span>"+trkFmtDate(p.date)+"</span>":"")+"</div>"+
+    "<div class='exp-stats po-fire-stats'>"+poBigStat("Total spent",paid+dlv,cur)+poBigStat("Paid incl. VAT (PPN)",paid,cur)+poBigStat("Delivery",dlv,cur)+"</div>"+
     poProjectRowHtml(p)+
-    "<div class='po-panel-sec'>Summary</div>"+
-      row("Paid incl. VAT (PPN)",poFmtMoney(paid,cur))+
-      row("Delivery",poFmtMoney(dlv,cur))+
-      row("Total spent",poFmtMoney(paid+dlv,cur),1)+
-    (lines.length?"<div class='po-panel-sec'>"+lines.length+" item"+(lines.length===1?"":"s")+" by group</div>"+body:"")+
+    poFireChartsHtml(lines,cur)+
+    (lines.length?"<div class='exp-sec'>"+lines.length+" item"+(lines.length===1?"":"s")+"</div>"+body:"")+
     (atts?"<div class='po-panel-sec'>Files</div><div class='trk-tl-atts'>"+atts+"</div>":"")+
     (p.notes?"<div class='po-panel-sec'>Note</div><div class='po-panel-note'>"+trkEsc(p.notes)+"</div>":"")+
     "<div class='po-panel-acts'><button class='btn-save' onclick='poEdit(\""+p._id+"\")'>Edit</button></div>"+
   "</aside>";
+}
+/* big total like the Expenses page: number, currency, USD underneath */
+function poBigStat(label,v,cur){
+  var u=(cur!=="USD"&&typeof fxUsdText==="function"&&v)?fxUsdText(v,cur):"";
+  return "<div class='exp-stat'><div class='exp-stat-l'>"+label+"</div><div class='exp-stat-v'>"+Math.round(v||0).toLocaleString()+" <span>"+trkEsc(cur)+"</span></div>"+(u?"<div class='exp-stat-u'>"+u+"</div>":"")+"</div>";
+}
+/* bar list: biggest first, the rest folded into "Everything else" */
+function poBarsHtml(title,map,total,color,max){
+  var keys=Object.keys(map).filter(function(k){return map[k]>0;}).sort(function(a,b){return map[b]-map[a];});
+  if(!keys.length)return "";
+  if(keys.length>max){var rest=keys.slice(max-1).reduce(function(t,k){return t+map[k];},0);keys=keys.slice(0,max-1);map=Object.assign({},map,{"Everything else":rest});keys.push("Everything else");}
+  var top=Math.max.apply(null,keys.map(function(k){return map[k];}));
+  return "<div class='exp-sec'>"+title+"</div><div class='exp-bars'>"+keys.map(function(k){
+    var v=map[k],pct=total?Math.round(v/total*100):0;
+    return "<div class='exp-bar-row'><div class='exp-bar-l' title='"+trkEsc(k)+"'>"+trkEsc(k)+"</div>"+
+      "<div class='exp-bar-t'><div class='exp-bar-f' style='width:"+Math.max(1.5,v/top*100).toFixed(1)+"%;background:"+color+"'></div></div>"+
+      "<div class='exp-bar-v'><b>"+Math.round(v).toLocaleString()+"</b><span>"+(pct<1&&v?"<1":pct)+"%</span></div></div>";
+  }).join("")+"</div>";
+}
+/* where the sheet's money went: by supplier (incl. delivery) */
+function poFireChartsHtml(lines,cur){
+  if(!lines.length)return "";
+  var color=(typeof TRK_SOLUTION_COLORS!=="undefined"&&TRK_SOLUTION_COLORS["Fire fighting"])||"#dc2626";
+  var sup={},tot=0;
+  lines.forEach(function(l){
+    var v=(poFireLinePaid(l)||0)+(l.delivery||0),s=l.supplier||"Unknown supplier";
+    tot+=v;sup[s]=(sup[s]||0)+v;
+  });
+  return "<div class='po-fire-chart'>"+poBarsHtml("Where the money went",sup,tot,color,8)+"</div>";
 }
 /* "By group": one block per expense sheet (its date is the heading, so
    rows don't repeat it), then category > item group > items */

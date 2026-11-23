@@ -160,7 +160,7 @@ function renderExpenses(){
   }).join("")+"</div>":"";
   content.innerHTML="<div class='nt-page nt-simple exp-page'>"+head+tabs+
     "<div class='exp-head'><span class='exp-dept' style='color:"+color+"'>"+trkEsc(dept)+"</span><span class='nt-n2'>"+all.length+" entr"+(all.length===1?"y":"ies")+"</span></div>"+
-    stats+src+"<div class='exp-charts'>"+bars+chart+"</div><div class='exp-sec'>Entries</div>"+list+"</div>";
+    stats+src+"<div class='exp-charts'>"+(bars?"<div>"+bars+"</div>":"")+(chart?"<div>"+chart+"</div>":"")+"</div><div class='exp-sec'>Entries</div>"+list+"</div>";
 }
 
 /* ---------- add / edit ---------- */
