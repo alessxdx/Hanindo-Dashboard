@@ -102,21 +102,40 @@ function tdAmt(r){
   return r.paid?main+"<span class='td-amt-of'>left of "+tdEsc(r.total.toLocaleString())+"</span>":main;
 }
 
+/* round country flag in front of each row (a plain circle when the
+   project has no country) */
+function tdFlagLead(country){
+  var f=country?trkFlag(country,30):"";
+  return "<span class='td-flag'"+(country?" title='"+tdEsc(country)+"'":"")+">"+(f||"<span class='td-flag-none'></span>")+"</span>";
+}
+/* card heading icons and colours */
+var TD_ICONS={
+  "Follow up":["blue",'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>'],
+  "Coming up this week":["cyan",'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'],
+  "Quotes expiring":["amber",'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-4M12 11h.01"/>'],
+  "Money owed":["green",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'],
+  "Needs info":["violet",'<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>'],
+  "Backup":["slate",'<path d="M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>']
+};
+function tdIcon(title){
+  var x=TD_ICONS[title];if(!x)return "";
+  return "<span class='td-ic td-c-"+x[0]+"' aria-hidden='true'><svg viewBox='0 0 24 24' width='18' height='18' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>"+x[1]+"</svg></span>";
+}
 function tdRow(o){
   /* o: {name, cust, country, right, sub, badge, go, sel} */
   /* the customer is left out when the project name already starts with it */
   var cust=o.cust&&String(o.name||"").toLowerCase().indexOf(String(o.cust).toLowerCase())===0?"":(o.cust||"");
   var sub=[tdEsc(cust),o.sub||""].filter(Boolean).join(" &middot; ");
-  return "<button class='td-row' onclick='"+tdAttr(tdGoAttr(o.go,o.sel))+"'>"+
+  return "<button class='td-row' onclick='"+tdAttr(tdGoAttr(o.go,o.sel))+"'>"+tdFlagLead(o.country)+
     "<span class='td-main'><span class='td-name'>"+tdEsc(o.name)+"</span>"+
-      "<span class='td-sub'>"+(o.country?trkFlag(o.country,14)+" ":"")+sub+"</span></span>"+
+      "<span class='td-sub'>"+sub+"</span></span>"+
     (o.badge?"<span class='td-badge'>"+o.badge+"</span>":"")+
     (o.right?"<span class='td-right'>"+o.right+"</span>":"")+
     "<span class='td-go'>&rsaquo;</span>"+
   "</button>";
 }
 function tdCard(title,count,body,empty,cls){
-  return "<section class='td-card"+(cls?" "+cls:"")+"'><div class='td-card-head'><h2>"+title+"</h2>"+(count?"<span class='td-n2'>"+count+"</span>":"")+"</div>"+
+  return "<section class='td-card"+(cls?" "+cls:"")+"'><div class='td-card-head'>"+tdIcon(title)+"<h2>"+title+"</h2>"+(count?"<span class='td-n2'>"+count+"</span>":"")+"</div>"+
     (body||"<div class='td-empty'>"+empty+"</div>")+"</section>";
 }
 
@@ -215,11 +234,18 @@ function renderToday(){
   var upPay=by.soon.filter(function(r){return r.days<=7;});
 
   var st=document.getElementById("stats");
+  /* greeting line, then the four totals joined in one band */
+  var hr=new Date().getHours(),greet=hr<12?"Good morning":hr<18?"Good afternoon":"Good evening";
+  var dateStr=new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"});
+  var gist=[due.length?due.length+" follow-up"+(due.length===1?"":"s")+" due":"no follow-ups due",
+    money.length?tdUSD(sumUSD(money))+" still owed":""].filter(Boolean).join(", ");
+  var stat=function(c,label,val,sub){return "<div class='stat td-st td-c-"+c+"'><div class='stat-label'><i></i>"+label+"</div><div class='stat-value'>"+val+"</div><div class='stat-sub'>"+sub+"</div></div>";};
   if(st)st.innerHTML=
-    "<div class='stat'><div class='stat-label'>Follow up today</div><div class='stat-value'>"+due.length+"</div><div class='stat-sub'>"+(quiet.length?quiet.length+" more gone quiet":"planned follow-ups due")+"</div></div>"+
-    "<div class='stat'><div class='stat-label'>Overdue payments</div><div class='stat-value'>"+(by.overdue.length?tdUSD(sumUSD(by.overdue)):"&mdash;")+"</div><div class='stat-sub'>"+by.overdue.length+" project"+(by.overdue.length===1?"":"s")+" past due</div></div>"+
-    "<div class='stat'><div class='stat-label'>Money owed</div><div class='stat-value'>"+(money.length?tdUSD(sumUSD(money)):"&mdash;")+"</div><div class='stat-sub'>"+money.length+" won project"+(money.length===1?"":"s")+" not fully paid</div></div>"+
-    "<div class='stat'><div class='stat-label'>Quotes expiring</div><div class='stat-value'>"+quotes.filter(function(q){return q.days>=0;}).length+"</div><div class='stat-sub'>in the next "+TD_QUOTE_WIN+" days</div></div>";
+    "<div class='td-greet'>"+greet+" &middot; <b>"+tdEsc(dateStr)+"</b> &middot; "+gist+"</div>"+
+    stat("blue","Follow up today",due.length,quiet.length?quiet.length+" more gone quiet":"planned follow-ups due")+
+    stat("red","Overdue payments",by.overdue.length?tdUSD(sumUSD(by.overdue)):"&mdash;",by.overdue.length+" project"+(by.overdue.length===1?"":"s")+" past due")+
+    stat("green","Money owed",money.length?tdUSD(sumUSD(money)):"&mdash;",money.length+" won project"+(money.length===1?"":"s")+" not fully paid")+
+    stat("amber","Quotes expiring",quotes.filter(function(q){return q.days>=0;}).length,"in the next "+TD_QUOTE_WIN+" days");
 
   /* needs info: gaps that make the numbers above wrong */
   var gaps=[];
@@ -242,8 +268,7 @@ function renderToday(){
     "<button class='btn' onclick='bkDownloadJson()' title='Exact copy of the data, for restoring'>JSON</button></div></div>";
   var bkCard=bkOn?tdCard("Backup",bkDue?"!":"",bkBody,"",bkDue?"td-card-bkdue":""):"";
 
-  var dateStr=new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"});
-  content.innerHTML="<div class='td-date'>"+tdEsc(dateStr)+"</div><div class='td-grid'>"+
+  content.innerHTML="<div class='td-grid'>"+
     "<div class='td-col'>"+
       tdCard("Follow up",due.length+quiet.length,
         (due.length?"<div class='td-sec td-sec-over'><span>Due</span></div>"+due.map(fuRow).join(""):"")+
