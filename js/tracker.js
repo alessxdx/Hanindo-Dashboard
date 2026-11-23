@@ -333,6 +333,12 @@ function trkEntriesFor(pid){
 /* Flag only when we can actually draw one (hand-drawn SVG or a known
    ISO code for the CDN fallback) — the generic "?" placeholder looks
    broken next to unrecognized country names. */
+/* round country flag in front of a list row (Today, Project Tracker); a
+   plain circle when there is no country, so names stay lined up */
+function trkFlagLead(country){
+  var f=country?trkFlag(country,30):"";
+  return "<span class='row-flag'"+(country?" title='"+trkEsc(country)+"'":"")+">"+(f||"<span class='row-flag-none'></span>")+"</span>";
+}
 function trkFlag(country,size){
   if(typeof FLAGS!=="undefined"&&FLAGS[country])return flagImg(country,size);
   if(typeof countryCode==="function"&&countryCode(country))return flagImg(country,size);
@@ -793,13 +799,12 @@ function trkRenderList(bodyOnly){
   function rowHtml(p){
     var entries=trkEntriesFor(p._id),last=entries[0];
     var hl=q?function(t){return trkHighlight(t,q);}:trkEsc,hit=hits[p._id];
-    var flag=trkFlag(p.country,14);
     var sub=[hl(p.customer),hl(p.country)].filter(Boolean).join(" &middot; ");
     var done=trkIsDone(p);
     return "<tr class='trk-row"+(TRK_SEL===p._id?" sel":"")+(done?" trk-row-done":p.lowPriority?" trk-row-low":"")+"' onclick='trkOpen(\""+p._id+"\")'>"+
-      "<td class='trk-c-proj'><div class='trk-r-name'>"+(q?hl(p.name):trkDisplayName(p))+"</div>"+
-        (sub?"<div class='trk-r-sub'>"+(flag?flag+" ":"")+sub+"</div>":"")+
-        (hit&&hit.why?"<div class='trk-card-why'>&#128269; "+hit.why+"</div>":"")+"</td>"+
+      "<td class='trk-c-proj'><div class='trk-r-wrap'>"+trkFlagLead(p.country)+"<div class='trk-r-txt'><div class='trk-r-name'>"+(q?hl(p.name):trkDisplayName(p))+"</div>"+
+        (sub?"<div class='trk-r-sub'>"+sub+"</div>":"")+
+        (hit&&hit.why?"<div class='trk-card-why'>&#128269; "+hit.why+"</div>":"")+"</div></div></td>"+
       "<td class='trk-c-st'>"+(done?"<span class='trk-tx trk-tx-won'>Done</span>":trkStatusText(p))+"</td>"+
       "<td class='trk-c-of'>"+(p.office?"<span class='trk-oftx trk-oftx-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+"</span>":"")+"</td>"+
       "<td class='trk-c-val num'>"+(p.estValue!==null?"<b>"+p.estValue.toLocaleString()+"</b> <span class='trk-r-cur'>"+trkEsc(p.currency)+"</span>":"<span class='trk-r-none'>&mdash;</span>")+"</td>"+

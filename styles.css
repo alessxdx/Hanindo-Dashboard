@@ -3357,32 +3357,66 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 :root[data-theme="dark"] .td-c-violet{--tc:#a78bfa}:root[data-theme="dark"] .td-c-cyan{--tc:#22d3ee}
 :root[data-theme="dark"] .td-c-pink{--tc:#f472b6}:root[data-theme="dark"] .td-c-indigo{--tc:#818cf8}
 :root[data-theme="dark"] .td-c-teal{--tc:#2dd4bf}:root[data-theme="dark"] .td-c-slate{--tc:#94a3b8}
-.td-greet{grid-column:1/-1;font-size:15px;color:var(--text-muted);margin:-8px 0 14px}
+.td-greet{grid-column:1/-1;font-size:15px;color:var(--text-muted);margin:-12px 0 14px}
 .td-greet b{color:var(--text-strong);font-weight:600}
-.stat-grid:has(>.td-st){gap:0;margin-top:6px;margin-bottom:24px}
-.stat.td-st{position:relative;overflow:hidden;border:none;border-left:1px solid var(--divider);border-radius:0;background:var(--bg-stat);box-shadow:0 1px 3px rgba(16,24,40,.07);padding:16px 18px}
-.td-greet+.td-st{border-left:none;border-radius:16px 0 0 16px}
-.stat.td-st:last-child{border-radius:0 16px 16px 0}
-.stat.td-st::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--tc)}
-.td-st .stat-label{display:flex;align-items:center;gap:7px;text-transform:none;letter-spacing:0;font-size:13px}
-.td-st .stat-label i{width:8px;height:8px;border-radius:50%;background:var(--tc);flex:none}
-.td-st .stat-value{font-size:30px}
-.td-card{border:none;border-radius:16px;box-shadow:0 1px 3px rgba(16,24,40,.07);padding:18px 20px}
 .td-card-head{gap:9px;padding-bottom:11px;border-bottom:1px solid var(--divider);margin-bottom:4px}
 .td-ic{display:inline-flex;color:var(--tc)}
-.td-flag{width:30px;height:30px;flex:none;display:flex;border-radius:50%;box-shadow:0 0 0 1px var(--divider)}
-.td-flag-none{width:30px;height:30px;border-radius:50%;background:var(--bg-hover)}
 .td-row{padding:10px 6px;gap:12px}
 .td-row:hover{border-radius:10px}
 .td-sec{border-bottom:none;margin-top:12px}
 .td-card-bkdue{box-shadow:0 0 0 1.5px #fdb022}
-:root[data-theme="dark"] .stat.td-st,:root[data-theme="dark"] .td-card{box-shadow:none;outline:1px solid var(--border);outline-offset:-1px}
 :root[data-theme="dark"] .td-card-bkdue{outline-color:#fdb022}
 @media (max-width:900px){
-  .stat-grid:has(>.td-st){gap:8px}
-  .stat.td-st,.td-greet+.td-st,.stat.td-st:last-child{border-left:none;border-radius:12px}
   .td-greet{font-size:13.5px;margin:0 0 4px}
-  .td-st .stat-value{font-size:20px}
-  .td-st .stat-label{font-size:11.5px}
-  .td-card{padding:14px}
 }
+
+/* ===== Dashboard theme: every page in the Today page's style =====
+   totals joined in one band with a colour line and dot, soft rounded
+   boxes without borders, plain bold section headings, round flags */
+.stat-grid{gap:0;margin:6px 0 24px}
+.stat-grid>.stat{--sc:#2563eb;position:relative;overflow:hidden;border:none;border-left:1px solid var(--divider);border-radius:0;background:var(--bg-stat);box-shadow:0 1px 3px rgba(16,24,40,.07);padding:16px 18px}
+.stat-grid>.stat:nth-of-type(2){--sc:#059669}
+.stat-grid>.stat:nth-of-type(3){--sc:#d97706}
+.stat-grid>.stat:nth-of-type(4){--sc:#7c3aed}
+.stat-grid>.stat:first-child,.stat-grid>.td-greet+.stat{border-left:none;border-radius:16px 0 0 16px}
+.stat-grid>.stat:last-child{border-radius:0 16px 16px 0}
+.stat-grid>.stat:hover{border-color:var(--divider)}
+.stat-grid>.stat::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--tc,var(--sc))}
+.stat-grid>.stat .stat-label{display:flex;align-items:center;gap:7px;text-transform:none;letter-spacing:0;font-size:13px}
+.stat-grid>.stat .stat-label::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--tc,var(--sc));flex:none}
+.stat-grid>.stat .stat-value{font-size:28px}
+:root[data-theme="dark"] .stat-grid>.stat{--sc:#60a5fa}
+:root[data-theme="dark"] .stat-grid>.stat:nth-of-type(2){--sc:#34d399}
+:root[data-theme="dark"] .stat-grid>.stat:nth-of-type(3){--sc:#fbbf24}
+:root[data-theme="dark"] .stat-grid>.stat:nth-of-type(4){--sc:#a78bfa}
+/* boxes: lists, side panels, calculator cards, note box, Today cards */
+.po-table-wrap,.po-panel,.pr-card,.nt-card,.td-card{border:none;border-radius:16px;background:var(--bg-stat);box-shadow:0 1px 3px rgba(16,24,40,.07)}
+.td-card,.pr-card{padding:18px 20px}
+.po-panel{padding:18px 20px}
+.po-panel.po-full{border-radius:16px}
+.pr-summary{border-radius:12px}
+:root[data-theme="dark"] .stat-grid>.stat,:root[data-theme="dark"] .po-table-wrap,:root[data-theme="dark"] .po-panel,
+:root[data-theme="dark"] .pr-card,:root[data-theme="dark"] .nt-card,:root[data-theme="dark"] .td-card{box-shadow:none;outline:1px solid var(--border);outline-offset:-1px}
+:root[data-theme="dark"] .td-card-bkdue{outline-color:#fdb022}
+/* section headings inside panels: plain bold text, like the Today cards */
+.po-panel-sec{font-size:13px;font-weight:700;text-transform:none;letter-spacing:0;color:var(--text-strong);border-bottom:1px solid var(--divider);padding-bottom:7px;margin-top:20px}
+/* search boxes and filter chips: rounder, to match */
+.trk-search input{border-radius:10px}
+/* round flag in front of list rows */
+.row-flag{width:30px;height:30px;flex:none;display:flex;border-radius:50%;box-shadow:0 0 0 1px var(--divider)}
+.row-flag-none{width:30px;height:30px;border-radius:50%;background:var(--bg-hover)}
+.trk-r-wrap{display:flex;align-items:center;gap:12px}
+.trk-r-txt{min-width:0}
+@media (max-width:900px){
+  .stat-grid{gap:8px}
+  .stat-grid>.stat,.stat-grid>.stat:first-child,.stat-grid>.td-greet+.stat,.stat-grid>.stat:last-child{border-left:none;border-radius:12px}
+  .stat-grid>.stat .stat-value{font-size:20px}
+  .stat-grid>.stat .stat-label{font-size:11.5px}
+  .td-card,.pr-card,.po-panel{padding:14px}
+  .row-flag,.row-flag-none{width:26px;height:26px}
+}
+/* Notes and Expenses: the page content in one soft box, like the lists elsewhere */
+.nt-page.nt-simple{background:var(--bg-stat);border-radius:16px;box-shadow:0 1px 3px rgba(16,24,40,.07);padding:18px 22px 22px}
+.nt-simple .nt-card{box-shadow:none;outline:1px solid var(--border);outline-offset:-1px}
+:root[data-theme="dark"] .nt-page.nt-simple{box-shadow:none;outline:1px solid var(--border);outline-offset:-1px}
+@media (max-width:900px){.nt-page.nt-simple{padding:14px}}

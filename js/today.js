@@ -104,10 +104,7 @@ function tdAmt(r){
 
 /* round country flag in front of each row (a plain circle when the
    project has no country) */
-function tdFlagLead(country){
-  var f=country?trkFlag(country,30):"";
-  return "<span class='td-flag'"+(country?" title='"+tdEsc(country)+"'":"")+">"+(f||"<span class='td-flag-none'></span>")+"</span>";
-}
+function tdFlagLead(country){return trkFlagLead(country);}
 /* card heading icons and colours */
 var TD_ICONS={
   "Follow up":["blue",'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>'],
@@ -239,7 +236,7 @@ function renderToday(){
   var dateStr=new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"});
   var gist=[due.length?due.length+" follow-up"+(due.length===1?"":"s")+" due":"no follow-ups due",
     money.length?tdUSD(sumUSD(money))+" still owed":""].filter(Boolean).join(", ");
-  var stat=function(c,label,val,sub){return "<div class='stat td-st td-c-"+c+"'><div class='stat-label'><i></i>"+label+"</div><div class='stat-value'>"+val+"</div><div class='stat-sub'>"+sub+"</div></div>";};
+  var stat=function(c,label,val,sub){return "<div class='stat td-st td-c-"+c+"'><div class='stat-label'>"+label+"</div><div class='stat-value'>"+val+"</div><div class='stat-sub'>"+sub+"</div></div>";};
   if(st)st.innerHTML=
     "<div class='td-greet'>"+greet+" &middot; <b>"+tdEsc(dateStr)+"</b> &middot; "+gist+"</div>"+
     stat("blue","Follow up today",due.length,quiet.length?quiet.length+" more gone quiet":"planned follow-ups due")+
