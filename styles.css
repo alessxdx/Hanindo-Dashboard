@@ -3444,3 +3444,9 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .form-group label span{text-transform:none;letter-spacing:0}
 /* one chart only: it uses the whole width */
 .exp-charts>div:only-child{grid-column:1/-1;max-width:820px}
+/* list column headings: plain labels like the rest of the theme */
+th,.po-table th{font-size:12px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--text-muted)}
+/* type-ahead boxes (customer, country, solution) fill their space in forms */
+.modal .trk-suggest,.modal .trk-suggest input{width:100%}
+/* expense rows without a day: amount still lines up on the right */
+.exp-item>.exp-main:first-child{padding-left:2px}

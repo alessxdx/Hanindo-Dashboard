@@ -145,7 +145,8 @@ function renderExpenses(){
     return "<div class='exp-month'><span>"+label(k)+"</span><b>"+expMoney(net,cur)+"</b></div>"+g.map(function(e){
       var i=EXPENSES.indexOf(e),d=expSplitDesc(e.description),day=/^\d{4}-\d{2}-(\d{2})$/.exec(e.date||"");
       var meta=[e.category,e.paidBy?(e.kind==="received"?"Received by ":"Paid by ")+e.paidBy:""].filter(Boolean).map(trkEsc).join(" &middot; ");
-      return "<div class='exp-item'><div class='exp-day'>"+(e.period?"":day?(+day[1])+"<span>"+EXP_MON[+e.date.slice(5,7)-1]+"</span>":"")+"</div>"+
+      /* a period entry (e.g. Jan-Oct) has no day: no empty date column, the month heading already says when */
+      return "<div class='exp-item'>"+(!e.period&&day?"<div class='exp-day'>"+(+day[1])+"<span>"+EXP_MON[+e.date.slice(5,7)-1]+"</span></div>":"")+
         "<div class='exp-main'><div class='exp-title'>"+trkEsc(d.title)+"</div>"+(d.more?"<div class='exp-more'>"+trkEsc(d.more)+"</div>":"")+
           (meta?"<div class='exp-meta'>"+meta+"</div>":"")+(e.note?"<div class='exp-note'>"+trkEsc(e.note)+"</div>":"")+"</div>"+
         "<div class='exp-amt"+(e.kind==="received"?" exp-in":"")+"'>"+(e.kind==="received"?"+":"")+expMoney(e.amount,e.currency)+(e.kind==="received"?"<small>received</small>":"")+"</div>"+
