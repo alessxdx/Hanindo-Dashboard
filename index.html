@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-24.5";
+var APP_VERSION = "2026-11-24.6";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -340,15 +340,15 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       </div>
       <div class="form-group form-full"><label>Project name <span style="font-size:10px;color:#aaa;font-weight:400" id="tp-name-hint">(auto-filled as "Customer &mdash; 50&times; Model" from the fields below &mdash; edit it if you like)</span></label><div style="display:flex;gap:8px"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-name" placeholder="e.g. Biman &mdash; 50&times; TK180 &mdash; boarding pass printers" style="flex:1"><button type="button" class="att-add" style="white-space:nowrap" id="tp-name-auto" onclick="trkResetAutoName()" title="Regenerate the name from the customer and products below">&#8635; Auto</button></div></div>
       <div class="form-section tp-cust-only">Customer</div>
-      <div class="form-group tp-cust-only"><label>Customer <span class="tp-req tp-cust-only">*</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-customer" placeholder="Type — existing customers pop up" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-customer-suggest"></div></div></div>
-      <div class="form-group tp-cust-only"><label>Country <span class="tp-req tp-cust-only">*</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-country" placeholder="Type — existing countries pop up" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-country-suggest"></div></div></div>
+      <div class="form-group tp-cust-only"><label>Customer <span class="tp-req tp-cust-only">*</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-customer" placeholder="Type — existing customers pop up" readonly onfocus="this.removeAttribute('readonly')"></div></div>
+      <div class="form-group tp-cust-only"><label>Country <span class="tp-req tp-cust-only">*</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-country" placeholder="Type — existing countries pop up" readonly onfocus="this.removeAttribute('readonly')"></div></div>
       <div class="form-group"><label>Handling office <span class="tp-req tp-cust-only">*</span></label><select id="tp-office"><option value="">&mdash;</option><option>China</option><option>Indonesia</option><option>Singapore</option></select></div>
-      <div class="form-group"><label>Solution type <span class="tp-req tp-cust-only">*</span> <span style="font-size:10px;color:#aaa;font-weight:400">(one tag for what it's about &mdash; shown on the card)</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-solution" placeholder="e.g. Custom, Posiva, Fire fighting" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-solution-suggest"></div></div></div>
+      <div class="form-group"><label>Solution type <span class="tp-req tp-cust-only">*</span> <span style="font-size:10px;color:#aaa;font-weight:400">(one tag for what it's about &mdash; shown on the card)</span></label><div class="trk-suggest"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-solution" placeholder="e.g. Custom, Posiva, Fire fighting" readonly onfocus="this.removeAttribute('readonly')"></div></div>
       <div class="form-section tp-cust-only">The deal</div>
       <div class="form-group form-full tp-cust-only"><label>Products of interest <span style="font-size:10px;color:#aaa;font-weight:400">(qty optional; type &mdash; your models pop up; Enter or &#43; Add; as many as they asked about)</span></label>
         <div style="display:flex;gap:8px;align-items:flex-start">
           <input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-product-qty" placeholder="Qty" style="width:64px;flex-shrink:0">
-          <div class="trk-suggest" style="flex:1"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-product" placeholder="e.g. TK180" readonly onfocus="this.removeAttribute('readonly')"><div class="trk-suggest-panel" id="tp-product-suggest"></div></div>
+          <div class="trk-suggest" style="flex:1"><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="tp-product" placeholder="e.g. TK180" readonly onfocus="this.removeAttribute('readonly')"></div>
           <button type="button" class="att-add" style="white-space:nowrap" onclick="trkAddProduct()">&#43; Add</button>
         </div>
         <div class="att-list" id="tp-products"></div>
@@ -475,7 +475,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
 </div>
 <script>
 /* document.write keeps classic scripts executing in listed order. */
-["js/config.js","js/data.js","js/render.js","js/richtext.js","js/fx.js","js/detail.js","js/supabase.js","js/auth.js","js/projects.js","js/parse.js","js/tracker.js","js/custbase.js","js/today.js","js/backup.js","js/po.js","js/pricing.js","js/expenses.js","js/app.js"]
+["js/config.js","js/data.js","js/render.js","js/richtext.js","js/dropdown.js","js/fx.js","js/detail.js","js/supabase.js","js/auth.js","js/projects.js","js/parse.js","js/tracker.js","js/custbase.js","js/today.js","js/backup.js","js/po.js","js/pricing.js","js/expenses.js","js/app.js"]
   .forEach(function(src){document.write('<script src="'+src+'?v='+ASSET_V+'"><\/script>');});
 </script>
 <!-- Phone tab bar: the four main pages plus More (opens the full menu).

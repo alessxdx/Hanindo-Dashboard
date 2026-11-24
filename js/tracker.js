@@ -1671,55 +1671,12 @@ function trkComboValues(field){
   });
   return out.sort(trkAlpha);
 }
-/* Type-ahead: plain text input + an app-styled suggestion panel of existing
-   values. Replaces both the browser's native datalist dropdown (ugly, and it
-   attracted the password manager) and the "+ Add new…" select — typing a
-   brand-new value just works. With onPick (multi-value mode, e.g. products),
-   choosing or pressing Enter hands the value to onPick instead of filling
-   the input. Safe to call repeatedly; wires each input once. */
+/* Type-ahead: plain text input + the shared drop-down list (js/dropdown.js)
+   of existing values; typing a brand-new value just works. With onPick
+   (multi-value mode, e.g. products), choosing or pressing Enter hands the
+   value to onPick instead of filling the input. Safe to call repeatedly. */
 function trkSuggestInit(inputId,getValues,onPick){
-  var inp=document.getElementById(inputId);
-  var panel=document.getElementById(inputId+"-suggest");
-  if(!inp||!panel||inp._trkSuggest)return;
-  inp._trkSuggest=true;
-  var idx=-1,items=[];
-  function close(){panel.style.display="none";idx=-1;}
-  function pick(v){
-    if(onPick)onPick(v);else inp.value=v;
-    close();
-  }
-  function render(){
-    var q=inp.value.trim().toLowerCase();
-    items=getValues().filter(function(v){return !q||v.toLowerCase().indexOf(q)>-1;});
-    if(idx>items.length-1)idx=items.length-1;
-    /* nothing to suggest, or the input already IS the only match */
-    if(!items.length||(!onPick&&items.length===1&&items[0].toLowerCase()===q)){close();return;}
-    panel.innerHTML=items.map(function(v,i){
-      return "<div class='trk-suggest-item"+(i===idx?" active":"")+"' data-i='"+i+"'>"+trkEsc(v)+"</div>";
-    }).join("");
-    panel.style.display="block";
-    var act=panel.querySelector(".trk-suggest-item.active");
-    if(act)act.scrollIntoView({block:"nearest"});
-  }
-  inp.addEventListener("focus",function(){idx=-1;render();});
-  inp.addEventListener("input",function(){idx=-1;render();});
-  inp.addEventListener("keydown",function(e){
-    var open=panel.style.display!=="none";
-    if(e.key==="ArrowDown"&&open){idx=Math.min(idx+1,items.length-1);render();e.preventDefault();}
-    else if(e.key==="ArrowUp"&&open){idx=Math.max(idx-1,0);render();e.preventDefault();}
-    else if(e.key==="Enter"){
-      if(open&&idx>-1){pick(items[idx]);e.preventDefault();}
-      else if(onPick&&inp.value.trim()){pick(inp.value.trim());e.preventDefault();}
-    }
-    else if(e.key==="Escape"&&open){close();}
-  });
-  inp.addEventListener("blur",function(){setTimeout(close,150);});
-  panel.addEventListener("mousedown",function(e){
-    var t=e.target.closest(".trk-suggest-item");
-    if(!t)return;
-    e.preventDefault();
-    pick(items[parseInt(t.dataset.i,10)]);
-  });
+  ddSuggest(document.getElementById(inputId),getValues,onPick);
 }
 function trkInitProjectSuggests(){
   trkSuggestInit("tp-customer",function(){return trkComboValues("customer");});
