@@ -3326,9 +3326,9 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .exp-col-l{font-size:11px;color:var(--text-muted);padding-top:4px;text-align:center;line-height:1.2;height:30px}
 .exp-col-l span{display:block;font-size:10px}
 .exp-month{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:16px 2px 5px;border-bottom:2px solid var(--border);font-size:13.5px;font-weight:700}
-.exp-month span{color:#1d4ed8}
+.exp-month>span{color:#1d4ed8}
 .exp-month b{color:var(--text-strong)}
-:root[data-theme="dark"] .exp-month span{color:#84adff}
+:root[data-theme="dark"] .exp-month>span{color:#84adff}
 .exp-item{display:flex;align-items:flex-start;gap:14px;padding:10px 2px;border-bottom:1px solid var(--divider)}
 .exp-day{flex:none;width:34px;text-align:center;font-size:16px;font-weight:700;color:var(--text-strong);line-height:1.1}
 .exp-day span{display:block;font-size:10.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase}
@@ -3473,4 +3473,85 @@ th,.po-table th{font-size:12px;font-weight:600;text-transform:none;letter-spacin
   .exp-item .nt-acts{margin-left:44px}
   .exp-item>.exp-main:first-child~.nt-acts{margin-left:0}
   .exp-item .exp-amt{margin-left:auto}
+}
+
+/* ===== Last style leftovers ===== */
+/* Pricing Calculator and customer panel: plain labels instead of capitals */
+.pr-field label,.pr-match{font-size:12.5px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--text-strong)}
+.pr-matrix th,.pr-rules th,.pr-hist th{font-size:12px;text-transform:none;letter-spacing:0}
+.pr-here{font-size:11px;letter-spacing:0}
+.pr-pl-tl,.pr-sheets-l{font-size:12px;text-transform:none;letter-spacing:0}
+.pr-pl .po-month{text-transform:none;letter-spacing:0;font-size:14px}
+.cb-grp-sec{font-size:13px;text-transform:none;letter-spacing:0;color:var(--text-strong)}
+.od-line-head,.od-line-head span{text-transform:none;letter-spacing:0;font-size:12px}
+.pr-opt{font-size:11.5px}
+.cmp-detail td b{font-size:12px;text-transform:none;letter-spacing:0}
+/* Model Comparison totals use the same band as every page */
+.cmp-stats{margin:6px 0 18px}
+.cmp-stats .trk-r-cur{font-size:13px;font-weight:600}
+/* Notes: one box only, no square frame around the list */
+.nt-simple .nt-card:not(.nt-compose){outline:none}
+
+/* ===== Phones: nothing cut off, buttons big enough for a thumb ===== */
+@media (max-width:900px){
+  .stat-grid>.stat{padding:12px}
+  .stat-grid>.stat .stat-label{white-space:normal;overflow:visible;line-height:1.25}
+  .stat-grid>.stat .stat-sub{white-space:normal;overflow:visible;font-size:11.5px;line-height:1.3}
+  .stat-grid:has(>.stat:nth-child(3):last-child)>.stat:not(.cb-stat-rev){padding:12px 9px}
+  .stat-grid:has(>.stat:nth-child(3):last-child)>.stat .stat-label{align-items:flex-start;gap:5px;font-size:11px}
+  .stat-grid:has(>.stat:nth-child(3):last-child)>.stat .stat-label::before{width:6px;height:6px;margin-top:4px}
+}
+@media (max-width:700px){
+  /* Customer Base: country name and total in one line, same edges as the rows */
+  .cb-simple tr.cb-grp2{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid var(--border)}
+  .cb-simple tr.cb-grp2 td{display:block;border-bottom:none;padding:16px 0 7px 16px}
+  .cb-simple tr.cb-grp2 td.cb-c-val{padding:16px 12px 7px 10px}
+  .cb-simple tr.cb-grp2 td:last-child{display:none}
+  .cb-grp2-in{flex-wrap:wrap}
+  .cb-simple tr.cb-grp2 td:first-child{flex:1;min-width:0}
+  .cb-grp2-chev{font-size:12px}
+  /* Notes: date on its own line, text uses the full width */
+  .nt-simple .nt-upd{flex-wrap:wrap;align-items:center;gap:4px 10px}
+  .nt-simple .nt-upd .nt-day2{order:1;width:auto;flex:1;font-size:13px}
+  .nt-simple .nt-upd .nt-day2 span{display:inline;margin-left:5px}
+  .nt-simple .nt-upd .nt-acts{order:2}
+  .nt-simple .nt-upd .nt-body{order:3;flex:1 1 100%}
+  .nt-compose-foot{flex-wrap:wrap}
+  .nt-compose-foot .btn-save{margin-left:auto;white-space:nowrap}
+  /* Pricing: full-width search, cards fill the row, names stay in view */
+  .pr-list-tools>*{flex:1 1 100%;width:100%}
+  .pr-pl-tier:last-child:nth-child(odd){grid-column:1/-1}
+  .pr-rules th:first-child,.pr-rules td:first-child{position:sticky;left:0;z-index:1;background:var(--bg-stat);min-width:120px}
+  .pr-name-in{width:96px}
+  /* tap targets */
+  .po-dd-btn,.exp-tab{min-height:40px}
+  .nt-tool,.fmt-tools .nt-tool{min-height:38px;min-width:38px;padding:6px 10px;font-size:13px}
+  .fmt-tools{gap:6px}
+  .trk-fu-quick{gap:6px;flex-wrap:wrap}
+  .trk-fu-quick button{min-height:38px;min-width:48px;font-size:13px}
+  .att-add,.pj-add,.pr-link,.pr-rule-actions .delete-btn{min-height:38px;font-size:12.5px;padding:8px 14px}
+  .trk-low-sw{min-height:40px}
+  .trk-panel-simple .trk-sw-row .trk-low-sw,.trk-detail-simple .trk-sw-row .trk-low-sw{flex:0 1 auto;margin-right:14px}
+  .exp-item .exp-amt{align-self:center}
+  /* Model Comparison cards: same left edge as the customer name, no gaps */
+  .cmp-simple .cmp-row{padding:10px 16px}
+  .cmp-simple .cmp-row td{padding:1px 0}
+  .trk-tl-edit{width:38px;height:38px;margin-top:-10px;margin-bottom:-10px}
+  .trk-att{min-height:38px;font-size:13px;padding:5px 12px 5px 6px}
+  .trk-att-tag{font-size:11px}
+  .pdf-clip{min-height:34px;font-size:12.5px;padding:4px 12px;border-radius:8px}
+  .edit-btn{min-height:38px;min-width:38px;font-size:12.5px}
+  .edit-btn:has(.edit-ico){display:inline-flex;align-items:center;justify-content:center}
+  .cb-split-open{min-height:38px;font-size:13px}
+  .td-cust{min-height:42px;align-items:center}
+  .td-bk-btns{width:100%}
+  .td-bk-btns button{flex:1;min-height:42px;white-space:nowrap}
+  .pr-sheet{min-height:38px;font-size:12.5px}
+  .pr-x{min-width:34px;min-height:34px;font-size:18px}
+  .accent-done{min-height:40px;padding:8px 12px}
+  /* nothing smaller than 11px */
+  .bn-lbl,.td-amt-of,.trk-low-n,.cb-tab-n,.po-unpaid,.trk-badge,.sidebar-section-label,.pr-matrix .pr-sub{font-size:11px}
+  .form-group label span,.pj-items-label span{font-size:11.5px!important}
+  /* sign-in: 16px so iPhones don't zoom in when typing */
+  .sb-login-card input{font-size:16px}
 }

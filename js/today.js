@@ -261,8 +261,8 @@ function renderToday(){
       (bkDays===null?"<b>No backup saved on this computer yet.</b>":
         "Last backup: <b>"+(bkDays===0?"today":bkDays===1?"yesterday":bkDays+" days ago")+"</b>"+(bkDue?" &mdash; time for a new one.":"."))+
       "<span>Saves every table to a file on this computer, in case something is deleted by mistake. Reminder every "+BK_REMIND_DAYS+" days.</span></div>"+
-    "<div class='td-bk-btns'><button class='btn btn-primary' onclick='bkDownloadExcel()'>Download Excel backup</button>"+
-    "<button class='btn' onclick='bkDownloadJson()' title='Exact copy of the data, for restoring'>JSON</button></div></div>";
+    "<div class='td-bk-btns'><button class='btn-save' onclick='bkDownloadExcel()'>Download Excel backup</button>"+
+    "<button class='btn-cancel' onclick='bkDownloadJson()' title='Exact copy of the data, for restoring'>JSON</button></div></div>";
   var bkCard=bkOn?tdCard("Backup",bkDue?"!":"",bkBody,"",bkDue?"td-card-bkdue":""):"";
 
   content.innerHTML="<div class='td-grid'>"+

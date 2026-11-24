@@ -707,8 +707,8 @@ function renderModel(){
   const fmt=t=>t?`${t.price.toLocaleString()} <span class="trk-r-cur">${t.currency}</span>`:"—";
   const sub=t=>t?`${t.customer}${dDisplay(t)?" \xb7 "+dDisplay(t):""}`:"";
   const latest=uniq.length?uniq[0].tx:null;
-  const stat=(lbl,val,note)=>`<div class="cmp-sum-row"><span class="cmp-sum-l">${lbl}</span><span class="cmp-sum-v">${val}</span><span class="cmp-sum-s">${note||""}</span></div>`;
-  const summary=uniq.length?`<div class="cmp-sum">
+  const stat=(lbl,val,note)=>`<div class="stat"><div class="stat-label">${lbl}</div><div class="stat-value">${val}</div><div class="stat-sub">${note||""}</div></div>`;
+  const summary=uniq.length?`<div class="stat-grid cmp-stats">
     ${stat("Lowest price",fmt(ranked[0]),sub(ranked[0]))}
     ${stat("Highest price",fmt(ranked[ranked.length-1]),sub(ranked[ranked.length-1]))}
     ${stat("Latest price",fmt(latest),sub(latest))}
