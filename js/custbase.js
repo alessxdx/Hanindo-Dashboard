@@ -345,6 +345,17 @@ function renderCustBase(){
   content.innerHTML=toolbar+chips+(searching?"<div class='trk-search-count'>"+list.length+" of "+all.length+" customers</div>":"")+table;
 }
 
+/* Revenue total over several currencies: one USD figure, with the recorded
+   amounts small underneath. One currency only (or a currency without a rate):
+   shown as recorded, like everywhere else. */
+function cbRevenueStat(map){
+  var curs=Object.keys(map||{}).filter(function(k){return map[k];}),usd=0,ok=typeof fxToUSD==="function";
+  if(ok)curs.forEach(function(k){var u=fxToUSD(map[k],k);if(u===null)ok=false;else usd+=u;});
+  if(curs.length<2||!ok)return "<div class='stat-value cb-money cb-stat-money'>"+(cbMoneyCur(map)||"&mdash;")+"</div>";
+  curs.sort(function(a,b){return fxToUSD(map[b],b)-fxToUSD(map[a],a);});
+  return "<div class='stat-value cb-rev-usd'>&asymp; "+cbMoney(usd)+" <span>USD</span></div>"+
+    "<div class='cb-rev-curs'>"+curs.map(function(k){return "<span>"+cbCurFmt(map[k],k)+"</span>";}).join("")+"</div>";
+}
 function cbRenderStats(all){
   var el=document.getElementById("stats");
   if(!el)return;
@@ -354,7 +365,7 @@ function cbRenderStats(all){
   all.forEach(function(c){rev+=c.revenue;pos+=c.pos;ongoing+=c.n.ongoing;quotes+=c.quotes;if(c.n.ongoing)activeC++;cbAddCur(revCur,c.revCur);});
   el.innerHTML=
     "<div class='stat'><div class='stat-label'>Customers</div><div class='stat-value'>"+all.length+"</div><div class='stat-sub'>"+bought+" have bought</div></div>"+
-    "<div class='stat'><div class='stat-label'>Revenue</div><div class='stat-value cb-money cb-stat-money'>"+(rev?cbMoneyCur(revCur):"&mdash;")+"</div><div class='stat-sub'>"+pos+" confirmed POs</div></div>"+
+    "<div class='stat cb-stat-rev'><div class='stat-label'>Revenue</div>"+(rev?cbRevenueStat(revCur):"<div class='stat-value'>&mdash;</div>")+"<div class='stat-sub'>"+pos+" confirmed POs</div></div>"+
     "<div class='stat'><div class='stat-label'>Ongoing projects</div><div class='stat-value'>"+ongoing+"</div><div class='stat-sub'>with "+activeC+" customer"+(activeC===1?"":"s")+(quotes?" &middot; "+quotes+" open quotes":"")+"</div></div>";
 }
 
