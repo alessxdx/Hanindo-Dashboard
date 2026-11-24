@@ -2835,6 +2835,10 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .sb-login-err{font-size:12.5px;color:#b42318;min-height:0}
 :root[data-theme="dark"] .sb-login-err{color:#fda29b}
 .sb-login-foot{font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5}
+.sb-acct{background:rgba(0,0,0,.45)}
+.sb-acct .sb-login-card{max-height:100%;overflow-y:auto}
+.sb-acct-mail{font-size:13px;line-height:1.5;color:var(--text);overflow-wrap:anywhere;margin:-8px 0 16px}
+.sb-acct-btns{display:flex;flex-direction:column;gap:8px}
 .sb-who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .sb-login-card label.sb-keep{flex-direction:row;align-items:center;gap:8px;font-weight:500;color:var(--text);cursor:pointer}
@@ -3450,3 +3454,13 @@ th,.po-table th{font-size:12px;font-weight:600;text-transform:none;letter-spacin
 .modal .trk-suggest,.modal .trk-suggest input{width:100%}
 /* expense rows without a day: amount still lines up on the right */
 .exp-item>.exp-main:first-child{padding-left:2px}
+
+/* Customer Base revenue total: one USD figure, recorded currencies small below */
+.cb-rev-usd{white-space:nowrap}
+.cb-rev-usd span{font-size:13px;font-weight:600;color:var(--text-muted)}
+.cb-rev-curs{display:flex;flex-wrap:wrap;gap:1px 12px;font-size:12px;color:var(--text);margin-top:3px}
+.cb-rev-curs span{white-space:nowrap}
+@media (max-width:900px){
+  .stat-grid:has(>.cb-stat-rev){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .stat-grid>.stat.cb-stat-rev{grid-column:1/-1;order:-1}
+}
