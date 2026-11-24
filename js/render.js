@@ -830,11 +830,19 @@ function renderOthers(){
     trash:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>'
   };
   const btn=(kind,title,fn)=>`<button class="nt-ico${kind==="edit"?"":" nt-ico-del"}" title="${title}" aria-label="${title}" onclick="${fn}">${ico[kind]}</button>`;
-  /* "12 Oct 2026" becomes a day/month block; anything else (a range like
-     "Sep–Oct 2025", or no date) falls back to the plain text */
-  const dateBlock=d=>{
-    const m=/^(\d{1,2})\s+([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{4})$/.exec(String(d||"").trim());
-    return m?`<div class="nt-day2">${m[1]} ${m[2]}<span>${m[3]}</span></div>`:`<div class="nt-day2">${esc(d||"")}</div>`;
+  /* updates are grouped by month like the Expenses list: "12 Oct 2026" shows
+     as 12 / Oct under "October 2026"; other text dates stay as they are */
+  const dateParts=d=>/^(\d{1,2})\s+([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{4})$/.exec(String(d||"").trim());
+  const monthLabel=d=>{
+    const m=dateParts(d);if(!m)return String(d||"").trim()||"No date";
+    const t=new Date("1 "+m[2]+" "+m[3]);
+    return isNaN(t)?m[2]+" "+m[3]:t.toLocaleString("en-GB",{month:"long"})+" "+m[3];
+  };
+  const dateBlock=d=>{const m=dateParts(d);return m?`<div class="exp-day">${m[1]}<span>${m[2]}</span></div>`:"";};
+  const byMonth=list=>{
+    const g={},order=[];
+    list.forEach(x=>{const k=monthLabel(x.o.date);if(!g[k]){g[k]=[];order.push(k);}g[k].push(x);});
+    return order.map(k=>`<div class="exp-month"><span>${esc(k)}</span></div>${g[k].map(update).join("")}`).join("");
   };
   const update=x=>{const o=x.o,i=x.i;return `<div class="nt-upd">${dateBlock(o.date)}
     <div class="nt-body"><div class="nt-text">${fmtInline(esc(fmtSpan(o.desc)))}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
@@ -856,7 +864,7 @@ function renderOthers(){
         <button class="btn-save" onclick="postOtherQuick()">Post update</button></div>
     </div>
     <div class="nt-card">${head("Updates",updates.length,"newest first")}
-      ${updates.length?updates.map(update).join(""):`<div class="nt-empty">No updates yet. Anything you post above lands here and can be deleted with one click.</div>`}</div>
+      ${updates.length?byMonth(updates):`<div class="nt-empty">No updates yet. Anything you post above lands here and can be deleted with one click.</div>`}</div>
     ${records.length?`<div class="nt-card">${head("Records",records.length,"amounts and breakdowns")}${records.map(record).join("")}</div>`:""}
     ${terms.length?`<details class="nt-card nt-terms"><summary>${head("Shipping terms",terms.length,"Incoterms reference")}</summary><div class="nt-term-grid">${terms.map(term).join("")}</div></details>`:""}
   </div>`;

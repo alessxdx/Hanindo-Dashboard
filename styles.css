@@ -3243,8 +3243,6 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .nt-simple .nt-upd,.nt-simple .nt-rec{padding:12px 2px}
 .nt-simple .nt-upd:last-child,.nt-simple .nt-rec:last-child{border-bottom:1px solid var(--divider)}
 .nt-simple .nt-upd:hover,.nt-simple .nt-rec:hover{background:none}
-.nt-day2{flex:none;width:72px;font-size:13.5px;font-weight:700;color:var(--text-strong);line-height:1.6}
-.nt-day2 span{display:block;font-size:12px;font-weight:400;color:var(--text-muted);line-height:1.3}
 .nt-simple .nt-acts{opacity:0}
 .nt-simple .nt-upd:hover .nt-acts,.nt-simple .nt-rec:hover .nt-acts,.nt-simple .nt-acts:focus-within{opacity:1}
 @media (hover:none){.nt-simple .nt-acts{opacity:1}}
@@ -3253,7 +3251,7 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .nt-simple .nt-term{border:none;border-bottom:1px solid var(--divider);border-radius:0;background:none;padding:10px 2px}
 .nt-simple .nt-code{background:none;color:var(--text-strong);padding:0;font-size:13px;min-width:44px}
 .nt-simple .nt-term .nt-ico{opacity:0}.nt-simple .nt-term:hover .nt-ico{opacity:1}
-@media (max-width:700px){.nt-day2{width:56px;font-size:12.5px}.nt-simple .nt-upd,.nt-simple .nt-rec{gap:10px}}
+@media (max-width:700px){.nt-simple .nt-upd,.nt-simple .nt-rec{gap:10px}}
 
 /* Notes page: Notes / Expenses switch, and the Expenses view */
 .nt-views{margin:0 0 4px}
@@ -3510,12 +3508,12 @@ th,.po-table th{font-size:12px;font-weight:600;text-transform:none;letter-spacin
   .cb-grp2-in{flex-wrap:wrap}
   .cb-simple tr.cb-grp2 td:first-child{flex:1;min-width:0}
   .cb-grp2-chev{font-size:12px}
-  /* Notes: date on its own line, text uses the full width */
-  .nt-simple .nt-upd{flex-wrap:wrap;align-items:center;gap:4px 10px}
-  .nt-simple .nt-upd .nt-day2{order:1;width:auto;flex:1;font-size:13px}
-  .nt-simple .nt-upd .nt-day2 span{display:inline;margin-left:5px}
-  .nt-simple .nt-upd .nt-acts{order:2}
-  .nt-simple .nt-upd .nt-body{order:3;flex:1 1 100%}
+  /* Notes: like the Expenses list, icons on their own line below the text */
+  .nt-simple .nt-upd{flex-wrap:wrap;gap:2px 10px}
+  .nt-simple .nt-upd .nt-body{flex:1 1 calc(100% - 50px)}
+  .nt-simple .nt-upd .nt-acts{margin-left:44px}
+  .nt-simple .nt-upd>.nt-body:first-child~.nt-acts{margin-left:0}
+  .nt-simple .nt-rec .nt-amt{text-align:right;align-self:center}
   .nt-compose-foot{flex-wrap:wrap}
   .nt-compose-foot .btn-save{margin-left:auto;white-space:nowrap}
   /* Pricing: full-width search, cards fill the row, names stay in view */
@@ -3555,3 +3553,14 @@ th,.po-table th{font-size:12px;font-weight:600;text-transform:none;letter-spacin
   /* sign-in: 16px so iPhones don't zoom in when typing */
   .sb-login-card input{font-size:16px}
 }
+
+/* ===== Notes: updates grouped by month like Expenses, one writing box,
+   record amounts flush right ===== */
+.nt-simple .nt-card.nt-compose,:root[data-theme="dark"] .nt-simple .nt-card.nt-compose{outline:none;box-shadow:none;border-radius:0;overflow:visible;padding:6px 0 0}
+.nt-simple .nt-head:has(+.exp-month){border-bottom:none;padding-bottom:0}
+.nt-simple .nt-upd{gap:14px;padding:12px 2px}
+.nt-simple .nt-upd .nt-text{max-width:none}
+.nt-simple .nt-head+.exp-month{padding-top:10px}
+.nt-simple .nt-rec .nt-acts{order:1}
+.nt-simple .nt-rec .nt-amt{order:2}
+@media (max-width:700px){.nt-simple .nt-upd{gap:2px 10px}}
