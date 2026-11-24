@@ -116,7 +116,7 @@ function renderExpenses(){
     var v=cat[k],pct=T.spent?Math.round(v/T.spent*100):0;
     return "<div class='exp-bar-row'><div class='exp-bar-l' title='"+trkEsc(k)+"'>"+trkEsc(k)+"</div>"+
       "<div class='exp-bar-t'><div class='exp-bar-f' style='width:"+Math.max(1.5,v/maxC*100).toFixed(1)+"%;background:"+color+"'></div></div>"+
-      "<div class='exp-bar-v'><b>"+v.toLocaleString(undefined,{maximumFractionDigits:2})+"</b><span>"+pct+"%</span></div></div>";
+      "<div class='exp-bar-v'><b>"+v.toLocaleString(undefined,{maximumFractionDigits:2})+"</b><span>"+(pct<1&&v?"&lt;1":pct)+"%</span></div></div>";
   }).join("")+"</div>":"";
   /* spending per month, every month from the first to the last (only when it spans several) */
   var mon={};spent.forEach(function(e){var k=expMonthKey(e);if(k)mon[k]=(mon[k]||0)+e.amount;});

@@ -3464,3 +3464,13 @@ th,.po-table th{font-size:12px;font-weight:600;text-transform:none;letter-spacin
   .stat-grid:has(>.cb-stat-rev){grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .stat-grid>.stat.cb-stat-rev{grid-column:1/-1;order:-1}
 }
+
+/* Expenses rows: the hover edit/remove icons sit before the amount, so
+   amounts end at the same edge as the month totals */
+.exp-item .nt-acts{order:1}
+.exp-item .exp-amt{order:2}
+@media (max-width:700px){
+  .exp-item .nt-acts{margin-left:44px}
+  .exp-item>.exp-main:first-child~.nt-acts{margin-left:0}
+  .exp-item .exp-amt{margin-left:auto}
+}
