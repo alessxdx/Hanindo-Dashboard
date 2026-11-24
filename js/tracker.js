@@ -216,14 +216,15 @@ function trkIsOpen(p){
   return TRK_ACTIVE_STATUSES.indexOf(p.status)>-1||p.status==="Other"||(p.status==="Won"&&p.payment!=="Fully paid");
 }
 function trkFollow(p,act){
-  /* low priority = just waiting on them: no reminders at all, neither
-     Quiet nor an overdue follow-up date */
-  if(!trkIsOpen(p)||p.lowPriority)return null;
+  /* low priority = just waiting on them: a planned follow-up date still
+     counts, only the automatic Quiet reminder is off */
+  if(!trkIsOpen(p)||trkIsDone(p))return null;
   var today=trkToday(),f=trkActiveFollowup(p,act);
   if(f){
     var late=trkDaysBetween(f,today);
     return {due:late>=0,kind:"followup",days:late,date:f};
   }
+  if(p.lowPriority)return null;
   var last=trkLastDate(p,act);
   if(!last)return null;
   var days=trkDaysBetween(last,today);
@@ -264,8 +265,8 @@ function trkFollowBadge(f){
 }
 /* ===== low priority =====
    For deals where we're just waiting on the customer: the project
-   sinks to the bottom of its band, drops out of Needs follow-up (no
-   Quiet nag) and shows a grey badge. One click on/off, from the panel
+   sinks to the bottom and gets no Quiet nag; a follow-up date you set
+   still shows and still reminds. One click on/off, from the panel
    or the full page. */
 /* hourglass icon (the sleep emoji rendered as a blurry squiggle) */
 /* fold state of the Low priority / Done sections — folded by default */
@@ -276,7 +277,7 @@ function trkToggleSection(kind){
   renderTracker();
 }
 var TRK_LOW_ICO="<svg class='trk-low-ico' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 2h12M6 22h12M7 2v4l5 6-5 6v4M17 2v4l-5 6 5 6v4'/></svg>";
-function trkLowBadge(){return "<span class='trk-badge trk-low' title='Low priority — just waiting, no follow-up reminders'>"+TRK_LOW_ICO+"Low priority</span>";}
+function trkLowBadge(){return "<span class='trk-badge trk-low' title='Low priority — just waiting; follow-up dates still show'>"+TRK_LOW_ICO+"Low priority</span>";}
 /* an on/off switch with a one-line explanation, so it reads as a
    setting rather than a stray link */
 var TRK_DONE_ICO="<span class='trk-done-ico'>&#10003;</span>";
@@ -307,7 +308,7 @@ function trkLowSw(p){
   return "<button class='trk-low-sw"+(p.lowPriority?" on":"")+"' role='switch' aria-checked='"+(p.lowPriority?"true":"false")+"' onclick='trkToggleLow(\""+p._id+"\")'>"+
     "<span class='trk-low-knob'></span>"+
     "<span class='trk-low-txt'><strong>"+TRK_LOW_ICO+"Low priority</strong>"+
-      "<small>"+(p.lowPriority?"Waiting on them &mdash; kept at the bottom, no reminders":"Just waiting? Move it to the bottom and stop reminders")+"</small></span>"+
+      "<small>"+(p.lowPriority?"Waiting on them &mdash; kept at the bottom, follow-up dates still show":"Just waiting? Move it to the bottom, follow-up dates still show")+"</small></span>"+
   "</button>";
 }
 async function trkToggleLow(id){
@@ -773,7 +774,7 @@ function trkRenderList(bodyOnly){
   var q=trkSearchQuery(TRK_Q),hits={};
   var list=TRK_PROJECTS.filter(function(p){
     if(!(trkStaleOn()?trkFollowDue(p,act):(q&&trkDefaultStatusesOn())||TRK_FSTATUS.indexOf(p.status)>-1)||(TRK_FOFFICE&&p.office!==TRK_FOFFICE)||(TRK_FSOL&&p.solution!==TRK_FSOL))return false;
-    if(!TRK_SHOW_LOW&&p.lowPriority&&!trkIsDone(p))return false;
+    if(!TRK_SHOW_LOW&&p.lowPriority&&!trkIsDone(p)&&!trkStaleOn())return false;
     if(!q)return true;
     var h=trkSearchProject(p,q);
     if(h)hits[p._id]=h;
@@ -809,7 +810,7 @@ function trkRenderList(bodyOnly){
       "<td class='trk-c-of'>"+(p.office?"<span class='trk-oftx trk-oftx-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+"</span>":"")+"</td>"+
       "<td class='trk-c-val num'>"+(p.estValue!==null?"<b>"+p.estValue.toLocaleString()+"</b> <span class='trk-r-cur'>"+trkEsc(p.currency)+"</span>":"<span class='trk-r-none'>&mdash;</span>")+"</td>"+
       "<td class='trk-c-last'>"+(last?"<div>"+trkFmtDate(last.date)+"</div><div class='trk-r-sub'>"+trkEsc(last.type)+(last.title?" &mdash; "+trkEsc(last.title):"")+"</div>":"<span class='trk-r-none'>No activity yet</span>")+"</td>"+
-      "<td class='trk-c-fu'>"+(inParked?(p.solution?"<span class='trk-tx trk-tx-dim'>"+trkEsc(p.solution)+"</span>":""):(trkFollowText(trkFollow(p,act))||(p.lowPriority&&!done?"<span class='trk-tx trk-tx-dim'>Low priority</span>":"")))+"</td>"+
+      "<td class='trk-c-fu'>"+(inParked?trkFollowText(trkFollow(p,act))+(p.solution?"<div class='trk-fu-sol'>"+trkEsc(p.solution)+"</div>":""):(trkFollowText(trkFollow(p,act))||(p.lowPriority&&!done?"<span class='trk-tx trk-tx-dim'>Low priority</span>":"")))+"</td>"+
     "</tr>";
   }
   var COLS=6;
@@ -820,8 +821,8 @@ function trkRenderList(bodyOnly){
   function isParked(p){return trkIsDone(p)||isLow(p);}
   /* a parked row keeps a stripe in its solution's colour, since it
      sits in a shared section rather than under its solution band */
-  /* in the Low priority / Done sections the last column names the
-     solution instead (the section already says low priority / done) */
+  /* in the Low priority / Done sections the last column also names the
+     solution, under the follow-up if there is one */
   var inParked=false;
   function parkedRowHtml(p){
     inParked=true;var h=rowHtml(p);inParked=false;
@@ -829,9 +830,10 @@ function trkRenderList(bodyOnly){
   }
   function sec(kind,items,label,ico){
     if(!items.length)return"";
-    var open=TRK_SEC_OPEN[kind];
+    var open=TRK_SEC_OPEN[kind],due=items.filter(function(p){return trkFollowDue(p,act);}).length;
     return "<tr class='trk-low-div trk-sec-"+kind+(open?" open":"")+"' onclick='trkToggleSection(\""+kind+"\")' title='"+(open?"Hide":"Show")+" these projects'><td colspan='"+COLS+"'>"+
       "<span class='trk-sec-chev'>&#9656;</span>"+ico+label+"<span class='trk-low-n'>"+items.length+"</span>"+
+      (due?"<span class='trk-band2-due trk-sec-due'>"+due+" need"+(due===1?"s":"")+" follow-up</span>":"")+
       "<span class='trk-sec-hint'>"+(open?"hide":"show")+"</span></td></tr>"+
       items.filter(function(p){return open||p._id===TRK_SEL;}).map(parkedRowHtml).join("");
   }

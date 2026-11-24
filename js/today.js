@@ -164,7 +164,7 @@ function renderToday(){
   var fuRow=function(x){
     var last=trkLastDate(x.p,act);
     return tdRow({name:x.p.name,cust:x.p.customer,country:x.p.country,badge:trkFollowText(x.f),
-      sub:last?"last update "+trkFmtDate(last):"",go:"tracker",sel:x.p._id});
+      sub:[x.p.lowPriority?"Low priority":"",last?"last update "+trkFmtDate(last):""].filter(Boolean).join(" &middot; "),go:"tracker",sel:x.p._id});
   };
 
   /* money owed */

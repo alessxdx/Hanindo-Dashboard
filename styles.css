@@ -3593,3 +3593,10 @@ input[list]::-webkit-calendar-picker-indicator{display:none!important}
   .dd-item{padding:11px 10px;font-size:15px}
   .att-type{min-height:36px}
 }
+
+/* low-priority rows: the follow-up stays readable, solution underneath */
+.trk-row-low td.trk-c-fu{opacity:1}
+.trk-fu-sol{font-size:12px;font-weight:500;color:var(--text-muted);opacity:.75}
+.trk-c-fu .trk-tx+.trk-fu-sol{margin-top:2px}
+.trk-sec-due{text-transform:none;letter-spacing:0;white-space:nowrap}
+@media (max-width:700px){.trk-sec-due{margin-left:8px}.trk-low-div:has(.trk-sec-due) .trk-sec-hint{display:none}}
