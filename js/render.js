@@ -848,7 +848,7 @@ function renderOthers(){
     return order.map(k=>`<div class="exp-month"><span>${esc(k)}</span></div>${g[k].map(update).join("")}`).join("");
   };
   const update=x=>{const o=x.o,i=x.i;return `<div class="nt-upd">${dateBlock(o.date)}
-    <div class="nt-body"><div class="nt-text">${fmtInline(esc(fmtSpan(o.desc)))}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
+    <div class="nt-body"><div class="nt-text">${trkLines(o.desc)}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
     <div class="nt-acts">${btn("edit","Edit",`editOther(${i})`)}${btn("del","Delete",`deleteOtherQuick(${i})`)}</div></div>`;};
   const record=x=>{const o=x.o,i=x.i;return `<div class="nt-rec">
     <div class="nt-body"><div class="nt-title">${fmtInline(esc(o.desc))}${o.date?`<span class="nt-when">${esc(o.date)}</span>`:""}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>

@@ -55,16 +55,30 @@ function trkEToDb(e){return{project_id:e.projectId,entry_date:e.date||null,entry
 /* ===== helpers ===== */
 function trkEsc(s){return String(s===null||s===undefined?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
 /* Multi-line text with Tab indents kept: every 4 leading spaces (or a tab)
-   shifts the line one step right, and wrapped text stays under it */
+   shifts the line one step right, and wrapped text stays under it. An indented
+   paragraph below a "1." / "•" line starts under that line's text */
 function trkLines(s){
+  var li=[]; // the list lines above, by level
   return fmtSpan(s).split("\n").map(function(l){
     var ind=/^[ \t]*/.exec(l)[0],lv=Math.ceil(ind.replace(/\t/g,"    ").length/4),t=l.slice(ind.length);
     // "a." / "b)" sub-points typed without an indent still sit under the numbered point above
     if(!lv&&/^[a-z][.)]\s/.test(t))lv=1;
     var st=lv?" style='padding-left:"+(lv*1.6)+"em'":"";
-    // "1." / "•" / "a)" lines hang, so wrapped text lines up under the text like in an email
-    var mk=/^([•●▪◦‣]|\d+[.)]|[a-z][.)])\s+(\S[^]*)$/.exec(t);
-    if(mk)return "<div class='txt-ln txt-li'"+st+"><span class='txt-mk'>"+trkEsc(mk[1])+"</span><span>"+fmtInline(trkEsc(mk[2]))+"</span></div>";
+    // "1." / "•" / "a)" lines hang, so wrapped text lines up under the text like in an
+    // email; a bold or sized number has its marks in front ("**3. Title**" or "**3.** Title")
+    var mk=/^((?:\*\*|__|\*(?!\s)|\{[slx]\|)*)([•●▪◦‣]|\d+[.)]|[a-z][.)])((?:\*\*|__|\*|\|[slx]\})*)\s+(\S[^]*)$/.exec(t);
+    if(mk){
+      // a bigger number needs a wider column
+      var sz=/\{([slx])\|/.exec(mk[1]),f=sz?{s:1,l:1.3,x:1.65}[sz[1]]:1;
+      li.length=lv;li[lv]=f;
+      var end=(mk[1].match(/\*\*|__|\*|\{[slx]\|/g)||[]).reverse().map(function(x){return x.charAt(0)==="{"?"|"+x.charAt(1)+"}":x;}).join("");
+      return "<div class='txt-ln txt-li'"+st+"><span class='txt-mk'"+(f>1?" style='min-width:calc(var(--li-mk) * "+f+")'":"")+">"+fmtInline(trkEsc(mk[1]+mk[2]+end))+"</span><span>"+fmtInline(trkEsc((mk[3]?"":mk[1])+mk[4]))+"</span></div>";
+    }
+    if(!lv&&t)li=[];
+    if(lv&&t){
+      for(var k=Math.min(lv,li.length)-1;k>=0&&!li[k];)k--;
+      if(k>=0)st=" style='padding-left:calc(var(--li-in) + var(--li-mk) * "+li[k]+" + var(--li-gap) + "+((lv-1)*1.6).toFixed(1)+"em)'";
+    }
     return "<div class='txt-ln'"+st+">"+(t?fmtInline(trkEsc(t)):"&nbsp;")+"</div>";
   }).join("");
 }

@@ -1158,9 +1158,9 @@ details.others-sec:not([open]) > summary{border-bottom:none}
 .trk-tl-edit:hover{color:var(--accent-text)}
 .trk-tl-title{font-size:17px;font-weight:600;color:var(--text-strong);margin-top:6px}
 .trk-tl-details{font-size:16px;color:var(--text);line-height:1.7;margin-top:6px}
-.txt-ln{min-height:1em;overflow-wrap:anywhere}
-.txt-li{display:flex;gap:.4em;margin-left:16px}
-.txt-li>.txt-mk{flex:none;min-width:1.3em}
+.txt-ln{--li-in:16px;--li-mk:1.3em;--li-gap:.4em;min-height:1em;overflow-wrap:anywhere}
+.txt-li{display:flex;align-items:baseline;gap:var(--li-gap);margin-left:var(--li-in)}
+.txt-li>.txt-mk{flex:none;min-width:var(--li-mk)}
 .txt-li>span:last-child{min-width:0;flex:1}
 .po-panel-note.txt-lines{white-space:normal}
 .trk-tl-atts{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
@@ -3627,3 +3627,6 @@ font[size="6"],font[size="7"]{font-size:1.65em;line-height:1.35}
   .nt-compose-foot .nt-tools{display:contents}
   .nt-compose-foot{gap:6px}
 }
+
+/* Notes: numbers and bullets start at the edge, with the text close behind */
+.nt-text .txt-ln{--li-in:0px;--li-mk:1.1em;--li-gap:.25em}

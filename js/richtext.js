@@ -24,6 +24,16 @@ function richMarks(el,m,sizes){
   if(t==="U"||/underline/.test(deco))m.u=true;
   return m;
 }
+/* a <br> with nothing after it in its line (it may sit inside bold or a size) */
+function richFiller(br,ed){
+  for(var x=br;x;x=x.parentNode){
+    var s=x.nextSibling;
+    while(s&&s.nodeType===3&&!s.data)s=s.nextSibling;
+    if(s||!x.parentNode||x.parentNode===ed)return false;
+    if(/^(DIV|P|LI|H\d|BLOCKQUOTE|PRE)$/.test(x.parentNode.tagName))return true;
+  }
+  return false;
+}
 /* box -> marked text. Each run of same-formatted text gets its own marks,
    with spaces at its edges kept outside them so the marks still render */
 function richToText(ed){
@@ -39,7 +49,7 @@ function richToText(ed){
       if(c.nodeType!==1)return;
       if(c.tagName==="BR"){
         // a <br> that ends a line is only the browser's filler (it holds an empty line open)
-        if(!(c.nextSibling===null&&n!==ed))nl();
+        if(!richFiller(c,ed))nl();
         return;
       }
       var block=/^(DIV|P|LI|H\d|BLOCKQUOTE|PRE)$/.test(c.tagName);
@@ -62,9 +72,6 @@ function richRunsToText(lines){
       if(p&&!!p.m.b===!!r.m.b&&!!p.m.i===!!r.m.i&&!!p.m.u===!!r.m.u&&(p.m.s||"")===(r.m.s||""))p.t+=r.t;
       else merged.push({t:r.t,m:r.m});
     });
-    // a sized list line keeps its "•" / "1." outside the size, so it stays a list
-    var mk=merged[0]&&merged[0].m.s&&/^(\s*(?:[•●▪◦‣]|\d+[.)]|[a-z][.)])\s+)([^]*)$/.exec(merged[0].t);
-    if(mk)merged.splice(0,1,{t:mk[1],m:{}},{t:mk[2],m:merged[0].m});
     return merged.map(function(r){
       var x=/^(\s*)([^]*?)(\s*)$/.exec(r.t);
       if(!x[2])return r.t;
@@ -147,18 +154,30 @@ function richFromHtml(html){
   return richRunsToText(out);
 }
 /* List lines hang: wrapped text lines up under the text, not under the
-   number. The width of the indent + marker is measured on the line itself. */
+   number. The width of the indent + marker is measured on the line itself.
+   Indented paragraphs stay indented when they wrap, and below a "1." / "•"
+   line they start under that line's text (same as trkLines when shown). */
 function richHang(ed){
+  var li=[];
   [].forEach.call(ed.children,function(d){
-    var m=LIST_RE.exec(d.textContent),w=0;
-    if(m&&m[3]){
-      var p=richPoint(d,m[1].length+m[2].length+1),r=document.createRange();
+    var x=d.textContent,m=LIST_RE.exec(x),w=0,at=0,ind=/^[  	]*/.exec(x)[0],lv=Math.ceil(ind.replace(/	/g,"    ").length/4);
+    if(m&&!m[3])m=null;
+    var n=m?m[1].length+m[2].length+1:x.trim()?ind.length:0;
+    if(n){
+      var p=richPoint(d,n),r=document.createRange();
       r.setStart(d,0);r.setEnd(p[0],p[1]);
       d.style.paddingLeft="";d.style.textIndent="";
       w=r.getBoundingClientRect().width;
+      // list lines also sit a little in from the edge, like an email's list
+      at=m?w+16:w;
     }
-    // list lines also sit a little in from the edge, like an email's list
-    d.style.paddingLeft=w?(w+16)+"px":"";d.style.textIndent=w?(-w)+"px":"";
+    if(m){li.length=lv;li[lv]=at;}
+    else if(!lv&&x.trim())li=[];
+    else if(w){
+      for(var k=Math.min(lv,li.length)-1;k>=0&&!li[k];)k--;
+      if(k>=0)at=li[k]+(lv-1-k)*w/lv;
+    }
+    d.style.paddingLeft=w?at+"px":"";d.style.textIndent=w?(-w)+"px":"";
   });
 }
 function richEmpty(ed){ed.classList.toggle("is-empty",!ed.textContent&&ed.childNodes.length<2);}
@@ -193,7 +212,7 @@ function richFlatten(ed){
     if(c.nodeType!==1)return false;
     if(c.querySelector("div,p,li,blockquote,pre,h1,h2,h3,h4,h5,h6"))return true;
     if(c.textContent.indexOf("\n")>-1)return true;
-    return [].some.call(c.querySelectorAll("br"),function(b){return !(b.nextSibling===null&&c.contains(b)&&b.parentNode===c&&b===c.lastChild);});
+    return [].some.call(c.querySelectorAll("br"),function(b){return !richFiller(b,ed);});
   });
   if(!odd||ed._composing)return false;
   var A="\uE000",B="\uE001",sel=getSelection(),r=sel.rangeCount?sel.getRangeAt(0):null;
