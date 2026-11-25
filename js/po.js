@@ -274,7 +274,7 @@ function renderPOs(){
       "<button class='po-co po-co-all"+(PO_FOFFICE?"":" on")+"' aria-pressed='"+!PO_FOFFICE+"' onclick='poPickOffice(\"\")'>All offices</button>"+
       ["China","Singapore","Indonesia"].map(function(o){
         var on=PO_FOFFICE===o,c=PO_COS[o];
-        return "<button class='po-co"+(on?" on":"")+"' aria-pressed='"+on+"' onclick='poPickOffice(\""+(on?"":o)+"\")'>"+poLogo(c[0],"")+"<span class='po-co-n'><span class='po-co-nm'>"+c[1]+" </span><span class='po-co-of po-oftxt-"+poOfficeSlug(o)+"'>"+o+"</span></span></button>";
+        return "<button class='po-co"+(on?" on":"")+"' title='"+c[1]+", "+o+"' aria-pressed='"+on+"' onclick='poPickOffice(\""+(on?"":o)+"\")'>"+poLogo(c[0],c[1]+", "+o)+"</button>";
       }).join("")+"</div>");
   var add="<button class='btn-add po-add' onclick='openModal()'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' style='width:13px;height:13px'><line x1='12' y1='5' x2='12' y2='19'/><line x1='5' y1='12' x2='19' y2='12'/></svg> "+(fire?"Add expenses":"Add PO")+"</button>";
   var seg="<div class='po-seg'>"+[["list",fire?"List":"Orders"],["models",fire?"By group":"By model"]].map(function(v){
