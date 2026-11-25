@@ -2368,7 +2368,7 @@ html{-webkit-tap-highlight-color:transparent}
   .po-models thead{display:none}
   .po-models tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px;padding:12px;border-bottom:1px solid var(--border)}
   .po-models td{padding:0;border:none;text-align:left !important;white-space:normal}
-  .po-models td:first-child,.po-models td:last-child{grid-column:1/-1}
+  .po-models td:first-child{grid-column:1/-1}
   .po-models td[data-label]::before{content:attr(data-label);display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:2px}
 }
 /* opened from the home screen: no browser bar, so give the top a little room */
@@ -3742,6 +3742,6 @@ font[size="7"]{font-size:2em;line-height:1.3}
   .po-list.po-simple tr.po-row td.po-c-st{grid-row:1;grid-column:2;padding:8px 0 0}
   .po-list.po-simple tr.po-row td.po-c-amt{grid-row:1;grid-column:3}
   .po-list.po-simple tr.po-row td.po-c-date{grid-row:2;grid-column:2/4}
-  .po-models tr.po-grp2 td{padding:8px 0 0}
+  .po-models tr td{border:none!important;padding:0!important}
   .po-models tr.po-grp2 td:last-child{display:none}
 }

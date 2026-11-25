@@ -497,7 +497,6 @@ function poModelGroups(list){
     return g;
   }).sort(function(a,b){return (b.printer?1:0)-(a.printer?1:0)||b.units-a.units;});
 }
-function poAvg(spend,priced){return priced?poFmtMoney(Math.round(spend/priced*100)/100,"USD"):"&mdash;";}
 /* the latest price, and the one before it at the same office (offices can
    pay different prices, so comparing across them would look like a change) */
 function poLastPrice(g){
@@ -521,20 +520,19 @@ function poModelsHtml(list){
     if(!gs.length)return "";
     var u=0,s=0;
     gs.forEach(function(g){u+=g.units;s+=g.spend;});
-    return "<tr class='po-grp2'><td>"+title+"</td><td class='num' data-label='Units'>"+u.toLocaleString()+"</td><td class='num' data-label='Total paid'>"+poUsdTxt(s)+"</td><td colspan='2'></td></tr>"+
+    return "<tr class='po-grp2'><td>"+title+"</td><td class='num' data-label='Units'>"+u.toLocaleString()+"</td><td class='num' data-label='Total paid'>"+poUsdTxt(s)+"</td><td></td></tr>"+
       gs.map(function(g){
         return "<tr class='po-row"+(PO_MODEL===g.key?" sel":"")+"' data-k='"+trkEsc(g.key)+"' onclick='poPickModel(this.getAttribute(\"data-k\"))'>"+
           "<td><div class='po-m-desc'>"+trkEsc(g.desc||"—")+"</div>"+poPnsHtml(g)+"</td>"+
           "<td class='num po-m-units' data-label='Units'>"+g.units.toLocaleString()+"</td>"+
           "<td class='num po-m-spend' data-label='Total paid'>"+poUsdTxt(g.spend)+"</td>"+
-          "<td class='num po-m-spend' data-label='Average price'>"+poAvg(g.spend,g.priced)+"</td>"+
           "<td class='num po-m-last' data-label='Last price'>"+poLastPrice(g)+"</td>"+
         "</tr>";
       }).join("");
   }
   var sel=PO_MODEL?poModelPanelHtml():"";
   return "<div class='po-split"+(sel?" has-sel":"")+"'><div class='po-table-wrap'><table class='po-table po-models'>"+
-    "<thead><tr><th>Model</th><th class='num'>Units</th><th class='num'>Total paid</th><th class='num'>Average price</th><th class='num'>Last price</th></tr></thead>"+
+    "<thead><tr><th>Model</th><th class='num'>Units</th><th class='num'>Total paid</th><th class='num'>Last price</th></tr></thead>"+
     "<tbody>"+rows("Printers",groups.filter(function(g){return g.printer;}))+rows(PO_SECTION===PO_AUTO?"Items":"Parts and accessories",groups.filter(function(g){return !g.printer;}))+"</tbody></table></div>"+sel+"</div>";
 }
 function poPickModel(k){PO_MODEL=PO_MODEL===k?"":(k||"");renderPOs();}
@@ -547,14 +545,14 @@ function poModelPanelHtml(){
   function table(title,keyOf,order){
     var m={};
     g.buys.forEach(function(b){
-      var k=keyOf(b)||"—",r=m[k]=m[k]||{u:0,s:0,n:0,p:{}};
+      var k=keyOf(b)||"—",r=m[k]=m[k]||{u:0,s:0,last:null,p:{}};
       r.u+=b.l.qty;
-      if(b.usd!==null){r.s+=b.usd;r.n+=b.l.qty;r.p[b.l.unitPrice]=1;}
+      if(b.usd!==null){r.s+=b.usd;r.last=b;r.p[b.l.unitPrice]=1;}
     });
-    return "<div class='po-panel-sec'>"+title+"</div><table class='po-mt'><thead><tr><th></th><th>Units</th><th>Average</th><th>Total</th></tr></thead><tbody>"+
+    return "<div class='po-panel-sec'>"+title+"</div><table class='po-mt'><thead><tr><th></th><th>Units</th><th>Last price</th><th>Total</th></tr></thead><tbody>"+
       Object.keys(m).sort(order).map(function(k){
         var r=m[k],ps=Object.keys(r.p).map(Number),lo=Math.min.apply(null,ps),hi=Math.max.apply(null,ps);
-        return "<tr><td>"+trkEsc(k)+"</td><td>"+r.u.toLocaleString()+"</td><td>"+poAvg(r.s,r.n)+
+        return "<tr><td>"+trkEsc(k)+"</td><td>"+r.u.toLocaleString()+"</td><td>"+(r.last?poFmtMoney(r.last.l.unitPrice,r.last.p.currency):"&mdash;")+
           (ps.length>1?"<div class='po-dim'>"+poFmtMoney(lo,"USD")+" to "+poFmtMoney(hi,"USD")+"</div>":"")+
           "</td><td>"+poUsdTxt(r.s)+"</td></tr>";
       }).join("")+"</tbody></table>";
