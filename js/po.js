@@ -460,8 +460,17 @@ function poEmptyHtml(){
 
 /* ===== "By model" — what was bought of each model, and at what price =====
    PO_SAME joins part numbers that are the same model (old P/N -> new P/N),
-   so a model whose P/N changed over the years is one row. */
-var PO_SAME={};
+   so a model whose P/N changed over the years is one row. Display only: the
+   lines keep their own P/N, and every joined P/N is listed with its units.
+   Not joined: TK180 plastic SITA (911HL0206) / AEA (911HL0209) and the two
+   K80 P/Ns, which CUSTOM lists as separate products. */
+var PO_SAME={
+  "915DW011000300":"915DW011200300", /* VKP80II SX -> RX */
+  "915DX010700300":"915DX011700300", /* VKP80III rear connector, RX63 -> RX65 */
+  "915CG040200300":"915CG060100300","915CG040200300 or 915CG060100300":"915CG060100300", /* TG2460HIII */
+  "915CH020100300":"915CH030100300", /* TG2480HIII */
+  "2C160000000312":"2C160000000024"  /* VKP80II thermal head */
+};
 function poModelKey(l){var k=l.pn||l.description||"?";return String(PO_SAME[k]||k).toLowerCase();}
 /* 911 / 915 part numbers are printers; everything else is a part or accessory */
 function poIsPrinter(pn){return /^91[15]/.test(pn||"");}
@@ -472,11 +481,12 @@ function poModelGroups(list){
     var p=ids[l.poId];
     if(!p)return;
     var key=poModelKey(l),g=groups[key];
-    if(!g)g=groups[key]={key:key,pns:[],desc:"",printer:PO_SECTION!==PO_AUTO&&poIsPrinter(l.pn),units:0,spend:0,priced:0,buys:[],hit:0};
+    if(!g)g=groups[key]={key:key,pns:[],desc:"",printer:PO_SECTION!==PO_AUTO&&poIsPrinter(l.pn),units:0,spend:0,priced:0,buys:[],hit:0,byPn:{}};
     if(l.pn&&g.pns.indexOf(l.pn)===-1)g.pns.push(l.pn);
     if((l.description||"").length>g.desc.length)g.desc=l.description;
     if(poLineHit(l))g.hit=1;
     g.units+=l.qty;
+    if(l.pn)g.byPn[l.pn]=(g.byPn[l.pn]||0)+l.qty;
     var usd=l.unitPrice===null?null:poUsd(l.unitPrice*l.qty,p.currency);
     if(usd!==null){g.spend+=usd;g.priced+=l.qty;}
     g.buys.push({p:p,l:l,usd:usd});
@@ -497,6 +507,12 @@ function poLastPrice(g){
   return poFmtMoney(last.l.unitPrice,last.p.currency)+
     (was?"<div class='po-m-trend "+(last.l.unitPrice>was.l.unitPrice?"po-up'>&#9650;":"po-down'>&#9660;")+" was "+poFmtMoney(was.l.unitPrice,was.p.currency)+"</div>":"");
 }
+/* every part number of the model; with its units when there are several */
+function poPnsHtml(g){
+  return g.pns.map(function(pn){
+    return "<div class='po-m-pn'>"+trkEsc(pn)+(g.pns.length>1?" &middot; "+g.byPn[pn].toLocaleString()+" units":"")+"</div>";
+  }).join("");
+}
 function poModelsHtml(list){
   var groups=poModelGroups(list);
   if(poQuery()&&groups.some(function(g){return g.hit;}))groups=groups.filter(function(g){return g.hit;});
@@ -508,7 +524,7 @@ function poModelsHtml(list){
     return "<tr class='po-grp2'><td>"+title+"</td><td class='num' data-label='Units'>"+u.toLocaleString()+"</td><td class='num' data-label='Total paid'>"+poUsdTxt(s)+"</td><td colspan='2'></td></tr>"+
       gs.map(function(g){
         return "<tr class='po-row"+(PO_MODEL===g.key?" sel":"")+"' data-k='"+trkEsc(g.key)+"' onclick='poPickModel(this.getAttribute(\"data-k\"))'>"+
-          "<td><div class='po-m-desc'>"+trkEsc(g.desc||"—")+"</div><div class='po-m-pn'>"+g.pns.map(trkEsc).join(", ")+"</div></td>"+
+          "<td><div class='po-m-desc'>"+trkEsc(g.desc||"—")+"</div>"+poPnsHtml(g)+"</td>"+
           "<td class='num po-m-units' data-label='Units'>"+g.units.toLocaleString()+"</td>"+
           "<td class='num po-m-spend' data-label='Total paid'>"+poUsdTxt(g.spend)+"</td>"+
           "<td class='num po-m-spend' data-label='Average price'>"+poAvg(g.spend,g.priced)+"</td>"+
@@ -547,9 +563,10 @@ function poModelPanelHtml(){
   return "<aside class='po-panel po-model-panel'>"+
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(g.desc||g.pns[0]||"—")+"</span>"+
       "<button class='po-panel-x' aria-label='Close' onclick='poPickModel(\"\")'>&times;</button></div>"+
-    "<div class='po-panel-meta'><span>"+g.pns.map(trkEsc).join(", ")+(PO_FOFFICE?" &middot; "+trkEsc(PO_FOFFICE)+" only":"")+"</span></div>"+
+    "<div class='po-panel-meta'><span>"+(g.pns.length>1?g.pns.length+" part numbers":trkEsc(g.pns[0]||""))+(PO_FOFFICE?" &middot; "+trkEsc(PO_FOFFICE)+" only":"")+"</span></div>"+
     "<div class='po-panel-total'>"+poUsdTxt(g.spend)+"<span class='po-mt-u'>"+g.units.toLocaleString()+" units</span></div>"+
     (miss>0?"<div class='po-dim'>"+miss.toLocaleString()+" units have no price recorded</div>":"")+
+    (g.pns.length>1?table("By part number",function(b){return b.l.pn;}):"")+
     table("By year",function(b){return poYear(b.p);},function(a,b){return b.localeCompare(a);})+
     (PO_FOFFICE?"":table("By office",function(b){return b.p.office;}))+
     "<div class='po-panel-sec'>"+g.buys.length+" order line"+(g.buys.length===1?"":"s")+"</div>"+
