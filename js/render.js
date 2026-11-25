@@ -649,7 +649,7 @@ function renderModel(){
   }).filter(Boolean);
   const cmpAll=TX.concat(projRows);
   const models=[...new Set(cmpAll.map(t=>cmpFamily(t.displayModel||t.model)))].sort();
-  const current=models.includes(window._cmpModel)?window._cmpModel:models[0];
+  const current=models.includes(window._cmpModel)?window._cmpModel:models.includes("TK180 Plastic")?"TK180 Plastic":models[0];
   /* Free-text search overrides the dropdown: every word must appear in the
      model name, so "tk180" pulls in plastic, metal, every warranty variant */
   const srchEl=document.getElementById("model-search"),srch=srchEl?srchEl.value:(window._cmpSearch||"");
