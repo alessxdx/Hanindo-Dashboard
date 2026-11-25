@@ -3276,10 +3276,10 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 :root[data-theme="dark"] .buy-band2-name{color:#84adff}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .buy-band2-name{color:#84adff}}
 
-/* PO list month headings in the same blue as the other group headings */
-.po-grp2 td:first-child{color:#1d4ed8}
-:root[data-theme="dark"] .po-grp2 td:first-child{color:#84adff}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .po-grp2 td:first-child{color:#84adff}}
+/* PO list month headings: teal, so they never look like an office (red, orange, blue) */
+.po-grp2 td:first-child{color:#0f766e}
+:root[data-theme="dark"] .po-grp2 td:first-child{color:#5eead4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .po-grp2 td:first-child{color:#5eead4}}
 
 /* Expenses view: department switch, big totals, bar charts, entries by month */
 .exp-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 6px}
@@ -3717,6 +3717,10 @@ font[size="7"]{font-size:2em;line-height:1.3}
 .po-stat .stat-sub b{color:var(--text-strong)}
 .stat-grid:has(>.po-stat) .stat-sub{display:block!important}
 .po-unpaid,.po-paid{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 9px;white-space:nowrap}
+/* only two boxes: side by side, also on phones; Paid on field hidden (PO_SHOW_PAY) */
+.stat-grid:has(>.po-stat:nth-child(2):last-child){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.stat-grid:has(>.po-stat:nth-child(2):last-child)>.stat.cb-stat-rev{grid-column:auto}
+:root:not(.po-show-pay) .po-pay{display:none}
 .po-unpaid{color:var(--badge-ls-fg);background:var(--badge-ls-bg)}
 .po-paid{color:var(--badge-po-fg);background:var(--badge-po-bg)}
 .po-models .po-grp2 td{padding:18px 14px 6px;border-bottom:2px solid var(--border)}

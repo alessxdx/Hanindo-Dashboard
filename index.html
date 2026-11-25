@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-25.15";
+var APP_VERSION = "2026-11-25.16";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -412,7 +412,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
     <div class="form-grid">
       <div class="form-group"><label id="po-total-label">PO total</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-total" type="number" step="any" placeholder="auto-summed from lines"></div>
       <div class="form-group po-pr-only"><label>Invoice no.</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-invoice" placeholder="e.g. 4026000013" style="font-family:'DM Mono',monospace"></div>
-      <div class="form-group po-pr-only"><label>Paid on</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-paid" type="date"></div>
+      <div class="form-group po-pr-only po-pay"><label>Paid on</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-paid" type="date"></div>
       <div class="form-group po-pr-only"><label>Received on</label><input autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" id="po-received" type="date"></div>
       <div class="form-group form-full"><label>Notes</label><textarea id="po-notes" placeholder="Anything worth remembering about this order&hellip;"></textarea></div>
     </div>

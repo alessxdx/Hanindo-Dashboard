@@ -14,6 +14,10 @@ var PO_VIEW="list";          /* "list" | "models" */
 var PO_SEL="";               /* PO open in the side panel */
 var PO_FOFFICE="",PO_FYEAR="",PO_SEARCH="";
 var PO_YEARS={};             /* year picked on each tab (see poApplyYear) */
+/* paid / unpaid on the CUSTOM POs: off for now (2026-11-25). The dates stay
+   saved; true brings back the Unpaid box, Status, Paid row and Paid on field */
+var PO_SHOW_PAY=false;
+if(PO_SHOW_PAY)document.documentElement.classList.add("po-show-pay");
 var PO_FPAY=false;           /* only unpaid POs */
 var PO_MODEL="";             /* model open in the By model side panel */
 var PO_ATT=[];               /* modal attachment staging */
@@ -46,7 +50,7 @@ function poApplyYear(){
   PO_FYEAR=PO_YEARS[k]!==undefined?PO_YEARS[k]:
     !poIsFire()&&PO_VIEW==="list"&&PO_LIST.some(function(p){return poInSec(p)&&poYear(p)===poThisYear();})?poThisYear():"";
 }
-function poUnpaid(p){return !!p.invoiceNo&&!p.paidDate;}
+function poUnpaid(p){return PO_SHOW_PAY&&!!p.invoiceNo&&!p.paidDate;}
 function poNum(v){return (v===null||v===undefined||v==="")?null:Number(v);}
 function poOfficeSlug(o){return String(o||"").toLowerCase().replace(/\s/g,"");}
 
@@ -177,7 +181,7 @@ function poSums(list){
   return r;
 }
 function poUsdTxt(v){return typeof fxFormatUSD==="function"?fxFormatUSD(v):"$"+Math.round(v).toLocaleString();}
-/* Three boxes that follow the year, office and search. The current year is
+/* Boxes that follow the year, office and search. The current year is
    compared with last year up to the same date; older years are complete, so
    they just show their count. */
 function poRenderStats(){
@@ -202,9 +206,9 @@ function poRenderStats(){
   el.innerHTML=
     "<div class='stat po-stat cb-stat-rev'><div class='stat-label'>"+(PO_FYEAR?"Spend in "+PO_FYEAR:"Total spend")+"</div><div class='stat-value'>"+poUsdTxt(s.spend)+"</div><div class='stat-sub'>"+vs(s.spend,prev&&prev.spend,all.length+" PO"+(all.length===1?"":"s"))+"</div></div>"+
     "<div class='stat po-stat'><div class='stat-label'>"+(PO_SECTION===PO_AUTO?"Units":"Printers")+" ordered</div><div class='stat-value'>"+s.printers.toLocaleString()+"</div><div class='stat-sub'>"+vs(s.printers,prev&&prev.printers,nModels+(PO_SECTION===PO_AUTO?" item":" model")+(nModels===1?"":"s"))+"</div></div>"+
-    "<div class='stat po-stat"+(can?" po-stat-btn":"")+(PO_FPAY?" on":"")+"'"+(can?" role='button' tabindex='0' aria-pressed='"+PO_FPAY+"' onclick='poToggleUnpaid()' onkeydown='if(event.key===\"Enter\"||event.key===\" \"){event.preventDefault();poToggleUnpaid();}'":"")+">"+
+    (!PO_SHOW_PAY?"":"<div class='stat po-stat"+(can?" po-stat-btn":"")+(PO_FPAY?" on":"")+"'"+(can?" role='button' tabindex='0' aria-pressed='"+PO_FPAY+"' onclick='poToggleUnpaid()' onkeydown='if(event.key===\"Enter\"||event.key===\" \"){event.preventDefault();poToggleUnpaid();}'":"")+">"+
       "<div class='stat-label'>Unpaid</div><div class='stat-value'>"+(un.length?un.length+" PO"+(un.length===1?"":"s"):"None")+"</div>"+
-      "<div class='stat-sub'>"+(PO_FPAY?"Showing only these &middot; <u>show all</u>":un.length?poUsdTxt(unUsd)+" of POs &middot; <u>show them</u>":"of those with an invoice recorded")+"</div></div>";
+      "<div class='stat-sub'>"+(PO_FPAY?"Showing only these &middot; <u>show all</u>":un.length?poUsdTxt(unUsd)+" of POs &middot; <u>show them</u>":"of those with an invoice recorded")+"</div></div>");
 }
 /* the Unpaid box lists the unpaid POs; a second click shows all again */
 function poToggleUnpaid(){
@@ -386,7 +390,7 @@ function poTableHtml(list){
     byLabel[ml].push(p);
   });
   /* simple list: month heading with its total, then one row per PO */
-  var cols=fire?3:5;
+  var pay=PO_SHOW_PAY&&!fire,cols=fire?3:pay?5:4;
   var rows=groups.map(function(ml){
     var g=byLabel[ml];
     return "<tr class='po-grp2'><td colspan='"+(cols-1)+"'>"+ml+"</td>"+
@@ -396,7 +400,7 @@ function poTableHtml(list){
           "<td class='po-c-no'><span class='po-q'>"+trkEsc(p.poNumber)+"</span>"+poHitHtml(p)+"</td>"+
           (fire?"":"<td class='po-c-of po-oftxt-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office||"")+"</td>")+
           "<td class='po-c-date'>"+(p.date?trkFmtDate(p.date):"&mdash;")+"</td>"+
-          (fire?"":"<td class='po-c-st'>"+(p.paidDate?"<span class='po-paid'>Paid</span>":poUnpaid(p)?"<span class='po-unpaid' title='Invoiced, not yet paid'>Unpaid</span>":"")+"</td>")+
+          (!pay?"":"<td class='po-c-st'>"+(p.paidDate?"<span class='po-paid'>Paid</span>":poUnpaid(p)?"<span class='po-unpaid' title='Invoiced, not yet paid'>Unpaid</span>":"")+"</td>")+
           "<td class='num po-c-amt'>"+poFmtMoney(p.total,p.currency)+"</td>"+
         "</tr>";
       }).join("");
@@ -404,7 +408,7 @@ function poTableHtml(list){
   var sel=PO_SEL?PO_LIST.filter(function(p){return p._id===PO_SEL;})[0]:null;
   return "<div class='po-split"+(sel?" has-sel":"")+"'>"+
     "<div class='po-table-wrap'><table class='po-table po-list po-simple'>"+
-      "<thead><tr><th>"+(fire?"Expense sheet":"PO")+"</th>"+(fire?"":"<th>Office</th>")+"<th>Date</th>"+(fire?"":"<th>Status</th>")+"<th class='num'>Amount</th></tr></thead>"+
+      "<thead><tr><th>"+(fire?"Expense sheet":"PO")+"</th>"+(fire?"":"<th>Office</th>")+"<th>Date</th>"+(pay?"<th>Status</th>":"")+"<th class='num'>Amount</th></tr></thead>"+
       "<tbody>"+rows+"</tbody></table></div>"+
     (sel?(sel.section===PO_FIRE?poFirePanelHtml(sel):poPanelHtml(sel)):"")+
   "</div>";
@@ -438,11 +442,11 @@ function poPanelHtml(p){
 }
 /* invoice / payment / receipt — filled for the offices that track them */
 function poPanelStatusHtml(p){
-  if(!p.invoiceNo&&!p.paidDate&&!p.receivedDate)return "";
+  if(!p.invoiceNo&&!(PO_SHOW_PAY&&p.paidDate)&&!p.receivedDate)return "";
   function row(k,v){return "<div class='po-st-row'><span>"+k+"</span><span>"+v+"</span></div>";}
   return "<div class='po-panel-sec'>Invoice &amp; delivery</div>"+
     (p.invoiceNo?row("Invoice","<span class='po-line-pn'>"+trkEsc(p.invoiceNo)+"</span>"):"")+
-    row("Paid",p.paidDate?trkFmtDate(p.paidDate):"<span class='po-unpaid'>Not yet</span>")+
+    (!PO_SHOW_PAY?"":row("Paid",p.paidDate?trkFmtDate(p.paidDate):"<span class='po-unpaid'>Not yet</span>"))+
     row("Received",p.receivedDate?trkFmtDate(p.receivedDate):"<span class='po-dim'>&mdash;</span>");
 }
 var PO_FULL=false;
