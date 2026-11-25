@@ -316,13 +316,20 @@ function richKeys(e){
     e.preventDefault();
     c=richCtx(ed);if(!c)return;
     if(!e.shiftKey&&c.collapsed&&!MARK_RE.test(c.text)){document.execCommand("insertText",false,"    ");return;}
-    c.lines.forEach(function(l){
-      if(!e.shiftKey){richPrefix(l,0,"    ");return;}
-      var x=/^[  ]{1,4}|^\t/.exec(l.textContent);if(x)richPrefix(l,x[0].length,"");
-    });
-    if(!c.collapsed)richSelectLines(c.lines);
-    richSync(ed);
+    richIndent(ed,e.shiftKey);
   }
+}
+/* shift the lines at the caret or highlight by 4 spaces, in or out (Tab,
+   Shift+Tab and the indent buttons) */
+function richIndent(ed,out){
+  var c=richCtx(ed);if(!c)return false;
+  c.lines.forEach(function(l){
+    if(!out){richPrefix(l,0,"    ");return;}
+    var x=/^[  ]{1,4}|^\t/.exec(l.textContent);if(x)richPrefix(l,x[0].length,"");
+  });
+  if(!c.collapsed)richSelectLines(c.lines);
+  richSync(ed);
+  return true;
 }
 /* "- " or "* " typed at a line start becomes "• " (on input, so phone keyboards get it too) */
 function richBullet(ed){
@@ -396,12 +403,25 @@ window.addEventListener("scroll",function(e){if(RICH_SZ&&!RICH_SZ.el.contains(e.
 function richSizeBtn(ta,ed){
   var u=document.querySelector(".fmt-tools .fmt-u[onclick*=\"'"+ta.id+"'\"]");
   if(!u||u.parentNode.querySelector(".fmt-sz"))return;
+  /* in the forms the buttons sit inside the field's label: without this, the
+     label's own text pressed its first button (Bold); now it opens the box */
+  var lb=u.closest("label");
+  if(lb){lb.htmlFor=ta.id;ta.addEventListener("click",function(){ed.focus();});}
   var b=document.createElement("button");
   b.type="button";b.className="nt-tool fmt-sz";b.title="Font size";b.setAttribute("aria-haspopup","listbox");
   b.innerHTML="Size<svg viewBox='0 0 16 16' width='13' height='13' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M4 6l4 4 4-4'/></svg>";
   b.addEventListener("mousedown",function(e){e.preventDefault();});
   b.addEventListener("click",function(e){e.preventDefault();richSizeMenu(b,ed);});
   u.parentNode.appendChild(b);
+  /* indent / outdent, for phones (no Tab key) and the mouse */
+  [["Indent (Tab)","M7 4h7M7 8h7M7 12h7M2 5.5L4.5 8 2 10.5",false],["Outdent (Shift+Tab)","M7 4h7M7 8h7M7 12h7M4.5 5.5L2 8l2.5 2.5",true]].forEach(function(d){
+    var t=document.createElement("button");
+    t.type="button";t.className="nt-tool fmt-ind";t.title=d[0];t.setAttribute("aria-label",d[0]);
+    t.innerHTML="<svg viewBox='0 0 16 16' width='15' height='15' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='"+d[1]+"'/></svg>";
+    t.addEventListener("mousedown",function(e){e.preventDefault();});
+    t.addEventListener("click",function(e){e.preventDefault();if(!richIndent(ed,d[2]))ed.focus();});
+    u.parentNode.appendChild(t);
+  });
 }
 
 function richify(ta){

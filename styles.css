@@ -3618,3 +3618,12 @@ font[size="6"],font[size="7"]{font-size:1.65em;line-height:1.35}
 .fmt-tools .fmt-sz.on{border-color:var(--accent);color:var(--text-strong)}
 .rich-sz{min-width:170px}
 .rich-sz .dd-item{font-size:14px}
+
+/* indent / outdent buttons in the writing boxes */
+.fmt-tools .fmt-ind{display:inline-flex;align-items:center;justify-content:center}
+@media (max-width:700px){
+  .fmt-label{flex-wrap:wrap}
+  /* the list buttons and Post update share the second row */
+  .nt-compose-foot .nt-tools{display:contents}
+  .nt-compose-foot{gap:6px}
+}
