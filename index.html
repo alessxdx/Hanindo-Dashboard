@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-25.22";
+var APP_VERSION = "2026-11-25.23";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -91,18 +91,11 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
         <span class="nav-label">Model Comparison</span>
       </button>
 
-      <button class="nav-item" data-tab="buying" onclick="setTab(this)">
+      <button class="nav-item" data-tab="prices" onclick="setTab(this)">
         <span class="nav-icon">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
         </span>
-        <span class="nav-label">Buying Prices</span>
-      </button>
-
-      <button class="nav-item" data-tab="spares" onclick="setTab(this)">
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        </span>
-        <span class="nav-label">Spare Parts</span>
+        <span class="nav-label">Prices</span>
       </button>
 
       <button class="nav-item" data-tab="others" onclick="setTab(this)">
@@ -185,14 +178,14 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
 </div>
 <div class="modal-overlay" id="modal-buying">
   <div class="modal">
-    <div class="modal-title" id="buying-modal-title">Add buying price</div>
+    <div class="modal-title" id="buying-modal-title">Add item cost</div>
     <div class="form-grid">
-      <div class="form-group form-full"><label>Model name *</label><input id="b-model" placeholder="e.g. TK180 Metal Cutter AEA"></div>
+      <div class="form-group form-full"><label>Item name *</label><input id="b-model" placeholder="e.g. TK180 Metal Cutter AEA"></div>
       <div class="form-group form-full"><label>Part number</label><input id="b-pn" placeholder="e.g. 911HL011200733" style="font-family:'DM Mono',monospace"></div>
-      <div class="form-group"><label>Price *</label><input id="b-price" type="number" placeholder="e.g. 369"></div>
+      <div class="form-group"><label>Your cost *</label><input id="b-price" type="number" placeholder="e.g. 369"></div>
       <div class="form-group"><label>Currency</label><select id="b-currency"><option value="USD">USD</option><option value="SGD">SGD</option><option value="EUR">EUR</option></select></div>
-      <div class="form-group form-full"><label>Group / category <span style="font-size:10px;color:#aaa;font-weight:400">(optional — groups items under a collapsible toggle)</span></label><input id="b-group" placeholder="e.g. TK180 Spare Parts" list="b-group-list"><datalist id="b-group-list"></datalist></div>
-      <div class="form-group form-full"><label>Special price <span style="font-size:10px;color:#aaa;font-weight:400">(optional — customer-specific price)</span></label><div style="display:flex;gap:8px"><input id="b-special-price" type="number" placeholder="e.g. 135.60" style="flex:1"><input id="b-special-customer" placeholder="Customer name e.g. Nanshan" style="flex:2"></div></div>
+      <div class="form-group form-full"><label>Group / category <span style="font-size:10px;color:#aaa;font-weight:400">(optional — leave empty for printers)</span></label><input id="b-group" placeholder="e.g. TK180 Spare Parts" list="b-group-list"><datalist id="b-group-list"></datalist></div>
+      <div class="form-group form-full"><label>Special price <span style="font-size:10px;color:#aaa;font-weight:400">(optional — a lower cost for one customer)</span></label><div style="display:flex;gap:8px"><input id="b-special-price" type="number" placeholder="e.g. 135.60" style="flex:1"><input id="b-special-customer" placeholder="Customer name e.g. Nanshan" style="flex:2"></div></div>
     </div>
     <div class="modal-actions">
       <button id="btn-delete-buying" class="delete-btn" style="margin-right:auto;font-size:13px;padding:9px 14px;display:none" onclick="sbDeleteBuyingFromModal()">Delete entry</button>
@@ -260,13 +253,13 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
 
 <div class="modal-overlay" id="modal-spares">
   <div class="modal">
-    <div class="modal-title" id="spare-modal-title">Add spare part / accessory</div>
+    <div class="modal-title" id="spare-modal-title">Add customer price</div>
     <div class="form-grid">
-      <div class="form-group form-full"><label>Part name *</label><input id="sp-name" placeholder="e.g. Roll Holder Kit for TK180 Metal"></div>
+      <div class="form-group form-full"><label>Item name *</label><input id="sp-name" placeholder="e.g. Roll Holder Kit for TK180 Metal"></div>
       <div class="form-group form-full"><label>Part number</label><input id="sp-pn" placeholder="e.g. 974HL010000009" style="font-family:'DM Mono',monospace"></div>
-      <div class="form-group"><label>Unit price *</label><input id="sp-price" type="number" placeholder="e.g. 98"></div>
+      <div class="form-group"><label>Selling price *</label><input id="sp-price" type="number" placeholder="e.g. 98"></div>
       <div class="form-group"><label>Currency</label><select id="sp-currency"><option value="USD">USD</option><option value="SGD">SGD</option><option value="IDR">IDR</option><option value="EUR">EUR</option></select></div>
-      <div class="form-group form-full"><label>Customer ref</label><input id="sp-customer" placeholder="e.g. Aboitiz" list="sp-customer-list"><datalist id="sp-customer-list"></datalist></div>
+      <div class="form-group form-full"><label>Customer</label><input id="sp-customer" placeholder="e.g. Aboitiz" list="sp-customer-list"><datalist id="sp-customer-list"></datalist></div>
       <div class="form-group"><label>Shipping terms</label><select id="sp-terms"><option value="">None</option><option value="DDP">DDP</option><option value="DAP">DAP</option><option value="EXW">EXW</option><option value="CIF">CIF</option><option value="FOB">FOB</option><option value="FOT">FOT</option></select></div>
       <div class="form-group form-full"><label>Note</label><input id="sp-note" placeholder="e.g. Bohol & Laguindingan project"></div>
     </div>
@@ -477,7 +470,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
 </div>
 <script>
 /* document.write keeps classic scripts executing in listed order. */
-["js/config.js","js/data.js","js/render.js","js/richtext.js","js/notecats.js","js/dropdown.js","js/fx.js","js/detail.js","js/supabase.js","js/auth.js","js/projects.js","js/parse.js","js/tracker.js","js/custbase.js","js/today.js","js/backup.js","js/po.js","js/pricing.js","js/expenses.js","js/app.js"]
+["js/config.js","js/data.js","js/render.js","js/richtext.js","js/notecats.js","js/dropdown.js","js/fx.js","js/detail.js","js/supabase.js","js/auth.js","js/projects.js","js/parse.js","js/tracker.js","js/custbase.js","js/today.js","js/backup.js","js/po.js","js/pricing.js","js/prices.js","js/expenses.js","js/app.js"]
   .forEach(function(src){document.write('<script src="'+src+'?v='+ASSET_V+'"><\/script>');});
 </script>
 <!-- Phone tab bar: the four main pages plus More (opens the full menu).

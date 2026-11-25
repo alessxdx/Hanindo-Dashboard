@@ -740,75 +740,6 @@ function toggleRow(i){
   const el=document.getElementById("erow-"+i);if(el)el.classList.toggle("open",expandedRows[i]);
   const row=el&&el.previousElementSibling;if(row)row.classList.toggle("open",expandedRows[i]);
 }
-/* Buying prices: one toolbar (search, sort menu, count), then a table with
-   the ungrouped items first and each group under its own band. Typing only
-   swaps the table body, so the search box keeps focus. */
-function buyPickSort(v){window._buySort=v;renderBuying();}
-function buySearchInput(){renderBuying(true);}
-function renderBuying(bodyOnly){
-  pgHideStats(); /* the customer summary boxes don't describe this page */
-  var sortBuy=window._buySort||"model";
-  var searchVal=document.getElementById("buy-search")?document.getElementById("buy-search").value:"";
-  var sorted=BUYING.map(function(b,i){return {model:b.model,pn:b.pn,price:b.price,currency:b.currency,specialPrice:b.specialPrice,specialCustomer:b.specialCustomer,group:b.group,_i:i};});
-  /* every word must appear in the model, part number or group, in any order */
-  var words=searchVal.toLowerCase().split(/\s+/).filter(Boolean);
-  if(words.length) sorted=sorted.filter(function(b){
-    var hay=[b.model,b.pn,b.group].join(" ").toLowerCase();
-    return words.every(function(w){return hay.indexOf(w)!==-1;});
-  });
-  if(sortBuy==="price-asc")sorted.sort(function(a,b){return a.price-b.price;});
-  else if(sortBuy==="price-desc")sorted.sort(function(a,b){return b.price-a.price;});
-  else sorted.sort(function(a,b){return a.model.localeCompare(b.model);});
-
-  var groups={},noGroup=[];
-  sorted.forEach(function(b){
-    if(b.group){(groups[b.group]=groups[b.group]||[]).push(b);}
-    else noGroup.push(b);
-  });
-  var money=function(v,cur){return (typeof poFmtMoney==="function"?poFmtMoney(v,cur):v.toFixed(2))+" <span class='trk-r-cur'>"+cur+"</span>";};
-  var ico=function(kind,title,fn){
-    var path=kind==="edit"?'<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/>':'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>';
-    return "<button class='nt-ico"+(kind==="edit"?"":" nt-ico-del")+"' title='"+title+"' aria-label='"+title+"' onclick='"+fn+"'><svg viewBox='0 0 24 24' aria-hidden='true'>"+path+"</svg></button>";
-  };
-  function makeRow(b){
-    return "<tr class='buy-row'>"+
-      "<td class='buy-c-model'><div class='buy-name'>"+trkEsc(b.model)+"</div>"+(b.pn?"<div class='buy-pn'>"+trkEsc(b.pn)+"</div>":"")+"</td>"+
-      "<td class='num buy-c-price'>"+money(b.price,b.currency)+"</td>"+
-      "<td class='num buy-c-sp'>"+(b.specialPrice?"<div class='buy-sp'>"+money(b.specialPrice,b.currency)+"</div><div class='buy-sp-who'>for "+trkEsc(b.specialCustomer||"special deal")+"</div>":"")+"</td>"+
-      "<td class='buy-c-acts'><div class='nt-acts'>"+ico("edit","Edit","editBuying("+b._i+")")+ico("trash","Remove","sbDeleteBuying("+b._i+")")+"</div></td>"+
-    "</tr>";
-  }
-  var band=function(name,n){return "<tr class='buy-band2'><td colspan='4'><span class='buy-band2-name'>"+trkEsc(name)+"</span><span class='buy-band2-n'>"+n+" item"+(n===1?"":"s")+"</span></td></tr>";};
-  var grpNames=Object.keys(groups).sort();
-  var rows="";
-  if(noGroup.length)rows+=(grpNames.length?band("General",noGroup.length):"")+noGroup.map(makeRow).join("");
-  grpNames.forEach(function(g){rows+=band(g,groups[g].length)+groups[g].map(makeRow).join("");});
-  if(!rows)rows="<tr><td colspan='4' class='empty'>"+(words.length?"Nothing matches that search.":"No buying prices yet.")+"</td></tr>";
-
-  var bgl=document.getElementById("b-group-list");
-  if(bgl){var grps=[...new Set(BUYING.map(function(b){return b.group;}).filter(Boolean))].sort();bgl.innerHTML=grps.map(function(g){return "<option value='"+g+"'>";}).join("");}
-  var count=(words.length?sorted.length+" of ":"")+BUYING.length+" item"+(BUYING.length!==1?"s":"");
-  var tbody=document.getElementById("buy-tbody");
-  if(bodyOnly&&tbody){
-    tbody.innerHTML=rows;
-    var c=document.getElementById("buy-count");if(c)c.textContent=count;
-    return;
-  }
-  var sortMenu=uiDropdown({key:"buy-sort",onPick:"buyPickSort",cur:sortBuy,opts:[
-    {value:"model",label:"Model A–Z"},{value:"price-asc",label:"Price: low to high"},{value:"price-desc",label:"Price: high to low"}]});
-  document.getElementById("content").innerHTML=
-    "<div class='trk-bar buy-bar'>"+
-      "<div class='trk-search'><span class='trk-search-ico'>&#128269;</span><input id='buy-search' type='search' placeholder='Search model, part number or group&hellip;' oninput='buySearchInput()' value='"+searchVal.replace(/'/g,"&#39;")+"' autocomplete='off'></div>"+
-      sortMenu+
-      "<span id='buy-count' class='pg-summary'>"+count+"</span>"+
-    "</div>"+
-    "<div class='po-table-wrap buy-table'><table class='po-table buy-list buy-simple'><thead><tr><th>Model</th><th class='num'>Buying price</th><th class='num'>Special price</th><th></th></tr></thead>"+
-    "<tbody id='buy-tbody'>"+rows+"</tbody></table></div>";
-  var inp=document.getElementById("buy-search");
-  /* not on touch screens: focusing would pop the keyboard up on every visit */
-  if(inp&&!matchMedia("(pointer:coarse)").matches){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}
-}
-
 /* Notes are split by what they are: quick updates (no value), records with
    an amount, and the shipping-term reference cards. Newest first in the
    first two; the terms are A-Z and folded away since they rarely change. */
@@ -1080,81 +1011,10 @@ let SPARES=[
 SPARES_SEED=SPARES.map(function(s){return Object.assign({},s);});
 MODELS_SEED=["TK180 Plastic","TK180 Plastic AEA","TK180 Metal Cutter","TK180 Metal Cutter AEA","TK180 Metal Cutter NON AEA","TK180 Metal Cutter ARINC","TK180 Metal Non Cutter","TK180 Metal Non Cutter ARINC","TK180 TPH","TK302 Metal Triple Feeder","KPM180 Cutter NON AEA","KPM180 with AEA","KPM180H-LL","KPM180 NON AEA","KPM180 TPH","TK202 Plastic","TK202 with AEA","TG2460HIII","TG2480HIII","VKP80II","VKP80II-RX","VKP80III","VKP80III Rear Connector","K80","KX80S"];
 
-/* Spare parts are quoted per customer, so the default view puts each
-   customer's parts under its band (the Customer column then hides). By
-   part is a plain A-Z list: the same part from different customers sits
-   together, so their prices line up. Price sorts are flat too. */
-function spPickSort(v){window._spSort=v;renderSpares();}
-function spSearchInput(){renderSpares(true);}
-function renderSpares(bodyOnly){
-  pgHideStats(); /* the customer summary boxes don't describe this page */
-  var searchVal=document.getElementById("sp-search")?document.getElementById("sp-search").value:"";
-  var sortVal=window._spSort||"customer";
-  var filtered=SPARES.map(function(x,i){return Object.assign({},x,{_i:i});});
-  /* every word must appear somewhere in the row, in any order, so
-     "tk180 cutter" finds every cutter part for any TK180 variant */
-  var words=searchVal.toLowerCase().split(/\s+/).filter(Boolean);
-  if(words.length)filtered=filtered.filter(function(x){
-    var hay=[x.name,x.pn,x.customer,x.note].join(" ").toLowerCase();
-    return words.every(function(w){return hay.indexOf(w)!==-1;});
-  });
-  var byName=function(a,b){return a.name.localeCompare(b.name)||(a.customer||"").localeCompare(b.customer||"");};
-  if(sortVal==="price-asc")filtered.sort(function(a,b){return a.price-b.price;});
-  else if(sortVal==="price-desc")filtered.sort(function(a,b){return b.price-a.price;});
-  else if(sortVal==="customer")filtered.sort(function(a,b){return (a.customer||"").localeCompare(b.customer||"")||a.name.localeCompare(b.name);});
-  else filtered.sort(byName);
-
-  var money=function(v,cur){return (typeof poFmtMoney==="function"?poFmtMoney(v,cur):v.toLocaleString())+" <span class='trk-r-cur'>"+trkEsc(cur)+"</span>";};
-  var ico=function(kind,title,fn){
-    var path=kind==="edit"?'<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/>':'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>';
-    return "<button class='nt-ico"+(kind==="edit"?"":" nt-ico-del")+"' title='"+title+"' aria-label='"+title+"' onclick='"+fn+"'><svg viewBox='0 0 24 24' aria-hidden='true'>"+path+"</svg></button>";
-  };
-  function row(x){
-    return "<tr class='buy-row sp-row'>"+
-      "<td class='sp-c-name'><div class='buy-name'>"+trkEsc(x.name)+"</div>"+(x.pn?"<div class='buy-pn'>"+trkEsc(x.pn)+"</div>":"")+"</td>"+
-      "<td class='sp-c-cust'>"+(x.customer?trkEsc(x.customer):"<span class='trk-r-none'>&mdash;</span>")+"</td>"+
-      "<td class='num buy-c-price'>"+money(x.price,x.currency)+"</td>"+
-      "<td class='sp-c-terms"+(x.terms?"":" sp-empty")+"'>"+(x.terms?trkEsc(x.terms):"")+"</td>"+
-      "<td class='sp-c-note'>"+(x.note?trkEsc(x.note):"")+"</td>"+
-      "<td class='buy-c-acts'><div class='nt-acts'>"+ico("edit","Edit","editSpare("+x._i+")")+ico("trash","Remove","deleteSpare("+x._i+")")+"</div></td>"+
-    "</tr>";
-  }
-  var band=function(name,n,unit){return "<tr class='buy-band2'><td colspan='6'><span class='buy-band2-name'>"+trkEsc(name||"No customer")+"</span><span class='buy-band2-n'>"+n+" "+unit+(n!==1?"s":"")+"</span></td></tr>";};
-  var rows="";
-  if(sortVal==="customer"){
-    var order=[],grp={};
-    filtered.forEach(function(x){var k=x.customer||"";if(!grp[k]){grp[k]=[];order.push(k);}grp[k].push(x);});
-    order.forEach(function(k){rows+=band(k,grp[k].length,"part")+grp[k].map(row).join("");});
-  }else rows=filtered.map(row).join("");
-  if(!rows)rows="<tr><td colspan='6' class='empty'>"+(words.length?"Nothing matches that search.":"No spare parts yet.")+"</td></tr>";
-
-  var count=(words.length?filtered.length+" of ":"")+SPARES.length+" item"+(SPARES.length!==1?"s":"");
-  var tbody=document.getElementById("sp-tbody");
-  if(bodyOnly&&tbody){
-    tbody.innerHTML=rows;
-    var c=document.getElementById("sp-count");if(c)c.textContent=count;
-    return;
-  }
-  var sortMenu=uiDropdown({key:"sp-sort",onPick:"spPickSort",cur:sortVal,opts:[
-    {value:"customer",label:"By customer"},{value:"name",label:"By part (A–Z)"},
-    {value:"price-asc",label:"Price: low to high"},{value:"price-desc",label:"Price: high to low"}]});
-  document.getElementById("content").innerHTML=
-    "<div class='trk-bar buy-bar'>"+
-      "<div class='trk-search'><span class='trk-search-ico'>&#128269;</span><input id='sp-search' type='search' placeholder='Search part, part number, customer or note&hellip;' oninput='spSearchInput()' value='"+searchVal.replace(/'/g,"&#39;")+"' autocomplete='off'></div>"+
-      sortMenu+
-      "<span id='sp-count' class='pg-summary'>"+count+"</span>"+
-    "</div>"+
-    "<div class='po-table-wrap buy-table'><table class='po-table buy-list buy-simple sp-list"+(sortVal==="customer"?" sp-by-cust":"")+"'><thead><tr><th>Part</th><th class='sp-c-cust'>Customer</th><th class='num'>Unit price</th><th>Terms</th><th>Note</th><th></th></tr></thead>"+
-    "<tbody id='sp-tbody'>"+rows+"</tbody></table></div>";
-  var inp=document.getElementById("sp-search");
-  /* not on touch screens: focusing would pop the keyboard up on every visit */
-  if(inp&&!matchMedia("(pointer:coarse)").matches){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}
-}
-
 function editSpare(i){
   var s=SPARES[i];
   document.getElementById("modal-spares").setAttribute("data-edit-idx",i);
-  document.getElementById("spare-modal-title").textContent="Edit spare part / accessory";
+  document.getElementById("spare-modal-title").textContent="Edit customer price";
   document.getElementById("sp-name").value=s.name||"";
   document.getElementById("sp-pn").value=s.pn||"";
   document.getElementById("sp-price").value=s.price||"";
@@ -1216,7 +1076,7 @@ async function deleteSpareFromModal(){
 
 function closeSpareModal(){
   document.getElementById("modal-spares").removeAttribute("data-edit-idx");
-  document.getElementById("spare-modal-title").textContent="Add spare part / accessory";
+  document.getElementById("spare-modal-title").textContent="Add customer price";
   var delBtn=document.getElementById("btn-delete-spare");if(delBtn)delBtn.style.display="none";
   var saveBtn=document.getElementById("btn-save-spare");
   if(saveBtn){saveBtn.textContent="Save entry";saveBtn.onclick=function(){saveSpare();};}
@@ -1234,8 +1094,7 @@ function renderContent(){
   else if(currentTab==="po")renderPOs();
   else if(currentTab==="pricing")renderPricing();
   else if(currentTab==="model")renderModel();
-  else if(currentTab==="buying")renderBuying();
-  else if(currentTab==="spares")renderSpares();
+  else if(currentTab==="prices")renderPrices();
   else renderOthers();
 }
 
@@ -1375,21 +1234,7 @@ function openModal(){
       }
     }
   }
-  else if(currentTab==="buying"){
-    document.getElementById("modal-buying").removeAttribute("data-edit-idx");
-    document.getElementById("buying-modal-title").textContent="Add buying price";
-    var delBtnB=document.getElementById("btn-delete-buying");if(delBtnB)delBtnB.style.display="none";
-    var saveBB=document.getElementById("btn-save-buying");if(saveBB){saveBB.textContent="Save entry";saveBB.onclick=sbSaveBuying;}
-    document.getElementById("modal-buying").querySelectorAll("input").forEach(function(el){el.value="";});
-    document.getElementById("modal-buying").classList.add("open");
-  }
-  else if(currentTab==="spares"){
-    closeSpareModal();
-    // populate customer datalist
-    var spcl=document.getElementById("sp-customer-list");
-    if(spcl)spcl.innerHTML=[...new Set(SPARES.map(function(s){return s.customer;}).filter(Boolean))].sort().map(function(c){return "<option value='"+c+"'>";}).join("");
-    document.getElementById("modal-spares").classList.add("open");
-  }
+  else if(currentTab==="prices")pxAddCost(-1);
   else if(currentTab==="tracker"){
     /* list view → new tracker project; detail view → new timeline entry */
     trkOpenAdd();

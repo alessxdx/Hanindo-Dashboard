@@ -498,7 +498,7 @@ function trkSyncToolbar(){
      use their own button */
   var tb=document.getElementById("toolbar");
   tb.classList.toggle("trk-fab",currentTab==="tracker"||currentTab==="po");
-  tb.classList.toggle("has-fab",["tracker","po","buying","spares","others"].indexOf(currentTab)>-1);
+  tb.classList.toggle("has-fab",["tracker","po","prices","others"].indexOf(currentTab)>-1);
   /* Today only reads; Customer Base is built from the tracker's projects
      (a new customer appears as soon as a project for it is added there) */
   if(currentTab==="today"||currentTab==="custbase"){btn.style.display="none";return;}
@@ -507,7 +507,7 @@ function trkSyncToolbar(){
     else{btn.style.display="";btn.innerHTML=TRK_BTN_HTML.replace("Add entry","Add project");}
   }else{
     btn.style.display="";
-    btn.innerHTML=TRK_BTN_HTML;
+    btn.innerHTML=currentTab==="prices"?TRK_BTN_HTML.replace("Add entry","Add item"):TRK_BTN_HTML;
   }
 }
 

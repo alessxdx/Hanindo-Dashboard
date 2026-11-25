@@ -267,7 +267,7 @@ async function sbSaveTx(){
 async function sbSaveBuying(){
   var model=document.getElementById("b-model").value.trim(),price=parseFloat(document.getElementById("b-price").value);
   if(!model||isNaN(price)){alert("Please fill in Model and Price.");return;}
-  var grpVal=document.getElementById("b-group")?document.getElementById("b-group").value.trim():"";var nb={model:model,pn:document.getElementById("b-pn").value.trim(),price:price,currency:document.getElementById("b-currency").value,group:grpVal||null};
+  var grpVal=document.getElementById("b-group")?document.getElementById("b-group").value.trim():"";var nb={model:model,pn:document.getElementById("b-pn").value.trim(),price:price,currency:document.getElementById("b-currency").value,group:grpVal||null,specialPrice:parseFloat(document.getElementById("b-special-price").value)||undefined,specialCustomer:document.getElementById("b-special-customer").value.trim()};
   showLoad("Saving...");var r=await sbInsert("buying_prices",bToDb(nb));if(r&&r[0])nb._id=r[0].id;
   BUYING.push(nb);hideLoad();closeBuyingModal();renderContent();
 }
@@ -319,7 +319,7 @@ function editTx(i, e){
 function editBuying(i){
   var b=BUYING[i];
   document.getElementById("modal-buying").setAttribute("data-edit-idx",i);
-  document.getElementById("buying-modal-title").textContent="Edit buying price";
+  document.getElementById("buying-modal-title").textContent="Edit cost";
   document.getElementById("b-model").value=b.model;
   document.getElementById("b-pn").value=b.pn||"";
   document.getElementById("b-price").value=b.price;
@@ -356,7 +356,7 @@ function closeBuyingModal(){
   var saveBtnB=document.getElementById("btn-save-buying");
   saveBtnB.textContent="Save entry";
   saveBtnB.onclick=sbSaveBuying;
-  document.getElementById("buying-modal-title").textContent="Add buying price";
+  document.getElementById("buying-modal-title").textContent="Add item cost";
   document.getElementById("modal-buying").querySelectorAll("input").forEach(function(el){el.value="";});
   closeModal("modal-buying");
 }

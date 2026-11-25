@@ -15,8 +15,7 @@ var TAB_TITLES = {
   po: "Purchase Orders",
   pricing: "Pricing Calculator",
   model: "Model Comparison",
-  buying: "Buying Prices",
-  spares: "Spare Parts / Accessories",
+  prices: "Prices",
   others: "Notes"
 };
 
@@ -304,6 +303,8 @@ function parseHash(){
   if(tab === "customers"){ tab = "custbase"; sel = sel && typeof cbKey === "function" ? cbKey(sel.split("__")[0]) : ""; }
   /* so was Project Groups: its list is now the customer list */
   if(tab === "groups" && !sel) tab = "custbase";
+  /* Buying Prices and Spare Parts were joined into Prices */
+  if(tab === "buying" || tab === "spares") tab = "prices";
   if(!TAB_TITLES[tab]){ tab = "today"; sel = ""; }
   return { tab: tab, sel: sel };
 }
@@ -356,7 +357,7 @@ function initRoute(){
   ROUTE_APPLYING = true;
   try { navTo(p.tab, p.sel || null); } finally { ROUTE_APPLYING = false; }
   /* an old #customers link: show the Customer Base address instead */
-  if(/^#customers|^#groups$/.test(location.hash)){
+  if(/^#(customers|buying$|spares$)|^#groups$/.test(location.hash)){
     var s = routeState();
     history.replaceState(null, "", location.pathname + location.search + "#" + s.tab + (s.sel ? "/" + encodeURIComponent(s.sel) : ""));
   }
