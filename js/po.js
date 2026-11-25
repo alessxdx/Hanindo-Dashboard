@@ -292,9 +292,30 @@ function renderPOs(){
     poMarkHits();
     return;
   }
-  content.innerHTML=tabs+toolbar+(fire?(PO_VIEW==="models"?poFireGroupsHtml(list):poTableHtml(list)):(PO_VIEW==="models"?poModelsHtml(list):poTableHtml(list)));
+  content.innerHTML=tabs+toolbar+(fire?"":poGapHtml())+(fire?(PO_VIEW==="models"?poFireGroupsHtml(list):poTableHtml(list)):(PO_VIEW==="models"?poModelsHtml(list):poTableHtml(list)));
   poMarkHits();
 }
+
+/* a PO whose items don't add up to its total: usually a line the PDF reader
+   skipped (two part numbers in one row). Returns total minus items, 0 when
+   they match. Fire fighting sheets have their own totals. */
+function poGapOf(total,lines){
+  if(total===null||total===undefined||isNaN(total))return 0;
+  var d=Math.round((total-lines.reduce(function(t,l){return t+l.qty*(l.unitPrice||0);},0))*100)/100;
+  return Math.abs(d)>0.05?d:0;
+}
+function poGap(p){return p.section===PO_FIRE?0:poGapOf(p.total,poLinesFor(p._id));}
+function poGapTxt(d,cur){return poFmtMoney(Math.abs(d),cur)+(d>0?" missing":" too much");}
+/* one line above the list, only when there is a gap; looks at every year */
+function poGapHtml(){
+  var gaps=PO_LIST.filter(function(p){return poInSec(p)&&poGap(p);})
+    .sort(function(a,b){return (b.date||"").localeCompare(a.date||"");});
+  if(!gaps.length)return "";
+  return "<div class='po-gap' role='status'><b>Items don't add up to the PO total</b>"+gaps.map(function(p){
+    return "<button class='po-gap-po' onclick='poOpenGap(\""+p._id+"\")'><u>"+trkEsc(p.poNumber)+"</u> "+poGapTxt(poGap(p),p.currency)+"</button>";
+  }).join("")+"</div>";
+}
+function poOpenGap(id){PO_FOFFICE="";poOpenFromModel(id);}
 
 function poPickOffice(v){PO_FOFFICE=v;poDropSel();renderPOs();}
 function poPickYear(v){PO_YEARS[poYearKey()]=v;PO_FYEAR=v;poDropSel();renderPOs();}
@@ -407,6 +428,7 @@ function poPanelHtml(p){
       (p.date?"<span>"+trkFmtDate(p.date)+"</span>":"")+"</div>"+
     "<div class='po-panel-total'>"+poFmtMoney(p.total,p.currency)+
       ((p.currency!=="USD"&&typeof fxUsdText==="function"&&p.total!==null)?" <span class='trk-value-usd'>"+fxUsdText(p.total,p.currency)+"</span>":"")+"</div>"+
+    (poGap(p)?"<div class='po-gap po-gap-in'>Items listed add up to "+poFmtMoney(p.total-poGap(p),p.currency)+": <b>"+poGapTxt(poGap(p),p.currency)+"</b>. Check the PDF.</div>":"")+
     poPanelStatusHtml(p)+
     (lines.length?"<div class='po-panel-sec'>"+lines.length+" line"+(lines.length===1?"":"s")+"</div>"+lineRows:"")+
     (atts?"<div class='po-panel-sec'>Files</div><div class='trk-tl-atts'>"+atts+"</div>":"")+
@@ -938,6 +960,8 @@ async function poFillFromPdf(){
     }
     if(d.total!==null)document.getElementById("po-total").value=d.total;
     var msg=d.lines.length?("Filled: "+d.lines.length+" line"+(d.lines.length===1?"":"s")+" — check, then save."):"Read the header, but no line items matched — enter lines manually or check the PDF.";
+    var gap=poGapOf(d.total,d.lines);
+    if(gap&&d.lines.length)msg="⚠ The items read don't add up to the PO total: "+poGapTxt(gap,d.currency)+". A line may have been skipped, check the PDF. "+msg;
     var dup=poFindByNumber(d.poNumber,m.getAttribute("data-edit-id"));
     if(dup)msg="⚠ "+d.poNumber+" is ALREADY recorded ("+(dup.date?trkFmtDate(dup.date):"no date")+", "+(dup.office||"?")+" office) — saving would create a duplicate. "+msg;
     poStatus(msg);
@@ -950,7 +974,7 @@ async function poFillFromPdf(){
    are skipped, so re-dropping a folder of PDFs is safe. */
 async function poBulkImport(pdfs){
   if(!confirm("Create "+pdfs.length+" separate POs — one per PDF?"))return;
-  var made=0,skipped=[],failed=[];
+  var made=0,skipped=[],failed=[],gaps=[];
   for(var i=0;i<pdfs.length;i++){
     var a=pdfs[i];
     showLoad("Importing "+(i+1)+" of "+pdfs.length+": "+a.name);
@@ -974,6 +998,7 @@ async function poBulkImport(pdfs){
         PO_LINES.push(d.lines[j]);
       }
       made++;
+      if(poGap(p))gaps.push(p.poNumber+" ("+poGapTxt(poGap(p),p.currency)+")");
     }catch(err){failed.push(a.name+" — "+err.message);}
   }
   hideLoad();
@@ -982,6 +1007,7 @@ async function poBulkImport(pdfs){
   var msg="Imported "+made+" PO"+(made===1?"":"s")+".";
   if(skipped.length)msg+="\nAlready recorded (skipped): "+skipped.join(", ");
   if(failed.length)msg+="\nFailed: "+failed.join("; ");
+  if(gaps.length)msg+="\n\n⚠ Items don't add up to the PO total, a line may have been skipped: "+gaps.join(", ");
   alert(msg);
 }
 
