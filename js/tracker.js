@@ -66,12 +66,12 @@ function trkLines(s){
     var st=lv?" style='padding-left:"+(lv*1.6)+"em'":"";
     // "1." / "•" / "a)" lines hang, so wrapped text lines up under the text like in an
     // email; a bold or sized number has its marks in front ("**3. Title**" or "**3.** Title")
-    var mk=/^((?:\*\*|__|\*(?!\s)|\{[slx]\|)*)([•●▪◦‣]|\d+[.)]|[a-z][.)])((?:\*\*|__|\*|\|[slx]\})*)\s+(\S[^]*)$/.exec(t);
+    var mk=/^((?:\*\*|__|\*(?!\s)|\{[tsmlxh]\|)*)([•●▪◦‣]|\d+[.)]|[a-z][.)])((?:\*\*|__|\*|\|[tsmlxh]\})*)\s+(\S[^]*)$/.exec(t);
     if(mk){
       // a bigger number needs a wider column
-      var sz=/\{([slx])\|/.exec(mk[1]),f=sz?{s:1,l:1.3,x:1.65}[sz[1]]:1;
+      var sz=/\{([tsmlxh])\|/.exec(mk[1]),f=sz?{t:1,s:1,m:1.15,l:1.3,x:1.72,h:2}[sz[1]]:1;
       li.length=lv;li[lv]=f;
-      var end=(mk[1].match(/\*\*|__|\*|\{[slx]\|/g)||[]).reverse().map(function(x){return x.charAt(0)==="{"?"|"+x.charAt(1)+"}":x;}).join("");
+      var end=(mk[1].match(/\*\*|__|\*|\{[tsmlxh]\|/g)||[]).reverse().map(function(x){return x.charAt(0)==="{"?"|"+x.charAt(1)+"}":x;}).join("");
       return "<div class='txt-ln txt-li'"+st+"><span class='txt-mk'"+(f>1?" style='min-width:calc(var(--li-mk) * "+f+")'":"")+">"+fmtInline(trkEsc(mk[1]+mk[2]+end))+"</span><span>"+fmtInline(trkEsc((mk[3]?"":mk[1])+mk[4]))+"</span></div>";
     }
     if(!lv&&t)li=[];
@@ -230,8 +230,9 @@ function trkIsOpen(p){
   return TRK_ACTIVE_STATUSES.indexOf(p.status)>-1||p.status==="Other"||(p.status==="Won"&&p.payment!=="Fully paid");
 }
 function trkFollow(p,act){
-  /* low priority = just waiting on them: a planned follow-up date still
-     counts, only the automatic Quiet reminder is off */
+  /* low priority = just waiting on them: no automatic Quiet reminder, and the
+     follow-up date from before is taken off when it is switched on
+     (trkToggleLow), so only a date set after that reminds */
   if(!trkIsOpen(p)||trkIsDone(p))return null;
   var today=trkToday(),f=trkActiveFollowup(p,act);
   if(f){
@@ -279,9 +280,10 @@ function trkFollowBadge(f){
 }
 /* ===== low priority =====
    For deals where we're just waiting on the customer: the project
-   sinks to the bottom and gets no Quiet nag; a follow-up date you set
-   still shows and still reminds. One click on/off, from the panel
-   or the full page. */
+   sinks to the bottom and gets no Quiet nag. Switching it on takes off
+   the follow-up date it had (with Undo), so it never turns "Overdue" by
+   itself; a date set while it is low priority shows and reminds. One
+   click on/off, from the panel or the full page. */
 /* hourglass icon (the sleep emoji rendered as a blurry squiggle) */
 /* fold state of the Low priority / Done sections — folded by default */
 var TRK_SEC_OPEN=(function(){try{return {low:localStorage.getItem("cpd_trk_low_open")==="1",done:localStorage.getItem("cpd_trk_done_open")==="1"};}catch(e){return {low:false,done:false};}})();
@@ -322,21 +324,31 @@ function trkLowSw(p){
   return "<button class='trk-low-sw"+(p.lowPriority?" on":"")+"' role='switch' aria-checked='"+(p.lowPriority?"true":"false")+"' onclick='trkToggleLow(\""+p._id+"\")'>"+
     "<span class='trk-low-knob'></span>"+
     "<span class='trk-low-txt'><strong>"+TRK_LOW_ICO+"Low priority</strong>"+
-      "<small>"+(p.lowPriority?"Waiting on them &mdash; kept at the bottom, follow-up dates still show":"Just waiting? Move it to the bottom, follow-up dates still show")+"</small></span>"+
+      "<small>"+(p.lowPriority?"Waiting on them &mdash; kept at the bottom, reminds you only if you set a follow-up date":"Just waiting? Move it to the bottom, no reminders unless you set a follow-up date")+"</small></span>"+
   "</button>";
 }
 async function trkToggleLow(id){
   var p=TRK_PROJECTS.find(function(x){return x._id===id;});
   if(!p)return;
-  var v=!p.lowPriority;
+  var v=!p.lowPriority,old=v&&TRK_HAS_FU?p.nextFollowup:"",row={low_priority:v};
+  if(old)row.next_followup=null;
+  var active=old?trkActiveFollowup(p):"";
   showLoad("Saving...");
   try{
-    var r=await fetch(SB_URL+"/rest/v1/tracker_projects?id=eq."+p._id,{method:"PATCH",headers:sbH(),body:JSON.stringify({low_priority:v})});
+    var r=await fetch(SB_URL+"/rest/v1/tracker_projects?id=eq."+p._id,{method:"PATCH",headers:sbH(),body:JSON.stringify(row)});
     if(!r.ok)throw new Error("HTTP "+r.status);
-    p.lowPriority=v;
+    p.lowPriority=v;if(old)p.nextFollowup="";
   }catch(err){hideLoad();alert("Save failed: "+err.message);return;}
   hideLoad();
   renderTracker();
+  /* only worth saying when a reminder was really taken off */
+  if(active)showUndoToast("Follow-up "+trkFmtDate(active)+" removed",async function(){
+    try{
+      var u=await fetch(SB_URL+"/rest/v1/tracker_projects?id=eq."+p._id,{method:"PATCH",headers:sbH(),body:JSON.stringify({next_followup:active})});
+      if(!u.ok)throw new Error("HTTP "+u.status);
+      p.nextFollowup=active;renderContent();
+    }catch(err){alert("Couldn't put the follow-up date back: "+err.message);}
+  });
 }
 function trkEntriesFor(pid){
   return TRK_ENTRIES.filter(function(e){return e.projectId===pid;})

@@ -16,7 +16,7 @@ function richToHtml(v){
 function richMarks(el,m,sizes){
   var t=el.tagName,s=el.style,fw=s.fontWeight,deco=s.textDecorationLine||s.textDecoration||"";
   m={b:m.b,i:m.i,u:m.u,s:m.s};
-  if(sizes&&t==="FONT"&&el.getAttribute("size")){var z=+el.getAttribute("size");m.s=z<3?"s":z<5?"":z<6?"l":"x";}
+  if(sizes&&t==="FONT"&&el.getAttribute("size")){var z=+el.getAttribute("size");m.s=["","t","s","","m","l","x","h"][z]||"";}
   if(t==="B"||t==="STRONG"||fw==="bold"||+fw>=600)m.b=true;
   else if(fw==="normal"||+fw&&+fw<600)m.b=false;
   if(t==="I"||t==="EM"||s.fontStyle==="italic")m.i=true;
@@ -377,19 +377,50 @@ function richFormat(ed,mk){
   document.execCommand(RICH_CMDS[mk]);
 }
 
-/* ---------- font size: Small / Normal / Large / Extra large ---------- */
-var RICH_SIZES=[["s","Small",2],["","Normal",3],["l","Large",5],["x","Extra large",6]];
+/* ---------- text size, like in Word: 10 to 28, normal is 14 ----------
+   [stored letter, shown number, <font size>] */
+var RICH_SIZES=[["t",10,1],["s",12,2],["",14,3],["m",16,4],["l",18,5],["x",24,6],["h",28,7]];
 var RICH_SZ=null; /* the open size menu: {el,btn} */
 function richSizeClose(){if(RICH_SZ){RICH_SZ.el.remove();RICH_SZ.btn.classList.remove("on");RICH_SZ=null;}}
+function richSizeOf(n,ed){
+  for(;n&&n!==ed;n=n.parentNode)if(n.tagName==="FONT"&&n.getAttribute("size"))return richMarks(n,{},true).s||"";
+  return "";
+}
+/* the size at the cursor or of the highlighted text; null = several sizes */
 function richSizeNow(ed){
   var sel=getSelection(),n=sel.rangeCount?sel.getRangeAt(0).startContainer:null;
+  if(!n||!ed.contains(n))return "";
+  /* picked, but nothing typed yet */
+  var p=ed._szPick;
+  if(p&&sel.isCollapsed&&p[0]===n&&p[1]===sel.getRangeAt(0).startOffset)return p[2];
+  if(!sel.isCollapsed){
+    var rg=sel.getRangeAt(0),tw=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT),x,first;
+    while((x=tw.nextNode())){
+      if(!rg.intersectsNode(x))continue;
+      var a=x===rg.startContainer?rg.startOffset:0,b=x===rg.endContainer?rg.endOffset:x.data.length;
+      if(!x.data.slice(a,b).trim())continue;
+      var z=richSizeOf(x,ed);
+      if(first===undefined)first=z;else if(first!==z)return null;
+    }
+    if(first!==undefined)return first;
+  }
   /* a selection starting at the very end of one text run is really in the next */
   if(n&&n.nodeType===3&&!sel.isCollapsed&&sel.getRangeAt(0).startOffset===n.data.length){
     var w=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT);w.currentNode=n;n=w.nextNode()||n;
   }
-  for(;n&&n!==ed;n=n.parentNode)if(n.tagName==="FONT"&&n.getAttribute("size"))return richMarks(n,{},true).s||"";
-  return "";
+  return richSizeOf(n,ed);
 }
+/* the number on the Text size button follows the cursor */
+function richSizeShow(ed){
+  var el=ed._szNum;if(!el)return;
+  var s=richSizeNow(ed),z=RICH_SIZES.filter(function(q){return q[0]===s;})[0];
+  var t=z?String(z[1]):"\u2013";
+  if(el.textContent!==t)el.textContent=t;
+}
+document.addEventListener("selectionchange",function(){
+  var ed=document.activeElement;
+  if(ed&&ed._szNum)richSizeShow(ed);
+});
 function richSizeMenu(btn,ed){
   if(RICH_SZ){var same=RICH_SZ.btn===btn;richSizeClose();if(same)return;}
   if(document.activeElement!==ed)ed.focus();
@@ -397,7 +428,7 @@ function richSizeMenu(btn,ed){
   var m=document.createElement("div");
   m.className="dd-pop rich-sz";m.setAttribute("role","listbox");
   m.innerHTML=RICH_SIZES.map(function(z,i){
-    return "<div class='dd-item"+(z[0]===cur?" on":"")+"' role='option' aria-selected='"+(z[0]===cur)+"' data-i='"+i+"'><span class='dd-check'>"+(z[0]===cur?"&#10003;":"")+"</span><span class='dd-lbl'><font size='"+z[2]+"'>"+z[1]+"</font></span></div>";
+    return "<div class='dd-item"+(z[0]===cur?" on":"")+"' role='option' aria-selected='"+(z[0]===cur)+"' data-i='"+i+"'><span class='dd-check'>"+(z[0]===cur?"&#10003;":"")+"</span><span class='dd-lbl'><font size='"+z[2]+"'>"+z[1]+"</font>"+(z[0]?"":"<span class='rich-sz-n'>Normal</span>")+"</span></div>";
   }).join("");
   m.addEventListener("mousedown",function(e){e.preventDefault();});
   m.addEventListener("click",function(e){
@@ -405,8 +436,12 @@ function richSizeMenu(btn,ed){
     richSizeClose();ed.focus();
     if(keep){var s=getSelection();s.removeAllRanges();s.addRange(keep);}
     try{document.execCommand("styleWithCSS",false,false);}catch(err){}
-    document.execCommand("fontSize",false,RICH_SIZES[+it.getAttribute("data-i")][2]);
+    var z=RICH_SIZES[+it.getAttribute("data-i")];
+    document.execCommand("fontSize",false,z[2]);
     richSync(ed);
+    var g=getSelection(),gr=g.rangeCount&&g.isCollapsed?g.getRangeAt(0):null;
+    ed._szPick=gr?[gr.startContainer,gr.startOffset,z[0]]:null;
+    richSizeShow(ed);
   });
   document.body.appendChild(m);m.style.display="block";
   var r=btn.getBoundingClientRect(),vv=window.visualViewport,h=vv?vv.offsetTop+vv.height:innerHeight,up=r.bottom+m.offsetHeight+8>h&&r.top>m.offsetHeight+8;
@@ -427,10 +462,11 @@ function richSizeBtn(ta,ed){
   var lb=u.closest("label");
   if(lb){lb.htmlFor=ta.id;ta.addEventListener("click",function(){ed.focus();});}
   var b=document.createElement("button");
-  b.type="button";b.className="nt-tool fmt-sz";b.title="Font size";b.setAttribute("aria-haspopup","listbox");
-  b.innerHTML="Size<svg viewBox='0 0 16 16' width='13' height='13' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M4 6l4 4 4-4'/></svg>";
+  b.type="button";b.className="nt-tool fmt-sz";b.title="Text size";b.setAttribute("aria-haspopup","listbox");
+  b.innerHTML="<span class='sz-l'><span class='sz-t'>Text </span>size</span><b>14</b><svg viewBox='0 0 16 16' width='13' height='13' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M4 6l4 4 4-4'/></svg>";
   b.addEventListener("mousedown",function(e){e.preventDefault();});
   b.addEventListener("click",function(e){e.preventDefault();richSizeMenu(b,ed);});
+  ed._szNum=b.querySelector("b");
   u.parentNode.appendChild(b);
   /* indent / outdent, for phones (no Tab key) and the mouse */
   [["Indent (Tab)","M7 4h7M7 8h7M7 12h7M2 5.5L4.5 8 2 10.5",false],["Outdent (Shift+Tab)","M7 4h7M7 8h7M7 12h7M4.5 5.5L2 8l2.5 2.5",true]].forEach(function(d){

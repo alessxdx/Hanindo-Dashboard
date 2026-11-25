@@ -2096,7 +2096,7 @@ table.pr-matrix,table.pr-rules,table.pr-hist{width:100%;border-collapse:collapse
 .rich-ed{position:relative;white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;resize:vertical;tab-size:4;cursor:text;outline:none;text-align:left}
 .rich-ed.is-empty::before{content:attr(data-placeholder);position:absolute;pointer-events:none;color:var(--text-faint)}
 .form-group .rich-ed{
-  font-family:'BulletBig','Montserrat',sans-serif;font-size:13px;line-height:1.5;padding:8px 10px;min-height:72px;max-height:70vh;
+  font-family:'BulletBig','Montserrat',sans-serif;font-size:14px;line-height:1.5;padding:8px 10px;min-height:72px;max-height:70vh;
   border:1px solid var(--border);border-radius:5px;color:var(--text);background:var(--bg-input);transition:border-color .12s;
 }
 .form-group .rich-ed.is-empty::before{left:10px;top:8px;right:10px}
@@ -3610,14 +3610,26 @@ input[list]::-webkit-calendar-picker-indicator{display:none!important}
 @media (max-width:700px){.nt-bar .trk-search{max-width:none;flex:1 1 100%}}
 
 /* font size in the writing boxes and in shown notes (Size button) */
-font[size="1"],font[size="2"]{font-size:.85em}
-font[size="3"],font[size="4"]{font-size:inherit}
-font[size="5"]{font-size:1.3em}
-font[size="6"],font[size="7"]{font-size:1.65em;line-height:1.35}
+font[size="1"]{font-size:.714em}
+font[size="2"]{font-size:.857em}
+font[size="3"]{font-size:inherit}
+font[size="4"]{font-size:1.143em}
+font[size="5"]{font-size:1.286em}
+font[size="6"]{font-size:1.714em;line-height:1.35}
+font[size="7"]{font-size:2em;line-height:1.3}
 .fmt-tools .fmt-sz{display:inline-flex;align-items:center;gap:3px;padding-left:9px;padding-right:6px}
 .fmt-tools .fmt-sz.on{border-color:var(--accent);color:var(--text-strong)}
 .rich-sz{min-width:170px}
 .rich-sz .dd-item{font-size:14px}
+.rich-sz .dd-item{padding-top:5px;padding-bottom:5px}
+.rich-sz-n{margin-left:8px;font-size:12px;font-weight:400;color:var(--text-muted)}
+.fmt-tools .fmt-sz{white-space:nowrap}
+.fmt-tools .fmt-sz .sz-l{font-weight:500;color:var(--text-muted)}
+.fmt-tools .fmt-sz b{min-width:1.3em;text-align:center;color:var(--text-strong)}
+@media (max-width:700px){
+  .fmt-sz .sz-t{display:none}
+  .fmt-sz .sz-l{text-transform:capitalize}
+}
 
 /* indent / outdent buttons in the writing boxes */
 .fmt-tools .fmt-ind{display:inline-flex;align-items:center;justify-content:center}

@@ -994,14 +994,15 @@ function toggleWrap(ta,mk){
   }
   editText(ta,s,end,mk+sel+mk);ta.setSelectionRange(s+n,end+n);
 }
-/* Font sizes are stored as {s|small|s}, {l|large|l} and {x|extra large|x};
+/* Text sizes are stored as {t|10|t} {s|12|s} {m|16|m} {l|18|l} {x|24|x} {h|28|h}
+   (no mark = normal, 14);
    shown as <font size>, whose real sizes are set in styles.css */
-const FMT_SIZES={s:2,l:5,x:6};
-function fmtNoSize(s){return String(s||"").replace(/\{[slx]\||\|[slx]\}/g,"");}
+const FMT_SIZES={t:1,s:2,m:4,l:5,x:6,h:7};
+function fmtNoSize(s){return String(s||"").replace(/\{[tsmlxh]\||\|[tsmlxh]\}/g,"");}
 /* Takes already-escaped text and turns the marks into tags */
 function fmtInline(h){
   return String(h)
-    .replace(/\{([slx])\|([^\n]*?)\|\1\}/g,(m,k,t)=>`<font size="${FMT_SIZES[k]}">${t}</font>`)
+    .replace(/\{([tsmlxh])\|([^\n]*?)\|\1\}/g,(m,k,t)=>`<font size="${FMT_SIZES[k]}">${t}</font>`)
     .replace(/\*\*([^\s*](?:[^\n]*?[^\s*])??)\*\*/g,"<strong>$1</strong>")
     .replace(/__([^\s_](?:[^\n]*?[^\s_])??)__/g,"<u>$1</u>")
     .replace(/\*([^\s*](?:[^*\n]*?[^\s*])??)\*/g,"<em>$1</em>");
