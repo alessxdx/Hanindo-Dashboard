@@ -36,14 +36,16 @@ function ntSetView(v){NT_VIEW=v;renderContent();}
 var NT_Q="";
 function ntSearchInput(v){
   NT_Q=v;
-  if(NT_VIEW==="expenses")renderExpenses(true);else renderOthers(true);
+  if(NT_VIEW==="expenses")renderExpenses(true);else renderOthers();
 }
 function ntWords(){return NT_Q.toLowerCase().split(/\s+/).filter(Boolean);}
 /* every word somewhere in the fields; bold/italic marks don't get in the way,
    and 1500000 finds 1,500,000 (and the other way round) */
 function ntNum(s){return s.replace(/(\d)[,.](?=\d{3})/g,"$1");}
 function ntMatch(words,fields){
-  var hay=fields.filter(function(f){return f!==undefined&&f!==null&&f!=="";}).join(" ").toLowerCase().replace(/\*\*|__|\*/g,""),plain=ntNum(hay);
+  var hay=fields.filter(function(f){return f!==undefined&&f!==null&&f!=="";}).join(" ");
+  hay=fmtNoSize(hay).toLowerCase().replace(/\*\*|__|\*/g,"");
+  var plain=ntNum(hay);
   return words.every(function(w){return hay.indexOf(w)>-1||plain.indexOf(ntNum(w))>-1;});
 }
 /* every way to type a date: 12 Oct 2026, October 2026, 12/10/2026, 2026-10 */

@@ -13,9 +13,10 @@ function richEsc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").
 function richToHtml(v){
   return fmtSpan(v).split("\n").map(function(l){return "<div>"+(l?fmtInline(richEsc(l)):"<br>")+"</div>";}).join("");
 }
-function richMarks(el,m){
+function richMarks(el,m,sizes){
   var t=el.tagName,s=el.style,fw=s.fontWeight,deco=s.textDecorationLine||s.textDecoration||"";
-  m={b:m.b,i:m.i,u:m.u};
+  m={b:m.b,i:m.i,u:m.u,s:m.s};
+  if(sizes&&t==="FONT"&&el.getAttribute("size")){var z=+el.getAttribute("size");m.s=z<3?"s":z<5?"":z<6?"l":"x";}
   if(t==="B"||t==="STRONG"||fw==="bold"||+fw>=600)m.b=true;
   else if(fw==="normal"||+fw&&+fw<600)m.b=false;
   if(t==="I"||t==="EM"||s.fontStyle==="italic")m.i=true;
@@ -43,7 +44,7 @@ function richToText(ed){
       }
       var block=/^(DIV|P|LI|H\d|BLOCKQUOTE|PRE)$/.test(c.tagName);
       if(block&&cur().length)nl();
-      walk(c,richMarks(c,m));
+      walk(c,richMarks(c,m,true));
       if(block)nl();
     });
   })(ed,{});
@@ -57,13 +58,16 @@ function richRunsToText(lines){
     var merged=[];
     runs.forEach(function(r){
       var p=merged[merged.length-1];
-      if(p&&!!p.m.b===!!r.m.b&&!!p.m.i===!!r.m.i&&!!p.m.u===!!r.m.u)p.t+=r.t;
+      if(p&&!!p.m.b===!!r.m.b&&!!p.m.i===!!r.m.i&&!!p.m.u===!!r.m.u&&(p.m.s||"")===(r.m.s||""))p.t+=r.t;
       else merged.push({t:r.t,m:r.m});
     });
+    // a sized list line keeps its "•" / "1." outside the size, so it stays a list
+    var mk=merged[0]&&merged[0].m.s&&/^(\s*(?:•|\d+[.)]|[a-z][.)])\s+)([^]*)$/.exec(merged[0].t);
+    if(mk)merged.splice(0,1,{t:mk[1],m:{}},{t:mk[2],m:merged[0].m});
     return merged.map(function(r){
       var x=/^(\s*)([^]*?)(\s*)$/.exec(r.t);
       if(!x[2])return r.t;
-      return x[1]+(r.m.u?"__":"")+(r.m.b?"**":"")+(r.m.i?"*":"")+x[2]+(r.m.i?"*":"")+(r.m.b?"**":"")+(r.m.u?"__":"")+x[3];
+      return x[1]+(r.m.s?"{"+r.m.s+"|":"")+(r.m.u?"__":"")+(r.m.b?"**":"")+(r.m.i?"*":"")+x[2]+(r.m.i?"*":"")+(r.m.b?"**":"")+(r.m.u?"__":"")+(r.m.s?"|"+r.m.s+"}":"")+x[3];
     }).join("");
   }).join("\n");
 }
@@ -157,7 +161,10 @@ function richHang(ed){
   });
 }
 function richEmpty(ed){ed.classList.toggle("is-empty",!ed.textContent&&ed.childNodes.length<2);}
-function richSync(ed){TA_VALUE.set.call(ed._ta,richToText(ed));richEmpty(ed);richHang(ed);}
+function richSync(ed){
+  TA_VALUE.set.call(ed._ta,richToText(ed));richEmpty(ed);richHang(ed);
+  if(ed._ta.id==="others-quick")ntDraftSave(ed._ta.value);
+}
 
 /* caret as character offsets over the box's text, to survive DOM moves */
 function richSave(ed){
@@ -283,6 +290,59 @@ function richFormat(ed,mk){
   document.execCommand(RICH_CMDS[mk]);
 }
 
+/* ---------- font size: Small / Normal / Large / Extra large ---------- */
+var RICH_SIZES=[["s","Small",2],["","Normal",3],["l","Large",5],["x","Extra large",6]];
+var RICH_SZ=null; /* the open size menu: {el,btn} */
+function richSizeClose(){if(RICH_SZ){RICH_SZ.el.remove();RICH_SZ.btn.classList.remove("on");RICH_SZ=null;}}
+function richSizeNow(ed){
+  var sel=getSelection(),n=sel.rangeCount?sel.getRangeAt(0).startContainer:null;
+  /* a selection starting at the very end of one text run is really in the next */
+  if(n&&n.nodeType===3&&!sel.isCollapsed&&sel.getRangeAt(0).startOffset===n.data.length){
+    var w=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT);w.currentNode=n;n=w.nextNode()||n;
+  }
+  for(;n&&n!==ed;n=n.parentNode)if(n.tagName==="FONT"&&n.getAttribute("size"))return richMarks(n,{},true).s||"";
+  return "";
+}
+function richSizeMenu(btn,ed){
+  if(RICH_SZ){var same=RICH_SZ.btn===btn;richSizeClose();if(same)return;}
+  if(document.activeElement!==ed)ed.focus();
+  var sel=getSelection(),keep=sel.rangeCount&&ed.contains(sel.anchorNode)?sel.getRangeAt(0).cloneRange():null,cur=richSizeNow(ed);
+  var m=document.createElement("div");
+  m.className="dd-pop rich-sz";m.setAttribute("role","listbox");
+  m.innerHTML=RICH_SIZES.map(function(z,i){
+    return "<div class='dd-item"+(z[0]===cur?" on":"")+"' role='option' aria-selected='"+(z[0]===cur)+"' data-i='"+i+"'><span class='dd-check'>"+(z[0]===cur?"&#10003;":"")+"</span><span class='dd-lbl'><font size='"+z[2]+"'>"+z[1]+"</font></span></div>";
+  }).join("");
+  m.addEventListener("mousedown",function(e){e.preventDefault();});
+  m.addEventListener("click",function(e){
+    var it=e.target.closest(".dd-item");if(!it)return;
+    richSizeClose();ed.focus();
+    if(keep){var s=getSelection();s.removeAllRanges();s.addRange(keep);}
+    try{document.execCommand("styleWithCSS",false,false);}catch(err){}
+    document.execCommand("fontSize",false,RICH_SIZES[+it.getAttribute("data-i")][2]);
+    richSync(ed);
+  });
+  document.body.appendChild(m);m.style.display="block";
+  var r=btn.getBoundingClientRect(),vv=window.visualViewport,h=vv?vv.offsetTop+vv.height:innerHeight,up=r.bottom+m.offsetHeight+8>h&&r.top>m.offsetHeight+8;
+  m.style.left=Math.max(8,Math.min(r.left,document.documentElement.clientWidth-m.offsetWidth-8))+"px";
+  m.style.top=(up?r.top-m.offsetHeight-4:r.bottom+4)+"px";
+  btn.classList.add("on");
+  RICH_SZ={el:m,btn:btn};
+}
+document.addEventListener("pointerdown",function(e){if(RICH_SZ&&!RICH_SZ.el.contains(e.target)&&!RICH_SZ.btn.contains(e.target))richSizeClose();},true);
+document.addEventListener("keydown",function(e){if(RICH_SZ){if(e.key==="Escape"){e.preventDefault();e.stopPropagation();}richSizeClose();}},true);
+window.addEventListener("scroll",function(e){if(RICH_SZ&&!RICH_SZ.el.contains(e.target))richSizeClose();},true);
+/* the Size button sits after B I U, in every writing box */
+function richSizeBtn(ta,ed){
+  var u=document.querySelector(".fmt-tools .fmt-u[onclick*=\"'"+ta.id+"'\"]");
+  if(!u||u.parentNode.querySelector(".fmt-sz"))return;
+  var b=document.createElement("button");
+  b.type="button";b.className="nt-tool fmt-sz";b.title="Font size";b.setAttribute("aria-haspopup","listbox");
+  b.innerHTML="Size<svg viewBox='0 0 16 16' width='13' height='13' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M4 6l4 4 4-4'/></svg>";
+  b.addEventListener("mousedown",function(e){e.preventDefault();});
+  b.addEventListener("click",function(e){e.preventDefault();richSizeMenu(b,ed);});
+  u.parentNode.appendChild(b);
+}
+
 function richify(ta){
   if(!ta||ta._rich)return;
   var ed=document.createElement("div");
@@ -292,6 +352,7 @@ function richify(ta){
   ed.style.cssText=ta.style.cssText;
   ta.after(ed);ta.style.display="none";
   ta._rich=ed;ed._ta=ta;
+  richSizeBtn(ta,ed);
   // setting the textarea's value (opening a form, clearing it) refills the box
   Object.defineProperty(ta,"value",{configurable:true,
     get:function(){return TA_VALUE.get.call(ta);},

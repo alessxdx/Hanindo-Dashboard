@@ -50,7 +50,7 @@ function tdMoneyOwed(){
     var ents=trkEntriesFor(p._id);
     var inv=ents.filter(function(e){return e.type==="Invoice";}).sort(function(a,b){return b.date.localeCompare(a.date);})[0];
     var po=ents.filter(function(e){return e.type==="Purchase order";}).sort(function(a,b){return a.date.localeCompare(b.date);})[0];
-    var terms=tdTerms([inv?(inv.title||"")+" "+(inv.details||""):"",p.notes]);
+    var terms=tdTerms([inv?(inv.title||"")+" "+fmtNoSize(inv.details):"",fmtNoSize(p.notes)]);
     /* payments recorded with an amount reduce what is left */
     var paid=ents.filter(function(e){return e.type==="Payment received"&&e.amount!==null&&e.amount!==undefined;})
       .reduce(function(n,e){return n+Number(e.amount);},0);
@@ -85,7 +85,7 @@ function tdQuotes(){
   }
   TRK_PROJECTS.forEach(function(p){
     if(p.status!=="Quoted"||p.done)return;
-    var txt=[p.notes].concat(trkEntriesFor(p._id).filter(function(e){return e.type==="Quotation";}).map(function(e){return (e.title||"")+" "+(e.details||"");})).join("\n");
+    var txt=[p.notes].concat(trkEntriesFor(p._id).filter(function(e){return e.type==="Quotation";}).map(function(e){return (e.title||"")+" "+(e.details||"");})).map(fmtNoSize).join("\n");
     var m=txt.match(/valid[^.\n]{0,20}?(?:till|until|to|thru|through)\s*([^.\n]{6,25})/i);
     if(m)push({name:p.name,cust:p.customer,country:p.country,valid:tdParseDate(m[1]),go:"tracker",sel:p._id});
   });

@@ -101,6 +101,7 @@ function sbSignOut(){
   var tok=SB_SESSION&&SB_SESSION.access_token;
   if(tok)fetch(SB_URL+"/auth/v1/logout",{method:"POST",headers:{"apikey":SB_KEY,"Authorization":"Bearer "+tok}}).catch(function(){});
   sbSaveSession(null);
+  if(typeof ntDraftSave==="function")ntDraftSave("");
   if(SB_AUTH_REQUIRED)location.reload();
 }
 

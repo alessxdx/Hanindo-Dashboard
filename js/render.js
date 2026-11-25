@@ -812,7 +812,7 @@ function renderBuying(bodyOnly){
 /* Notes are split by what they are: quick updates (no value), records with
    an amount, and the shipping-term reference cards. Newest first in the
    first two; the terms are A-Z and folded away since they rarely change. */
-function renderOthers(bodyOnly){
+function renderOthers(){
   pgHideStats();
   if(typeof NT_VIEW!=="undefined"&&NT_VIEW==="expenses")return renderExpenses();
   /* search: every typed word must appear in the note, its date or its amount */
@@ -863,10 +863,11 @@ function renderOthers(bodyOnly){
       ${updates.length?byMonth(updates):`<div class="nt-empty">No updates yet. Anything you post above lands here and can be deleted with one click.</div>`}</div>`:""}
     ${records.length?`<div class="nt-card">${head("Records",records.length,"amounts and breakdowns")}${records.map(record).join("")}</div>`:""}
     ${terms.length?`<details class="nt-card nt-terms"${searching?" open":""}><summary>${head("Shipping terms",terms.length,"Incoterms reference")}</summary><div class="nt-term-grid">${terms.map(term).join("")}</div></details>`:""}`;
-  /* typing in the search only swaps the list, so the box keeps focus and a
-     half-written update is kept (the writing box hides while searching) */
+  /* already on the page (search, delete, undo, edit, a background refresh):
+     only the list is swapped, so a half-written update and the cursor stay
+     where they are (the writing box hides while searching) */
   const box=document.getElementById("nt-list");
-  if(bodyOnly&&box){
+  if(box){
     box.innerHTML=list;
     box.parentElement.classList.toggle("nt-searching",searching);
     ntMark(box,words);
@@ -883,14 +884,29 @@ function renderOthers(bodyOnly){
     <div id="nt-list">${list}</div>
   </div>`;
   ntMark(document.getElementById("nt-list"),words);
-  if(typeof richify==="function")richify(document.getElementById("others-quick"));
+  const quick=document.getElementById("others-quick");
+  quick.value=ntDraft();
+  if(typeof richify==="function")richify(quick);
 }
+/* the unposted update, kept on this device until it is posted or cleared, so
+   opening another page or reloading doesn't lose it */
+function ntDraft(){try{return localStorage.getItem("cpd_note_draft")||"";}catch(e){return "";}}
+function ntDraftSave(v){try{if(v.trim())localStorage.setItem("cpd_note_draft",v);else localStorage.removeItem("cpd_note_draft");}catch(e){}}
+let NT_POSTING=false;
 async function postOtherQuick(){
   const el=document.getElementById("others-quick"),text=el.value.trim();
-  if(!text)return;
+  if(!text||NT_POSTING)return;
   const d=new Date(),no={date:d.getDate()+" "+d.toLocaleString("en-GB",{month:"short"})+" "+d.getFullYear(),desc:text,value:"",sub:"",created:d.toISOString()};
-  el.value="";
-  const r=await sbInsert("others",oToDb(no));if(r&&r[0]){no._id=r[0].id;no.created=r[0].created_at||no.created;}
+  let r=null;
+  NT_POSTING=true;
+  try{r=await sbInsert("others",oToDb(no));}catch(e){}
+  NT_POSTING=false;
+  if(!r||!r[0]){alert("Couldn't post the update. Your text is still in the box, please try again.");return;}
+  no._id=r[0].id;no.created=r[0].created_at||no.created;
+  /* the box empties only once the update is saved */
+  const now=document.getElementById("others-quick");
+  if(now){if(now.value.trim()===text){now.value="";ntDraftSave("");}}
+  else if(ntDraft().trim()===text)ntDraftSave("");
   OTHERS.push(no);renderContent();
   const again=document.getElementById("others-quick");if(again)again.focus();
 }
@@ -965,9 +981,14 @@ function toggleWrap(ta,mk){
   }
   editText(ta,s,end,mk+sel+mk);ta.setSelectionRange(s+n,end+n);
 }
+/* Font sizes are stored as {s|small|s}, {l|large|l} and {x|extra large|x};
+   shown as <font size>, whose real sizes are set in styles.css */
+const FMT_SIZES={s:2,l:5,x:6};
+function fmtNoSize(s){return String(s||"").replace(/\{[slx]\||\|[slx]\}/g,"");}
 /* Takes already-escaped text and turns the marks into tags */
 function fmtInline(h){
   return String(h)
+    .replace(/\{([slx])\|([^\n]*?)\|\1\}/g,(m,k,t)=>`<font size="${FMT_SIZES[k]}">${t}</font>`)
     .replace(/\*\*([^\s*](?:[^\n]*?[^\s*])??)\*\*/g,"<strong>$1</strong>")
     .replace(/__([^\s_](?:[^\n]*?[^\s_])??)__/g,"<u>$1</u>")
     .replace(/\*([^\s*](?:[^*\n]*?[^\s*])??)\*/g,"<em>$1</em>");

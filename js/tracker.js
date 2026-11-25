@@ -622,7 +622,7 @@ function trkSearchFields(p){
     trkSearchField("Solution",p.solution,true,"",true),
     trkSearchField("Products",(p.products||[]).join(", "),true,"",true),
     trkSearchField("Contact",trkAllContacts(p).map(function(c){return [c.name,c.position,c.info].filter(Boolean).join(" · ");}).join(" | "),false,"",true),
-    trkSearchField("Notes",p.notes,false),
+    trkSearchField("Notes",fmtNoSize(p.notes),false),
     trkSearchField("Value",p.estValue!==null?p.estValue.toLocaleString()+" "+p.currency:"",true,p.estValue!==null?String(p.estValue):""),
     trkSearchField("Expected",trkPeriodLabel(p),true,trkDateWords(p.expectedDate)+" "+(p.expectedPeriod||"")),
     trkSearchField("Started",trkFmtDate(first),true,trkDateWords(first)),
@@ -631,7 +631,7 @@ function trkSearchFields(p){
   trkEntriesFor(p._id).forEach(function(e){
     var att=(e.attachments||[]).map(function(a){return a.name;}).join(", ");
     f.push(trkSearchField(trkFmtDate(e.date)+" · "+e.type,
-      [e.title,e.details,att].filter(Boolean).join(" — ")||e.type,false,e.type+" "+trkDateWords(e.date)));
+      [e.title,fmtNoSize(e.details),att].filter(Boolean).join(" — ")||e.type,false,e.type+" "+trkDateWords(e.date)));
   });
   return f;
 }

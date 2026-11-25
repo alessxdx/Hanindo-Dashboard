@@ -3608,3 +3608,13 @@ input[list]::-webkit-calendar-picker-indicator{display:none!important}
 .nt-searching .nt-compose{display:none}
 .nt-simple mark{background:#fde68a;color:#1a1a1a;border-radius:2px;padding:0 1px}
 @media (max-width:700px){.nt-bar .trk-search{max-width:none;flex:1 1 100%}}
+
+/* font size in the writing boxes and in shown notes (Size button) */
+font[size="1"],font[size="2"]{font-size:.85em}
+font[size="3"],font[size="4"]{font-size:inherit}
+font[size="5"]{font-size:1.3em}
+font[size="6"],font[size="7"]{font-size:1.65em;line-height:1.35}
+.fmt-tools .fmt-sz{display:inline-flex;align-items:center;gap:3px;padding-left:9px;padding-right:6px}
+.fmt-tools .fmt-sz.on{border-color:var(--accent);color:var(--text-strong)}
+.rich-sz{min-width:170px}
+.rich-sz .dd-item{font-size:14px}
