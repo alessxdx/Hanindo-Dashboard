@@ -158,6 +158,7 @@ async function loadFromDB(){
   /* renderContent: with URL routing the app can
      start on any tab, so re-render whichever view the route selected. */
   hideLoad();refreshFilterOptions();renderStats();renderContent();
+  pxFollowOnLoad();
 }
 
 

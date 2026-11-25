@@ -5,8 +5,8 @@
    prices in `spares` (SPARES), and the last price paid is read
    from the purchase orders. The two edit forms are the same ones.
    - rows are joined by part number (by name when there is none)
-   - "Check cost": the last PO paid a price that is not one of the
-     costs on file; the cost only changes when the user accepts it
+   - the saved cost follows the newest PO by itself (pxFollow); when that
+     is not safe (pxFollowWhy) it stays and the item is marked "Check cost"
    ============================================================ */
 var PX_SECS=["Printers","Spare parts","Accessories","Services"];
 var PX_SEC="",PX_CHECK=false,PX_SORT="name",PX_OPEN={},PX_ITEMS=[],PX_PO_TRY=false;
@@ -50,7 +50,7 @@ function pxNames(it){
 /* the price paid before the newest one: the latest earlier PO at a different
    price. Another region's cost or a customer's special price is not an
    earlier price, so those POs are skipped. */
-function pxPrev(it,byPn){
+function pxPrev(it){
   var L=it.last,best=null;
   if(!L)return null;
   var skip=function(x){
@@ -59,21 +59,22 @@ function pxPrev(it,byPn){
       return (it.costs.length>1&&pxSame(c.b.price,x.l.unitPrice))||(c.b.specialPrice&&pxSame(c.b.specialPrice,x.l.unitPrice));
     });
   };
-  it.pns.forEach(function(pn){
-    (byPn[pn]||[]).forEach(function(x){
-      if(x.p.date>=L.p.date||x.p.currency!==L.p.currency||pxSame(x.l.unitPrice,L.l.unitPrice)||skip(x))return;
-      if(!best||x.p.date>best.p.date)best=x;
-    });
+  it.pos.forEach(function(x){
+    if(x.p.date>=L.p.date||x.p.currency!==L.p.currency||pxSame(x.l.unitPrice,L.l.unitPrice)||skip(x))return;
+    if(!best||x.p.date>best.p.date)best=x;
   });
   return best;
 }
 /* the latest price paid on a PO for any of the item's part numbers,
    counting the P/Ns the PO page joins as the same model (PO_SAME) */
-function pxLast(it,byPn){
+function pxPos(it,byPn){
+  var out=[];
+  it.pns.forEach(function(pn){(byPn[pn]||[]).forEach(function(x){if(out.indexOf(x)===-1)out.push(x);});});
+  return out;
+}
+function pxLast(it){
   var best=null;
-  it.pns.forEach(function(pn){
-    (byPn[pn]||[]).forEach(function(x){if(!best||x.p.date>best.p.date)best=x;});
-  });
+  it.pos.forEach(function(x){if(!best||x.p.date>best.p.date)best=x;});
   return best;
 }
 function pxPoIndex(){
@@ -130,8 +131,9 @@ function pxBuild(){
     it.key=it.pns.length?it.pns[0]:"n:"+it.name.toLowerCase();
     it.sec=pxSection(it);
     it.band=it.sec==="Spare parts"?(it.group||"Other Spare Parts"):it.sec;
-    it.last=pxLast(it,idx);
-    it.prev=pxPrev(it,idx);
+    it.pos=pxPos(it,idx);
+    it.last=pxLast(it);
+    it.prev=pxPrev(it);
     it.check=false;
     if(it.last&&it.costs.length){
       var L=it.last,cur=L.p.currency;
@@ -239,7 +241,7 @@ function pxDetail(it,n){
       h+="<div class='px-d-row'><span class='px-d-main'>Previous cost<span class='px-sub'><button class='px-link' onclick='pxOpenPo("+n+",true)'>"+trkEsc(P.p.poNumber||"Open PO")+"</button> &middot; "+trkFmtDate(P.p.date)+(P.p.office?" &middot; "+trkEsc(P.p.office):"")+" &middot; "+P.l.qty.toLocaleString()+" "+trkEsc(P.l.unit||"pcs")+"</span></span>"+
         "<span class='px-d-val'>"+pxMoney(P.l.unitPrice,P.p.currency)+"</span><span class='nt-acts'></span></div>";
     }
-    if(it.check)h+="<div class='px-d-warn'>The last PO paid a different price than the saved cost. "+
+    if(it.check)h+="<div class='px-d-warn'>The last PO paid a different price than the saved cost"+(pxFollowWhy(it)?" (not changed by itself: "+pxFollowWhy(it)+")":"")+". "+
       (it.costs.length===1?"<button class='px-link' onclick='pxUseLast("+n+")'>Use "+poFmtMoney(L.l.unitPrice,L.p.currency)+" as the cost</button>":"Use the pencil to change the cost it belongs to.")+"</div>";
   }
   h+="</div><div class='px-d-sec'><div class='px-d-head'><span>Customer prices</span><button class='px-link' onclick='pxAddSell("+n+")'>+ Customer price</button></div>";
@@ -325,7 +327,7 @@ function renderPrices(bodyOnly){
     "<div class='trk-chips px-chips' id='px-chips'>"+chips+"</div>"+
     "<div class='po-table-wrap buy-table'><table class='po-table buy-list buy-simple px-list'><thead><tr><th>Item</th><th class='num'>Previous cost</th><th class='num'>Last PO</th><th class='num'>Selling price</th><th class='num'>Margin</th><th></th></tr></thead>"+
     "<tbody id='px-tbody'>"+rows+"</tbody></table></div>"+
-    "<div class='px-note'>Previous cost = the last PO price before the newest one; in grey when it never changed. Margin = (selling price &minus; cost) &divide; selling price, in USD at today's rate. With several costs the highest one is used. Delivery and duty are not taken off.</div>";
+    "<div class='px-note'>Previous cost = the last PO price before the newest one; in grey when it never changed. The saved cost follows the newest PO. Margin = (selling price &minus; cost) &divide; selling price, in USD at today's rate. With several costs the highest one is used. Delivery and duty are not taken off.</div>";
   var inp=document.getElementById("px-search");
   /* not on touch screens: focusing would pop the keyboard up on every visit */
   if(inp&&!matchMedia("(pointer:coarse)").matches){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}
@@ -356,6 +358,68 @@ function pxAddSell(n){
     document.getElementById("sp-pn").value=it.pnText[0]||"";
   }
   document.getElementById("modal-spares").classList.add("open");
+}
+/* ---------- the cost follows the newest PO ---------- */
+/* why an item's cost must not change by itself ("" = it may) */
+function pxFollowWhy(it){
+  var L=it.last;
+  if(!L||!it.costs.length)return "no PO";
+  if(it.costs.length>1)return "it has more than one cost";
+  var b=it.costs[0].b;
+  if(b.specialPrice)return "it has a special price for "+trkEsc(b.specialCustomer||"a customer");
+  if(L.p.date>trkToday())return "the PO date is in the future";
+  if(it.pos.some(function(x){return x.p.date===L.p.date&&(x.p.currency!==L.p.currency||!pxSame(x.l.unitPrice,L.l.unitPrice));}))return "POs on the same day paid different prices";
+  if(L.l.unitPrice>b.price*1.5||L.l.unitPrice<b.price*0.5)return "the price moved by more than half, please check it";
+  return "";
+}
+/* newest PO price per item, taken before a PO is saved or deleted */
+function pxSnap(){
+  var m={};
+  /* never let this stop a PO from being saved */
+  try{if(PO_LOADED)pxBuild().forEach(function(it){m[it.key]=it.last?it.last.l.unitPrice+it.last.p.currency:"";});}catch(e){console.error(e);return null;}
+  return m;
+}
+/* with a snapshot: items whose newest PO price just changed. Always: items
+   still saved at an earlier PO's price (a PO added elsewhere). A cost typed
+   in by hand that no PO has is left alone and only marked "Check cost". */
+var PX_FOLLOWING=false;
+async function pxFollow(before){
+  /* 1000 rows is the most the database hands over: beyond that the newest
+     lines could be missing, so nothing is changed */
+  if(PX_FOLLOWING||!sbSignedIn()||!PO_LOADED||PO_LINES.length>=1000)return;
+  PX_FOLLOWING=true;
+  var done=[];
+  try{
+    var todo=pxBuild().filter(function(it){
+      if(!it.check||!it.costs[0].b._id||pxFollowWhy(it))return false;
+      var b=it.costs[0].b,L=it.last;
+      if(before&&before[it.key]!==L.l.unitPrice+L.p.currency)return true;
+      return it.pos.some(function(x){return x.p.date<L.p.date&&x.p.currency===b.currency&&pxSame(x.l.unitPrice,b.price);});
+    });
+    for(var i=0;i<todo.length;i++){
+      var b=todo[i].costs[0].b,v=todo[i].last.l.unitPrice,was=b.price;
+      /* only if the saved price is still the one we looked at */
+      var r=await fetch(SB_URL+"/rest/v1/buying_prices?id=eq."+b._id+"&price=eq."+was,{method:"PATCH",headers:sbH(),body:JSON.stringify({price:v})});
+      var got=r.ok?await r.json():[];
+      if(!got.length)continue;
+      b.price=v;
+      done.push(b.model+" "+poFmtMoney(was,b.currency)+" → "+poFmtMoney(v,b.currency));
+    }
+  }catch(e){console.error("cost follow:",e);}
+  PX_FOLLOWING=false;
+  if(!done.length)return;
+  if(currentTab==="prices")renderPrices(true);
+  var t=document.getElementById("undo-toast");if(t)t.remove();
+  t=document.createElement("div");t.id="undo-toast";t.className="undo-toast";
+  t.setAttribute("role","status");
+  t.textContent="Cost updated from the newest PO: "+done.join(", ");
+  document.body.appendChild(t);
+  setTimeout(function(){if(t.parentNode)t.remove();},9000);
+}
+/* once after the data has loaded: POs are fetched in the background */
+function pxFollowOnLoad(){
+  if(!sbSignedIn())return;
+  poLoad().then(function(ok){if(ok)return pxFollow();}).catch(function(){});
 }
 /* accept the last PO's price as the cost on file */
 async function pxUseLast(n){

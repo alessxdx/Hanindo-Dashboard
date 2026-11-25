@@ -65,8 +65,14 @@ function dbToPoLine(r){return{_id:r.id,poId:r.po_id,pn:r.pn||"",description:r.de
 function poLineToDb(l){return{po_id:l.poId,pn:l.pn||null,description:l.description||null,qty:l.qty||0,unit:l.unit||"pcs",unit_price:(l.unitPrice===null||isNaN(l.unitPrice))?null:l.unitPrice,sort_order:l.sortOrder||0,category:l.category||null,item_group:l.itemGroup||null,supplier:l.supplier||null,actual_total:(l.actualTotal===null||l.actualTotal===undefined||isNaN(l.actualTotal))?null:l.actualTotal,delivery:(l.delivery===null||l.delivery===undefined||isNaN(l.delivery))?null:l.delivery,note:l.note||null};}
 
 /* ===== load ===== */
-async function poLoad(force){
-  if(PO_LOADED&&!force)return true;
+var PO_LOADING=null;
+function poLoad(force){
+  if(PO_LOADED&&!force)return Promise.resolve(true);
+  /* two pages asking at once share one download */
+  if(!PO_LOADING)PO_LOADING=poFetchAll().finally(function(){PO_LOADING=null;});
+  return PO_LOADING;
+}
+async function poFetchAll(){
   var res=await Promise.all([sbGet("purchase_orders"),sbGet("po_lines")]);
   if(!res[0]||!res[1]){PO_MISSING=true;return false;}
   PO_MISSING=false;
@@ -822,6 +828,7 @@ async function poSave(){
   var lines=polReadRows();
   var m=document.getElementById("modal-po");
   var editId=m.getAttribute("data-edit-id");
+  var costsBefore=pxSnap();
   showLoad("Saving...");
   try{
     var poId;
@@ -850,6 +857,7 @@ async function poSave(){
   hideLoad();
   closeModal("modal-po");
   renderPOs();
+  pxFollow(costsBefore);
 }
 async function poDelete(){
   var m=document.getElementById("modal-po");
@@ -857,6 +865,7 @@ async function poDelete(){
   if(!editId)return;
   var p=PO_LIST.find(function(x){return x._id===editId;});
   if(!confirm("Delete PO "+(p?p.poNumber:"")+" and its lines permanently?"))return;
+  var costsBefore=pxSnap();
   showLoad("Deleting...");
   await sbDelete("purchase_orders",editId); /* lines cascade */
   PO_LIST=PO_LIST.filter(function(x){return x._id!==editId;});
@@ -864,6 +873,7 @@ async function poDelete(){
   hideLoad();
   closeModal("modal-po");
   renderPOs();
+  pxFollow(costsBefore);
 }
 
 /* ===== drag & drop on the PO modal ===== */
@@ -987,7 +997,7 @@ async function poFillFromPdf(){
    are skipped, so re-dropping a folder of PDFs is safe. */
 async function poBulkImport(pdfs){
   if(!confirm("Create "+pdfs.length+" separate POs — one per PDF?"))return;
-  var made=0,skipped=[],failed=[],gaps=[];
+  var made=0,skipped=[],failed=[],gaps=[],costsBefore=pxSnap();
   for(var i=0;i<pdfs.length;i++){
     var a=pdfs[i];
     showLoad("Importing "+(i+1)+" of "+pdfs.length+": "+a.name);
@@ -1022,6 +1032,7 @@ async function poBulkImport(pdfs){
   if(failed.length)msg+="\nFailed: "+failed.join("; ");
   if(gaps.length)msg+="\n\n⚠ Items don't add up to the PO total, a line may have been skipped: "+gaps.join(", ");
   alert(msg);
+  pxFollow(costsBefore);
 }
 
 

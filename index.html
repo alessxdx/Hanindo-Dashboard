@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-25.24";
+var APP_VERSION = "2026-11-25.25";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -182,7 +182,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
     <div class="form-grid">
       <div class="form-group form-full"><label>Item name *</label><input id="b-model" placeholder="e.g. TK180 Metal Cutter AEA"></div>
       <div class="form-group form-full"><label>Part number</label><input id="b-pn" placeholder="e.g. 911HL011200733" style="font-family:'DM Mono',monospace"></div>
-      <div class="form-group"><label>Your cost *</label><input id="b-price" type="number" placeholder="e.g. 369"></div>
+      <div class="form-group"><label>Your cost * <span style="color:var(--text-muted);font-weight:400">(follows newest PO)</span></label><input id="b-price" type="number" placeholder="e.g. 369"></div>
       <div class="form-group"><label>Currency</label><select id="b-currency"><option value="USD">USD</option><option value="SGD">SGD</option><option value="EUR">EUR</option></select></div>
       <div class="form-group form-full"><label>Group / category <span style="font-size:10px;color:#aaa;font-weight:400">(optional — leave empty for printers)</span></label><input id="b-group" placeholder="e.g. TK180 Spare Parts" list="b-group-list"><datalist id="b-group-list"></datalist></div>
       <div class="form-group form-full"><label>Special price <span style="font-size:10px;color:#aaa;font-weight:400">(optional — a lower cost for one customer)</span></label><div style="display:flex;gap:8px"><input id="b-special-price" type="number" placeholder="e.g. 135.60" style="flex:1"><input id="b-special-customer" placeholder="Customer name e.g. Nanshan" style="flex:2"></div></div>
