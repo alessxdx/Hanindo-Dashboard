@@ -3271,15 +3271,13 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .exp-files{align-items:center}
 .exp-files>div{display:flex;flex-wrap:wrap;gap:6px}
 
-/* group headings (Buying Prices, Spare Parts, Model Comparison): one blue */
-.buy-band2-name{color:#1d4ed8}
-:root[data-theme="dark"] .buy-band2-name{color:#84adff}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .buy-band2-name{color:#84adff}}
-
-/* PO list month headings: teal, so they never look like an office (red, orange, blue) */
-.po-grp2 td:first-child{color:#0f766e}
-:root[data-theme="dark"] .po-grp2 td:first-child{color:#5eead4}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .po-grp2 td:first-child{color:#5eead4}}
+/* group headings on every list page (months, customers, countries, printers /
+   parts): one size and one purple. The tracker keeps its solution colours. */
+:root{--head:#6d28d9}
+:root[data-theme="dark"]{--head:#c4b5fd}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--head:#c4b5fd}}
+.buy-band2 .buy-band2-name,.cb-grp2 .cb-grp2-name,.exp-month>span,.po-list .po-grp2 td:first-child,.po-models .po-grp2 td:first-child,.pr-pl .po-month{color:var(--head);font-size:16px;font-weight:700}
+.po-list .po-grp2 td.num,.po-models .po-grp2 td.num,.cb-grp2 td.cb-c-val,.exp-month b{font-size:15px}
 
 /* Expenses view: department switch, big totals, bar charts, entries by month */
 .exp-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 6px}
@@ -3317,9 +3315,7 @@ ul.od-notes li+li{border-top:1px solid var(--divider)}
 .exp-col-l{font-size:11px;color:var(--text-muted);padding-top:4px;text-align:center;line-height:1.2;height:30px}
 .exp-col-l span{display:block;font-size:10px}
 .exp-month{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:16px 2px 5px;border-bottom:2px solid var(--border);font-size:13.5px;font-weight:700}
-.exp-month>span{color:#1d4ed8}
 .exp-month b{color:var(--text-strong)}
-:root[data-theme="dark"] .exp-month>span{color:#84adff}
 .exp-item{display:flex;align-items:flex-start;gap:14px;padding:10px 2px;border-bottom:1px solid var(--divider)}
 .exp-day{flex:none;width:34px;text-align:center;font-size:16px;font-weight:700;color:var(--text-strong);line-height:1.1}
 .exp-day span{display:block;font-size:10.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase}
@@ -3472,7 +3468,7 @@ th,.po-table th{font-size:12px;font-weight:600;text-transform:none;letter-spacin
 .pr-matrix th,.pr-rules th,.pr-hist th{font-size:12px;text-transform:none;letter-spacing:0}
 .pr-here{font-size:11px;letter-spacing:0}
 .pr-pl-tl,.pr-sheets-l{font-size:12px;text-transform:none;letter-spacing:0}
-.pr-pl .po-month{text-transform:none;letter-spacing:0;font-size:14px}
+.pr-pl .po-month{text-transform:none;letter-spacing:0}
 .cb-grp-sec{font-size:13px;text-transform:none;letter-spacing:0;color:var(--text-strong)}
 .od-line-head,.od-line-head span{text-transform:none;letter-spacing:0;font-size:12px}
 .pr-opt{font-size:11.5px}
