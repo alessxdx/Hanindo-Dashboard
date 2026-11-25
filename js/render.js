@@ -913,9 +913,10 @@ async function postOtherQuick(){
 /* Plain-text list editing for note textareas: Enter continues a "•" or
    "1." line (Enter on an empty item ends the list), Tab / Shift+Tab
    indent and outdent. listInput turns "- " or "* " at a line start into "• ". */
-const LIST_RE=/^(\s*)(•|\d+[.)])\s(.*)$/;
+/* pasted lists also use ● ▪ ◦ ‣ as bullets */
+const LIST_RE=/^(\s*)([•●▪◦‣]|\d+[.)])\s(.*)$/;
 // Any list-looking line ("a.", "b)", "iv.", "-", "1.", "•") shifts as a whole on Tab, wherever the cursor is
-const MARK_RE=/^\s*(•|[-*]|\d+[.)]|[a-z][.)]|[ivx]+[.)])\s/i;
+const MARK_RE=/^\s*([•●▪◦‣]|[-*]|\d+[.)]|[a-z][.)]|[ivx]+[.)])\s/i;
 function editText(ta,from,to,text){
   ta.focus();ta.setSelectionRange(from,to);
   if(from===to&&!text)return;
@@ -933,7 +934,7 @@ function listKeys(e){
     e.preventDefault();
     if(!m[3].trim()){editText(ta,ls,ls+m[0].length,"");return;}
     const n=/^\d+/.exec(m[2]);
-    editText(ta,s,s,"\n"+m[1]+(n?(+n[0]+1)+m[2].slice(n[0].length):"•")+" ");
+    editText(ta,s,s,"\n"+m[1]+(n?(+n[0]+1)+m[2].slice(n[0].length):m[2])+" ");
   }else if(e.key==="Tab"){
     e.preventDefault();
     const multi=v.slice(s,end).includes("\n");
@@ -1015,7 +1016,7 @@ function toggleList(id,kind){
   if(ta._rich){richToggleList(ta._rich,kind);return;}
   const v=ta.value,s=ta.selectionStart,end=ta.selectionEnd;
   const ls=v.lastIndexOf("\n",s-1)+1,le=(v.indexOf("\n",end)+1||v.length+1)-1;
-  const lines=v.slice(ls,le).split("\n"),same=m=>m&&(m[2]==="•")===(kind==="•");
+  const lines=v.slice(ls,le).split("\n"),same=m=>m&&!/\d/.test(m[2])===(kind==="•");
   const isList=lines.every(l=>!l.trim()||same(LIST_RE.exec(l)));
   let k=0;
   const out=lines.map(l=>{

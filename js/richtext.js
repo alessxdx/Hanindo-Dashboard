@@ -45,7 +45,8 @@ function richToText(ed){
       var block=/^(DIV|P|LI|H\d|BLOCKQUOTE|PRE)$/.test(c.tagName);
       if(block&&cur().length)nl();
       walk(c,richMarks(c,m,true));
-      if(block)nl();
+      // a block that ends with another block has already started a fresh line
+      if(block&&!(c.lastChild&&/^(DIV|P|LI|H\d|BLOCKQUOTE|PRE)$/.test(c.lastChild.tagName||"")&&!cur().length))nl();
     });
   })(ed,{});
   // walk() opens a fresh line after every block, so drop the last empty one
@@ -62,7 +63,7 @@ function richRunsToText(lines){
       else merged.push({t:r.t,m:r.m});
     });
     // a sized list line keeps its "•" / "1." outside the size, so it stays a list
-    var mk=merged[0]&&merged[0].m.s&&/^(\s*(?:•|\d+[.)]|[a-z][.)])\s+)([^]*)$/.exec(merged[0].t);
+    var mk=merged[0]&&merged[0].m.s&&/^(\s*(?:[•●▪◦‣]|\d+[.)]|[a-z][.)])\s+)([^]*)$/.exec(merged[0].t);
     if(mk)merged.splice(0,1,{t:mk[1],m:{}},{t:mk[2],m:merged[0].m});
     return merged.map(function(r){
       var x=/^(\s*)([^]*?)(\s*)$/.exec(r.t);
@@ -182,10 +183,55 @@ function richSelect(a,b){
   var r=document.createRange();r.setStart(a[0],a[1]);r.setEnd((b||a)[0],(b||a)[1]);
   var sel=getSelection();sel.removeAllRanges();sel.addRange(r);
 }
+/* Several lines sitting inside one <div> (Shift+Enter, dragged-in or
+   corrected text) become one <div> each, so Tab and the list buttons work on
+   every line that is highlighted. The selection is kept with two marker
+   characters that are taken out again. */
+function richFlatten(ed){
+  var odd=[].some.call(ed.childNodes,function(c){
+    if(c.nodeType===3)return c.data.indexOf("\n")>-1&&c.data.trim();
+    if(c.nodeType!==1)return false;
+    if(c.querySelector("div,p,li,blockquote,pre,h1,h2,h3,h4,h5,h6"))return true;
+    if(c.textContent.indexOf("\n")>-1)return true;
+    return [].some.call(c.querySelectorAll("br"),function(b){return !(b.nextSibling===null&&c.contains(b)&&b.parentNode===c&&b===c.lastChild);});
+  });
+  if(!odd||ed._composing)return false;
+  var A="\uE000",B="\uE001",sel=getSelection(),r=sel.rangeCount?sel.getRangeAt(0):null;
+  var mine=r&&ed.contains(r.startContainer)&&ed.contains(r.endContainer);
+  function mark(start,ch){
+    var p=r.cloneRange(),t=document.createTextNode(ch);p.collapse(start);p.insertNode(t);
+    ed.querySelectorAll("*").forEach(function(x){
+      [].slice.call(x.childNodes).forEach(function(c){if(c.nodeType===3&&!c.data)c.remove();});
+    });
+    /* never after the browser's filler <br>, which would count as one more line */
+    var q=t.previousSibling;
+    if(!t.nextSibling&&q&&q.nodeType===1&&q.tagName==="BR")t.parentNode.insertBefore(t,q);
+  }
+  if(mine){mark(false,B);mark(true,A);}
+  ed.innerHTML=richToHtml(richToText(ed));
+  if(mine){
+    var a=richTake(ed,A),b=richTake(ed,B);
+    if(a&&b)richSelect(a,b);
+  }
+  return true;
+}
+/* take a marker character out, giving back where it was */
+function richTake(ed,ch){
+  var w=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT),t;
+  while((t=w.nextNode())){
+    var i=t.data.indexOf(ch);if(i<0)continue;
+    var line=t;while(line.parentNode!==ed)line=line.parentNode;
+    if(line.textContent===ch){line.innerHTML="<br>";return [line,0];}
+    t.data=t.data.slice(0,i)+t.data.slice(i+1);
+    return [t,i];
+  }
+  return null;
+}
 /* keep every line in its own <div>: an emptied box, or text the browser
    left loose at the top level, gets wrapped */
 function richNormalize(ed){
   if(!ed.firstChild){ed.innerHTML="<div><br></div>";if(document.activeElement===ed)richSelect([ed.firstChild,0]);return;}
+  if(richFlatten(ed))return;
   var loose=[].some.call(ed.childNodes,function(c){return !(c.nodeType===1&&(c.tagName==="DIV"||c.tagName==="P"));});
   if(!loose)return;
   var s=richSave(ed),line=null;
@@ -204,12 +250,25 @@ function richNormalize(ed){
 function richCtx(ed){
   richNormalize(ed);
   var sel=getSelection();if(!sel.rangeCount)return null;
-  var r=sel.getRangeAt(0);if(!ed.contains(r.startContainer))return null;
+  var r=sel.getRangeAt(0);
+  if(!ed.contains(r.startContainer)&&!ed.contains(r.endContainer))return null;
+  /* a highlight dragged past the edge of the box stops at the edge */
+  if(!ed.contains(r.startContainer)||!ed.contains(r.endContainer)){
+    r=r.cloneRange();
+    if(!ed.contains(r.startContainer))r.setStart(ed,0);
+    if(!ed.contains(r.endContainer))r.setEnd(ed,ed.childNodes.length);
+  }
   function top(n,o){
     if(n===ed)return ed.childNodes[Math.min(o,ed.childNodes.length-1)];
     while(n.parentNode!==ed)n=n.parentNode;return n;
   }
   var a=top(r.startContainer,r.startOffset),b=top(r.endContainer,r.endOffset),lines=[],x=a;
+  /* a highlight that ends just before the next line's first letter (triple
+     click) doesn't include that line */
+  if(b!==a&&!r.collapsed&&b.textContent){
+    var head=document.createRange();head.selectNodeContents(b);
+    if(b.contains(r.endContainer)){head.setEnd(r.endContainer,r.endOffset);if(!head.toString())b=b.previousSibling||a;}
+  }
   while(x){lines.push(x);if(x===b)break;x=x.nextSibling;}
   var pre=document.createRange();pre.selectNodeContents(a);pre.setEnd(r.startContainer,r.startOffset);
   return {line:a,lines:lines,text:a.textContent,before:pre.toString(),collapsed:r.collapsed};
@@ -241,6 +300,8 @@ function richKeys(e){
   if(mod&&!e.shiftKey&&/^[biu]$/i.test(k)){e.preventDefault();document.execCommand(RICH_CMDS[k.toLowerCase()]);return;}
   if(mod&&k==="Enter"){if(ed._ta.id==="others-quick"){e.preventDefault();postOtherQuick();}return;}
   var c;
+  /* Shift+Enter starts a plain line of its own (no bullet), so Tab works on it */
+  if(k==="Enter"&&e.shiftKey&&!mod){e.preventDefault();document.execCommand("insertParagraph");return;}
   if(k==="Enter"&&!e.shiftKey){
     // Enter continues a "•" or "1." list; Enter on an empty item ends it
     c=richCtx(ed);if(!c||!c.collapsed)return;
@@ -249,7 +310,7 @@ function richKeys(e){
     if(!m[3].trim()){richPrefix(c.line,c.text.length,"");richSync(ed);return;}
     var n=/^\d+/.exec(m[2]);
     document.execCommand("insertParagraph");
-    document.execCommand("insertText",false,m[1]+(n?(+n[0]+1)+m[2].slice(n[0].length):"•")+" ");
+    document.execCommand("insertText",false,m[1]+(n?(+n[0]+1)+m[2].slice(n[0].length):m[2])+" ");
   }else if(k==="Tab"){
     // Tab indents; on list lines or several lines it shifts whole lines; Shift+Tab outdents
     e.preventDefault();
@@ -273,7 +334,7 @@ function richToggleList(ed,kind){
   if(document.activeElement!==ed)ed.focus();
   var c=richCtx(ed);if(!c)return;
   var texts=c.lines.map(function(l){return l.textContent;});
-  var same=function(m){return m&&(m[2]==="•")===(kind==="•");};
+  var same=function(m){return m&&!/\d/.test(m[2])===(kind==="•");};
   var isList=texts.every(function(t){return !t.trim()||same(LIST_RE.exec(t));}),k=0;
   c.lines.forEach(function(l,j){
     var t=texts[j],m=LIST_RE.exec(t);
@@ -363,6 +424,8 @@ function richify(ta){
   ed.addEventListener("focus",function(){richHang(ed);});
   if(window.ResizeObserver){var rw=0;new ResizeObserver(function(){if(ed.offsetWidth!==rw){rw=ed.offsetWidth;richHang(ed);}}).observe(ed);}
   ed.addEventListener("keydown",richKeys);
+  ed.addEventListener("compositionstart",function(){ed._composing=true;});
+  ed.addEventListener("compositionend",function(){ed._composing=false;});
   ed.addEventListener("input",function(e){
     richNormalize(ed);
     if(e.data===" ")richBullet(ed);
