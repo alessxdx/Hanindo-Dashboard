@@ -580,13 +580,13 @@ function poModelsHtml(list){
   function head(cls,title,gs){
     var u=0,t=0;
     gs.forEach(function(g){u+=g.units;t+=g.spend;});
-    return "<tr class='"+cls+"'><td>"+trkEsc(title)+"</td><td class='num' data-label='Units'>"+u.toLocaleString()+"</td><td class='num' data-label='Total paid'>"+poUsdTxt(t)+"</td><td></td></tr>";
+    return "<tr class='"+cls+"'><td>"+trkEsc(title)+"</td><td class='num' data-label='Units'>"+u.toLocaleString()+"</td><td class='num' data-label='Total spent'>"+poUsdTxt(t)+"</td><td></td></tr>";
   }
   function row(g){
     return "<tr class='po-row"+(PO_MODEL===g.key?" sel":"")+"' data-k='"+trkEsc(g.key)+"' onclick='poPickModel(this.getAttribute(\"data-k\"))'>"+
       "<td><div class='po-m-desc'>"+trkEsc(g.name)+"</div>"+poPnsHtml(g)+"</td>"+
       "<td class='num po-m-units' data-label='Units'>"+g.units.toLocaleString()+"</td>"+
-      "<td class='num po-m-spend' data-label='Total paid'>"+poUsdTxt(g.spend)+"</td>"+
+      "<td class='num po-m-spend' data-label='Total spent'>"+poUsdTxt(g.spend)+"</td>"+
       "<td class='num po-m-last' data-label='Last price'>"+poLastPrice(g)+"</td>"+
     "</tr>";
   }
@@ -604,7 +604,7 @@ function poModelsHtml(list){
   }
   var sel=PO_MODEL?poModelPanelHtml():"";
   return "<div class='po-split"+(sel?" has-sel":"")+"'><div class='po-table-wrap'><table class='po-table po-models'>"+
-    "<thead><tr><th>Model</th><th class='num'>Units</th><th class='num'>Total paid</th><th class='num'>Last price</th></tr></thead>"+
+    "<thead><tr><th>Model</th><th class='num'>Units</th><th class='num'>Total spent</th><th class='num'>Last price</th></tr></thead>"+
     "<tbody>"+(PO_SECTION===PO_AUTO?rows("Items",groups):rows("Printers",groups.filter(function(g){return g.printer;}))+partRows(groups.filter(function(g){return !g.printer;})))+"</tbody></table></div>"+sel+"</div>";
 }
 function poPickModel(k){PO_MODEL=PO_MODEL===k?"":(k||"");renderPOs();}
