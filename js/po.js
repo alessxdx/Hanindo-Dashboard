@@ -27,7 +27,11 @@ var PO_OFFICES=["China","Indonesia","Singapore"];
    (amounts in IDR, lines carry category / group / supplier / price paid
    incl. VAT). */
 var PO_FIRE="Fire fighting",PO_AUTO="Automotive";
-var PO_SECS=[["","CUSTOM"],[PO_AUTO,"Automotive"],[PO_FIRE,"Fire Fighting"]];
+/* value, name, logo (icons/co/). Fire Fighting is a department of Hanindo Citra */
+var PO_SECS=[["","CUSTOM","custom"],[PO_AUTO,"Automotive","automotive"],[PO_FIRE,"Fire Fighting","citra"]];
+/* the company that buys from CUSTOM in each office: logo, name */
+var PO_COS={China:["shanghai","Hanindo Shanghai"],Singapore:["gralessando","Gralessando"],Indonesia:["automation","Hanindo Automation Solutions"]};
+function poLogo(k,alt){return "<span class='po-logo'><img src='icons/co/"+k+".png' alt='"+trkEsc(alt)+"'></span>";}
 var PO_SECTION="";try{PO_SECTION=localStorage.getItem("cpd_po_section")||"";}catch(e){}
 if(!PO_SECS.some(function(s){return s[0]===PO_SECTION;}))PO_SECTION="";
 function poInSec(p){return (p.section||"")===PO_SECTION;}
@@ -259,13 +263,20 @@ function renderPOs(){
   PO_LIST.filter(poInSec).forEach(function(p){var y=poYear(p);if(y&&years.indexOf(y)===-1)years.push(y);});
   years.sort().reverse();
 
-  /* one line of tabs with the add button, then view, search and two menus */
+  /* sections as logos, under CUSTOM its three companies, then view, search
+     and year with the add button */
   var fire=poIsFire();
-  var tabs="<div class='po-tabs'>"+PO_SECS.map(function(s){
+  var tabs="<div class='po-secs'>"+PO_SECS.map(function(s){
     var on=PO_SECTION===s[0];
-    return "<button class='po-tab"+(on?" on":"")+"'"+(on?" aria-current='page'":"")+" onclick='poGo(\""+s[0]+"\")'>"+s[1]+"</button>";
-  }).join("")+
-    "<button class='btn-add po-add' onclick='openModal()'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' style='width:13px;height:13px'><line x1='12' y1='5' x2='12' y2='19'/><line x1='5' y1='12' x2='19' y2='12'/></svg> "+(fire?"Add expenses":"Add PO")+"</button></div>";
+    return "<button class='po-co"+(on?" on":"")+"'"+(on?" aria-current='page'":"")+" onclick='poGo(\""+s[0]+"\")'>"+poLogo(s[2],"")+"<span class='po-co-n'>"+s[1]+"</span></button>";
+  }).join("")+"</div>"+
+    (PO_SECTION?"":"<div class='po-cos' role='group' aria-label='Company'>"+
+      "<button class='po-co po-co-all"+(PO_FOFFICE?"":" on")+"' aria-pressed='"+!PO_FOFFICE+"' onclick='poPickOffice(\"\")'>All offices</button>"+
+      ["China","Singapore","Indonesia"].map(function(o){
+        var on=PO_FOFFICE===o,c=PO_COS[o];
+        return "<button class='po-co"+(on?" on":"")+"' aria-pressed='"+on+"' onclick='poPickOffice(\""+(on?"":o)+"\")'>"+poLogo(c[0],"")+"<span class='po-co-n'><span class='po-co-nm'>"+c[1]+" </span><span class='po-co-of po-oftxt-"+poOfficeSlug(o)+"'>"+o+"</span></span></button>";
+      }).join("")+"</div>");
+  var add="<button class='btn-add po-add' onclick='openModal()'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' style='width:13px;height:13px'><line x1='12' y1='5' x2='12' y2='19'/><line x1='5' y1='12' x2='19' y2='12'/></svg> "+(fire?"Add expenses":"Add PO")+"</button>";
   var seg="<div class='po-seg'>"+[["list",fire?"List":"Orders"],["models",fire?"By group":"By model"]].map(function(v){
     return "<button class='po-seg-btn"+(PO_VIEW===v[0]?" active":"")+"' onclick='poSetView(\""+v[0]+"\")'>"+v[1]+"</button>";
   }).join("")+"</div>";
@@ -277,13 +288,10 @@ function renderPOs(){
         "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' aria-hidden='true'><circle cx='11' cy='11' r='7'/><path d='M20 20l-4-4'/></svg>"+
         "<input id='po-search' placeholder='"+(fire?"Search item or supplier":"Search PO no., model or P/N")+"' value='"+trkEsc(PO_SEARCH)+"' oninput='poSearchInput(this.value)'>"+
       "</label>"+
-      (fire?"":uiDropdown({key:"po-office",onPick:"poPickOffice",cur:PO_FOFFICE,opts:[{value:"",label:"All offices"}].concat(PO_OFFICES.map(function(o){
-        return {value:o,label:o,dot:poOfficeSlug(o)};
-      }))}))+
       uiDropdown({key:"po-year",onPick:"poPickYear",cur:PO_FYEAR,opts:[{value:"",label:"All years"}].concat(years.map(function(y){
         return {value:y,label:y};
       }))})+
-    "</div></div>"+
+    "</div>"+add+"</div>"+
     /* the page opens on this year: a search says when older years match too */
     (more>0?"<button class='po-more' onclick='poPickYear(\"\")'>"+more+" more in other years &middot; <u>search all years</u></button>":"");
 
@@ -428,6 +436,7 @@ function poPanelHtml(p){
   return "<aside class='po-panel"+(PO_FULL?" po-full":"")+"'>"+
     "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(p.poNumber)+"</span>"+
       (PO_FULL?"":"<button class='trk-pn-expand' title='Open full page' aria-label='Open full page' onclick='poToggleFull()'>&#x2922;</button><button class='po-panel-x' aria-label='Close' onclick='poSelect(\"\")'>&times;</button>")+"</div>"+
+    (PO_COS[p.office]&&!p.section?"<div class='po-panel-co'>"+poLogo(PO_COS[p.office][0],PO_COS[p.office][1])+"</div>":"")+
     "<div class='po-panel-meta'>"+(p.office?"<span class='trk-badge po-of-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office)+" office</span>":"")+
       (p.date?"<span>"+trkFmtDate(p.date)+"</span>":"")+"</div>"+
     "<div class='po-panel-total'>"+poFmtMoney(p.total,p.currency)+
