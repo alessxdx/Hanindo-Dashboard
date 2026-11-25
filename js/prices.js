@@ -47,6 +47,26 @@ function pxNames(it){
     return n!==it.name&&!it.costs.some(function(c){return c.b.model===n;})&&it.name.toLowerCase().indexOf(n.toLowerCase())===-1;
   });
 }
+/* the price paid before the newest one: the latest earlier PO at a different
+   price. Another region's cost or a customer's special price is not an
+   earlier price, so those POs are skipped. */
+function pxPrev(it,byPn){
+  var L=it.last,best=null;
+  if(!L)return null;
+  var skip=function(x){
+    return it.costs.some(function(c){
+      if(c.b.currency!==x.p.currency)return false;
+      return (it.costs.length>1&&pxSame(c.b.price,x.l.unitPrice))||(c.b.specialPrice&&pxSame(c.b.specialPrice,x.l.unitPrice));
+    });
+  };
+  it.pns.forEach(function(pn){
+    (byPn[pn]||[]).forEach(function(x){
+      if(x.p.date>=L.p.date||x.p.currency!==L.p.currency||pxSame(x.l.unitPrice,L.l.unitPrice)||skip(x))return;
+      if(!best||x.p.date>best.p.date)best=x;
+    });
+  });
+  return best;
+}
 /* the latest price paid on a PO for any of the item's part numbers,
    counting the P/Ns the PO page joins as the same model (PO_SAME) */
 function pxLast(it,byPn){
@@ -111,6 +131,7 @@ function pxBuild(){
     it.sec=pxSection(it);
     it.band=it.sec==="Spare parts"?(it.group||"Other Spare Parts"):it.sec;
     it.last=pxLast(it,idx);
+    it.prev=pxPrev(it,idx);
     it.check=false;
     if(it.last&&it.costs.length){
       var L=it.last,cur=L.p.currency;
@@ -130,7 +151,8 @@ function pxBuild(){
   return items;
 }
 /* the cost a customer's margin is worked out from: its special price when
-   there is one, else the highest cost on file (never flatters the margin) */
+   there is one, else the highest cost on file (never flatters the margin),
+   else the newest PO price when no cost was saved */
 function pxCostFor(it,customer){
   var k=String(customer||"").trim().toLowerCase(),sp=null,top=null;
   it.costs.forEach(function(c){
@@ -138,6 +160,7 @@ function pxCostFor(it,customer){
     if(u!==null&&(!top||u>top.usd))top={usd:u};
     if(k&&c.b.specialPrice&&String(c.b.specialCustomer||"").trim().toLowerCase()===k)sp={usd:pxUsd(c.b.specialPrice,c.b.currency),special:true};
   });
+  if(!top&&it.last){var lu=pxUsd(it.last.l.unitPrice,it.last.p.currency);if(lu!==null)top={usd:lu};}
   return sp||top;
 }
 
@@ -155,19 +178,31 @@ function pxIco(kind,title,fn){
   var path=kind==="edit"?'<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/>':'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>';
   return "<button class='nt-ico"+(kind==="edit"?"":" nt-ico-del")+"' title='"+title+"' aria-label='"+title+"' onclick='"+fn+"'><svg viewBox='0 0 24 24' aria-hidden='true'>"+path+"</svg></button>";
 }
-function pxCostCell(it){
-  if(!it.costs.length)return "<span class='px-none'>"+(it.sec==="Services"?"&mdash;":"no cost yet")+"</span>";
-  return it.costs.map(function(c){
-    return "<div class='px-num'>"+pxMoney(c.b.price,c.b.currency)+"</div>"+(c.label?"<div class='px-sub'>"+trkEsc(c.label)+"</div>":"")+
-      (c.b.specialPrice?"<div class='px-sub px-special'>"+pxMoney(c.b.specialPrice,c.b.currency)+" for "+trkEsc(c.b.specialCustomer||"special deal")+"</div>":"");
-  }).join("");
+/* the cost before the newest one; when the price never changed, the same price */
+function pxPrevCell(it){
+  if(it.prev)return "<div class='px-num'>"+pxMoney(it.prev.l.unitPrice,it.prev.p.currency)+"</div><div class='px-sub'>"+trkFmtDate(it.prev.p.date)+"</div>";
+  if(it.pns.length&&!PO_LOADED&&!PO_MISSING)return "<span class='px-none'>&hellip;</span>";
+  var now=it.last?pxMoney(it.last.l.unitPrice,it.last.p.currency):it.costs.length?pxMoney(it.costs[0].b.price,it.costs[0].b.currency):"";
+  return now?"<div class='px-num px-prev-same'>"+now+"</div>":"<span class='px-none'>&mdash;</span>";
 }
+/* the newest cost, then the other prices on file (another region, a customer's special price) */
 function pxLastCell(it){
-  if(!it.pns.length)return "<span class='px-none'>&mdash;</span>";
-  if(!PO_LOADED)return "<span class='px-none'>"+(PO_MISSING?"&mdash;":"&hellip;")+"</span>";
-  if(!it.last)return "<span class='px-none'>&mdash;</span>";
-  return "<div class='px-num"+(it.check?" px-warn":"")+"'>"+pxMoney(it.last.l.unitPrice,it.last.p.currency)+"</div>"+
-    "<div class='px-sub'>"+trkFmtDate(it.last.p.date)+"</div>"+(it.check?"<div class='px-flag'>Differs from cost</div>":"");
+  if(it.pns.length&&!PO_LOADED&&!PO_MISSING)return "<span class='px-none'>&hellip;</span>";
+  if(!it.last&&!it.costs.length)return "<span class='px-none'>"+(it.sec==="Services"?"&mdash;":"no cost yet")+"</span>";
+  var L=it.last,p=L?L.l.unitPrice:it.costs[0].b.price,cur=L?L.p.currency:it.costs[0].b.currency;
+  var isNow=function(v,c){return c===cur&&pxSame(v,p);};
+  var tag="",more="";
+  it.costs.forEach(function(c,k){
+    var b=c.b,who=trkEsc(b.specialCustomer||"special deal"),sp=b.specialPrice&&isNow(b.specialPrice,b.currency);
+    if(sp)tag+="<div class='px-sub px-special'>for "+who+"</div>";
+    if(isNow(b.price,b.currency)){if(c.label)tag+="<div class='px-sub'>"+trkEsc(c.label)+"</div>";}
+    else if(!it.check&&(c.label||it.costs.some(function(o){return o.b.specialPrice&&isNow(o.b.specialPrice,o.b.currency);})))
+      more+="<div class='px-sub'>"+pxMoney(b.price,b.currency)+" "+trkEsc(c.label||"normal price")+"</div>";
+    if(b.specialPrice&&!sp)more+="<div class='px-sub px-special'>"+pxMoney(b.specialPrice,b.currency)+" for "+who+"</div>";
+  });
+  return "<div class='px-num"+(it.check?" px-warn":"")+"'>"+pxMoney(p,cur)+"</div>"+tag+
+    "<div class='px-sub'>"+(L?trkFmtDate(L.p.date):"no PO yet")+"</div>"+more+
+    (it.check?"<div class='px-flag'>Saved cost is "+it.costs.map(function(c){return poFmtMoney(c.b.price,c.b.currency);}).join(" / ")+"</div>":"");
 }
 function pxSellCell(it){
   var n=it.sells.length;
@@ -188,7 +223,7 @@ function pxMarginCell(it){
 var PX_DELIVERED=/^(DDP|DAP|CIF|CIP|CPT|DDU)$/i;
 function pxDetail(it,n){
   var h="";
-  h+="<div class='px-d-sec'><div class='px-d-head'><span>Your cost</span></div>";
+  h+="<div class='px-d-sec'><div class='px-d-head'><span>Cost</span></div>";
   if(it.costs.length)h+=it.costs.map(function(c){
     return "<div class='px-d-row'><span class='px-d-main'>"+trkEsc(c.b.model)+(c.b.pn?"<span class='px-sub'>"+trkEsc(c.b.pn)+"</span>":"")+"</span>"+
       "<span class='px-d-val'>"+pxMoney(c.b.price,c.b.currency)+(c.b.specialPrice?"<span class='px-sub px-special'>"+pxMoney(c.b.specialPrice,c.b.currency)+" for "+trkEsc(c.b.specialCustomer||"special deal")+"</span>":"")+"</span>"+
@@ -199,7 +234,12 @@ function pxDetail(it,n){
     var L=it.last;
     h+="<div class='px-d-row'><span class='px-d-main'>Last PO<span class='px-sub'><button class='px-link' onclick='pxOpenPo("+n+")'>"+trkEsc(L.p.poNumber||"Open PO")+"</button> &middot; "+trkFmtDate(L.p.date)+(L.p.office?" &middot; "+trkEsc(L.p.office):"")+" &middot; "+L.l.qty.toLocaleString()+" "+trkEsc(L.l.unit||"pcs")+"</span></span>"+
       "<span class='px-d-val"+(it.check?" px-warn":"")+"'>"+pxMoney(L.l.unitPrice,L.p.currency)+"</span><span class='nt-acts'></span></div>";
-    if(it.check)h+="<div class='px-d-warn'>The last PO paid a different price. "+
+    if(it.prev){
+      var P=it.prev;
+      h+="<div class='px-d-row'><span class='px-d-main'>Previous cost<span class='px-sub'><button class='px-link' onclick='pxOpenPo("+n+",true)'>"+trkEsc(P.p.poNumber||"Open PO")+"</button> &middot; "+trkFmtDate(P.p.date)+(P.p.office?" &middot; "+trkEsc(P.p.office):"")+" &middot; "+P.l.qty.toLocaleString()+" "+trkEsc(P.l.unit||"pcs")+"</span></span>"+
+        "<span class='px-d-val'>"+pxMoney(P.l.unitPrice,P.p.currency)+"</span><span class='nt-acts'></span></div>";
+    }
+    if(it.check)h+="<div class='px-d-warn'>The last PO paid a different price than the saved cost. "+
       (it.costs.length===1?"<button class='px-link' onclick='pxUseLast("+n+")'>Use "+poFmtMoney(L.l.unitPrice,L.p.currency)+" as the cost</button>":"Use the pencil to change the cost it belongs to.")+"</div>";
   }
   h+="</div><div class='px-d-sec'><div class='px-d-head'><span>Customer prices</span><button class='px-link' onclick='pxAddSell("+n+")'>+ Customer price</button></div>";
@@ -214,7 +254,7 @@ function pxDetail(it,n){
   else h+="<div class='px-d-none'>No customer price saved.</div>";
   return h+"</div>";
 }
-function pxLowCost(it){var v=it.costs.map(function(c){return c.usd;}).filter(function(u){return u!==null;});return v.length?Math.min.apply(null,v):null;}
+function pxLowCost(it){var v=it.costs.map(function(c){return c.usd;}).filter(function(u){return u!==null;});return v.length?Math.min.apply(null,v):it.last?pxUsd(it.last.l.unitPrice,it.last.p.currency):null;}
 
 function renderPrices(bodyOnly){
   pgHideStats();
@@ -244,7 +284,7 @@ function renderPrices(bodyOnly){
     return "<tr class='px-row"+(open?" open":"")+"' tabindex='0' aria-expanded='"+open+"' onclick='pxToggle("+n+")' onkeydown='pxKey(event,"+n+")'>"+
       "<td class='px-c-name'><div class='buy-name'>"+trkEsc(it.name)+"</div>"+(it.pnText.length?"<div class='buy-pn'>"+trkEsc(it.pnText.join(", "))+"</div>":"")+
         (it.alt.length?"<div class='px-sub'>also "+trkEsc(it.alt.join(", "))+"</div>":"")+"</td>"+
-      "<td class='num' data-label='Your cost'>"+pxCostCell(it)+"</td>"+
+      "<td class='num' data-label='Previous cost'>"+pxPrevCell(it)+"</td>"+
       "<td class='num' data-label='Last PO'>"+pxLastCell(it)+"</td>"+
       "<td class='num' data-label='Selling price'>"+pxSellCell(it)+"</td>"+
       "<td class='num' data-label='Margin'>"+pxMarginCell(it)+"</td>"+
@@ -283,16 +323,16 @@ function renderPrices(bodyOnly){
       "<button class='edit-btn px-add' onclick='pxAddSell(-1)'>+ Customer price</button>"+
     "</div>"+
     "<div class='trk-chips px-chips' id='px-chips'>"+chips+"</div>"+
-    "<div class='po-table-wrap buy-table'><table class='po-table buy-list buy-simple px-list'><thead><tr><th>Item</th><th class='num'>Your cost</th><th class='num'>Last PO</th><th class='num'>Selling price</th><th class='num'>Margin</th><th></th></tr></thead>"+
+    "<div class='po-table-wrap buy-table'><table class='po-table buy-list buy-simple px-list'><thead><tr><th>Item</th><th class='num'>Previous cost</th><th class='num'>Last PO</th><th class='num'>Selling price</th><th class='num'>Margin</th><th></th></tr></thead>"+
     "<tbody id='px-tbody'>"+rows+"</tbody></table></div>"+
-    "<div class='px-note'>Margin = (selling price &minus; your cost) &divide; selling price, in USD at today's rate. With several costs the highest one is used. Delivery and duty are not taken off.</div>";
+    "<div class='px-note'>Previous cost = the last PO price before the newest one; in grey when it never changed. Margin = (selling price &minus; cost) &divide; selling price, in USD at today's rate. With several costs the highest one is used. Delivery and duty are not taken off.</div>";
   var inp=document.getElementById("px-search");
   /* not on touch screens: focusing would pop the keyboard up on every visit */
   if(inp&&!matchMedia("(pointer:coarse)").matches){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}
 }
 
 /* ---------- actions ---------- */
-function pxOpenPo(n){var it=PX_ITEMS[n];if(it&&it.last)poOpenSheet(it.last.p._id);}
+function pxOpenPo(n,prev){var it=PX_ITEMS[n],x=it&&(prev?it.prev:it.last);if(x)poOpenSheet(x.p._id);}
 /* the add-cost form, filled with the item's name and part number */
 function pxAddCost(n){
   var it=n>-1?PX_ITEMS[n]:null;
