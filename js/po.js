@@ -269,7 +269,8 @@ function renderPOs(){
   if(PO_SEARCH.trim()&&PO_FYEAR)more=poFiltered({year:""}).length-list.length;
   var toolbar=
     "<div class='po-bar'>"+seg+
-      "<label class='po-searchbox'>"+
+      "<div class='po-filt'><label class='po-searchbox'>"+
+        "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' aria-hidden='true'><circle cx='11' cy='11' r='7'/><path d='M20 20l-4-4'/></svg>"+
         "<input id='po-search' placeholder='"+(fire?"Search item or supplier":"Search PO no., model or P/N")+"' value='"+trkEsc(PO_SEARCH)+"' oninput='poSearchInput(this.value)'>"+
       "</label>"+
       (fire?"":uiDropdown({key:"po-office",onPick:"poPickOffice",cur:PO_FOFFICE,opts:[{value:"",label:"All offices"}].concat(PO_OFFICES.map(function(o){
@@ -278,7 +279,7 @@ function renderPOs(){
       uiDropdown({key:"po-year",onPick:"poPickYear",cur:PO_FYEAR,opts:[{value:"",label:"All years"}].concat(years.map(function(y){
         return {value:y,label:y};
       }))})+
-    "</div>"+
+    "</div></div>"+
     /* the page opens on this year: a search says when older years match too */
     (more>0?"<button class='po-more' onclick='poPickYear(\"\")'>"+more+" more in other years &middot; <u>search all years</u></button>":"");
 
@@ -474,6 +475,38 @@ var PO_SAME={
 function poModelKey(l){var k=l.pn||l.description||"?";return String(PO_SAME[k]||k).toLowerCase();}
 /* 911 / 915 part numbers are printers; everything else is a part or accessory */
 function poIsPrinter(pn){return /^91[15]/.test(pn||"");}
+/* the printer a part is for, read from its description; the first one named
+   wins ("Mechanism K80/TG2480" is under K80) */
+var PO_PRINTERS=[
+  ["VKP80III",/VKP\s?(?:80)?\s?III/i],["VKP80II",/VKP\s?(?:80)?\s?II(?!I)/i],["VKP60",/VKP\s?60/i],
+  ["KPM150H",/KPM150/i],["KPM180H",/KPM180/i],["KPM216H",/KP?M216/i],
+  ["TG2460H",/TG2460/i],["TG2480H",/TG2480/i],
+  ["TK180",/TK180/i],["TK202III",/TK202/i],["TK302III",/TK302/i],["TL60III",/TL60/i],["TL80III",/TL80/i],
+  ["MODUS3",/MODUS\s?3/i],["PLUS2",/PLUS2/i],["PLUS4",/PLUS4/i],["PM2",/\bPM2\b/i],
+  ["P3L",/\bP3L\b/i],["P3",/\bP3\b/i],["MY3",/\bMY3\b/i],["KX80S",/KX80/i],["K80",/\bK80\b/i],["SPPL scanner",/SPPL/i]
+];
+var PO_OTHERS="Others";
+function poPrinterIn(text){
+  var best="",at=1e9;
+  PO_PRINTERS.forEach(function(x){
+    var i=String(text||"").search(x[1]);
+    if(i>-1&&i<at){at=i;best=x[0];}
+  });
+  return best;
+}
+/* bought under several descriptions: the printer named for most units */
+function poPartFor(g){
+  var n={},best=PO_OTHERS;
+  g.buys.forEach(function(b){var m=poPrinterIn(b.l.description);if(m)n[m]=(n[m]||0)+b.l.qty;});
+  Object.keys(n).forEach(function(m){if(best===PO_OTHERS||n[m]>n[best])best=m;});
+  return best;
+}
+/* one way of writing a model, so A to Z works: "PRINTER KPM180H" -> "KPM180H" */
+function poModelName(g){
+  var d=(g.desc||g.pns[0]||"—").replace(/\s+/g," ").trim().replace(/VKP 80/gi,"VKP80").replace(/([A-Z])u(?=[A-Z])/g,"$1U").replace(/uSB/g,"USB");
+  return g.printer?d.replace(/^(PRINTER|PROP)\s+/i,""):d;
+}
+function poAz(a,b){return String(a).localeCompare(String(b),"en",{numeric:true,sensitivity:"base"});}
 function poModelGroups(list){
   var ids={},groups={};
   list.forEach(function(p){ids[p._id]=p;});
@@ -494,8 +527,10 @@ function poModelGroups(list){
   return Object.keys(groups).map(function(k){
     var g=groups[k];
     g.buys.sort(function(a,b){return (a.p.date||"").localeCompare(b.p.date||"");});
+    g.name=poModelName(g);
+    g.sub=g.printer||PO_SECTION===PO_AUTO?"":poPartFor(g);
     return g;
-  }).sort(function(a,b){return (b.printer?1:0)-(a.printer?1:0)||b.units-a.units;});
+  }).sort(function(a,b){return poAz(a.name,b.name)||poAz(a.pns[0],b.pns[0]);});
 }
 /* the latest price, and the one before it at the same office (offices can
    pay different prices, so comparing across them would look like a change) */
@@ -516,24 +551,35 @@ function poModelsHtml(list){
   var groups=poModelGroups(list);
   if(poQuery()&&groups.some(function(g){return g.hit;}))groups=groups.filter(function(g){return g.hit;});
   if(!groups.length)return poEmptyHtml();
+  function head(cls,title,gs){
+    var u=0,t=0;
+    gs.forEach(function(g){u+=g.units;t+=g.spend;});
+    return "<tr class='"+cls+"'><td>"+trkEsc(title)+"</td><td class='num' data-label='Units'>"+u.toLocaleString()+"</td><td class='num' data-label='Total paid'>"+poUsdTxt(t)+"</td><td></td></tr>";
+  }
+  function row(g){
+    return "<tr class='po-row"+(PO_MODEL===g.key?" sel":"")+"' data-k='"+trkEsc(g.key)+"' onclick='poPickModel(this.getAttribute(\"data-k\"))'>"+
+      "<td><div class='po-m-desc'>"+trkEsc(g.name)+"</div>"+poPnsHtml(g)+"</td>"+
+      "<td class='num po-m-units' data-label='Units'>"+g.units.toLocaleString()+"</td>"+
+      "<td class='num po-m-spend' data-label='Total paid'>"+poUsdTxt(g.spend)+"</td>"+
+      "<td class='num po-m-last' data-label='Last price'>"+poLastPrice(g)+"</td>"+
+    "</tr>";
+  }
   function rows(title,gs){
     if(!gs.length)return "";
-    var u=0,s=0;
-    gs.forEach(function(g){u+=g.units;s+=g.spend;});
-    return "<tr class='po-grp2'><td>"+title+"</td><td class='num' data-label='Units'>"+u.toLocaleString()+"</td><td class='num' data-label='Total paid'>"+poUsdTxt(s)+"</td><td></td></tr>"+
-      gs.map(function(g){
-        return "<tr class='po-row"+(PO_MODEL===g.key?" sel":"")+"' data-k='"+trkEsc(g.key)+"' onclick='poPickModel(this.getAttribute(\"data-k\"))'>"+
-          "<td><div class='po-m-desc'>"+trkEsc(g.desc||"—")+"</div>"+poPnsHtml(g)+"</td>"+
-          "<td class='num po-m-units' data-label='Units'>"+g.units.toLocaleString()+"</td>"+
-          "<td class='num po-m-spend' data-label='Total paid'>"+poUsdTxt(g.spend)+"</td>"+
-          "<td class='num po-m-last' data-label='Last price'>"+poLastPrice(g)+"</td>"+
-        "</tr>";
-      }).join("");
+    return head("po-grp2",title,gs)+gs.map(row).join("");
+  }
+  /* parts: one subheading per printer, A to Z, Others last */
+  function partRows(gs){
+    var subs={};
+    gs.forEach(function(g){(subs[g.sub]=subs[g.sub]||[]).push(g);});
+    return gs.length?head("po-grp2","Parts and accessories",gs)+Object.keys(subs).sort(function(a,b){
+      return (a===PO_OTHERS?1:0)-(b===PO_OTHERS?1:0)||poAz(a,b);
+    }).map(function(k){return head("po-sub",k,subs[k])+subs[k].map(row).join("");}).join(""):"";
   }
   var sel=PO_MODEL?poModelPanelHtml():"";
   return "<div class='po-split"+(sel?" has-sel":"")+"'><div class='po-table-wrap'><table class='po-table po-models'>"+
     "<thead><tr><th>Model</th><th class='num'>Units</th><th class='num'>Total paid</th><th class='num'>Last price</th></tr></thead>"+
-    "<tbody>"+rows("Printers",groups.filter(function(g){return g.printer;}))+rows(PO_SECTION===PO_AUTO?"Items":"Parts and accessories",groups.filter(function(g){return !g.printer;}))+"</tbody></table></div>"+sel+"</div>";
+    "<tbody>"+(PO_SECTION===PO_AUTO?rows("Items",groups):rows("Printers",groups.filter(function(g){return g.printer;}))+partRows(groups.filter(function(g){return !g.printer;})))+"</tbody></table></div>"+sel+"</div>";
 }
 function poPickModel(k){PO_MODEL=PO_MODEL===k?"":(k||"");renderPOs();}
 /* one model: every year, every office, every order (the office menu applies,
@@ -559,7 +605,7 @@ function poModelPanelHtml(){
   }
   var miss=g.units-g.priced;
   return "<aside class='po-panel po-model-panel'>"+
-    "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(g.desc||g.pns[0]||"—")+"</span>"+
+    "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(g.name)+"</span>"+
       "<button class='po-panel-x' aria-label='Close' onclick='poPickModel(\"\")'>&times;</button></div>"+
     "<div class='po-panel-meta'><span>"+(g.pns.length>1?g.pns.length+" part numbers":trkEsc(g.pns[0]||""))+(PO_FOFFICE?" &middot; "+trkEsc(PO_FOFFICE)+" only":"")+"</span></div>"+
     "<div class='po-panel-total'>"+poUsdTxt(g.spend)+"<span class='po-mt-u'>"+g.units.toLocaleString()+" units</span></div>"+
