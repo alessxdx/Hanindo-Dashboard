@@ -883,11 +883,12 @@ function renderOthers(){
   }
   document.getElementById("content").innerHTML=`<div class="nt-page nt-simple${searching?" nt-searching":""}">${typeof ntViewChips==="function"?ntViewChips():""}
     <div id="nt-cats">${ntCatRow(found.map(x=>x.o))}</div>
-    <div class="nt-card nt-compose">
-      <textarea id="others-quick" rows="6" placeholder="Write an update… start a line with - or 1. for a list" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();postOtherQuick();}else listKeys(event)" oninput="listInput(event)"></textarea>
+    <div class="nt-card nt-compose nt-box">
+      <div class="nt-opts"><span id="nt-postcat">${ntPostCatBtn()}</span><span id="nt-postdate">${ntPostDateBtn()}</span><span id="nt-postfu">${ntPostFuBtn()}</span></div>
+      <textarea id="others-quick" rows="4" placeholder="Write an update…" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();postOtherQuick();}else listKeys(event)" oninput="listInput(event)"></textarea>
       <div class="nt-compose-foot">
-        <div class="nt-tools">${FMT_TOOLS('others-quick')}<button type="button" class="nt-tool" title="Bulleted list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','•')">• List</button><button type="button" class="nt-tool" title="Numbered list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','1.')">1. List</button></div>
-        <span class="nt-post"><span id="nt-postdate">${ntPostDateBtn()}</span><span id="nt-postfu">${ntPostFuBtn()}</span><span id="nt-postcat">${ntPostCatBtn()}</span><button class="btn-save" title="Ctrl+Enter" onclick="postOtherQuick()">Post update</button></span></div>
+        <div class="nt-tools">${FMT_TOOLS('others-quick')}<button type="button" class="nt-tool" title="Bulleted list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','•')" aria-label="Bulleted list"><svg viewBox='0 0 16 16' width='16' height='16' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M7 4h7M7 8h7M7 12h7'/><path d='M3 4h.01M3 8h.01M3 12h.01' stroke-width='2.6'/></svg></button><button type="button" class="nt-tool" title="Numbered list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','1.')" aria-label="Numbered list"><svg viewBox='0 0 16 16' width='16' height='16' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M7.5 4h6.5M7.5 8h6.5M7.5 12h6.5'/><path d='M2.2 3.2L3.4 2.4V6M2 10.4c.3-.7 2-.8 2 .3 0 .9-2 1.4-2 2.5h2.1' stroke-width='1.3'/></svg></button></div>
+        <button class="btn-save" title="Ctrl+Enter" onclick="postOtherQuick()">Post update</button></div>
     </div>
     <div id="nt-list">${list}</div>
   </div>`;

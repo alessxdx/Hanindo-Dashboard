@@ -3816,3 +3816,40 @@ font[size="7"]{font-size:2em;line-height:1.3}
   .po-filt:not(:has(.po-dd~.po-dd)) .po-dd{flex:none;border-left:1px solid var(--border)}
   .po-filt:not(:has(.po-dd~.po-dd)) .po-dd .po-dd-menu{left:auto;right:-1px}
 }
+
+/* Notes: one writing box. What the update is (category, date, follow-up) on
+   top, the text in the middle, formatting and Post update at the bottom */
+.nt-simple .nt-card.nt-box,:root[data-theme="dark"] .nt-simple .nt-card.nt-box{padding:0;border:1px solid var(--border);border-radius:14px;background:var(--bg-input);overflow:visible}
+.nt-simple .nt-card.nt-box:focus-within,:root[data-theme="dark"] .nt-simple .nt-card.nt-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+:root[data-theme="dark"] .nt-simple .nt-card.nt-box:not(:focus-within){border-color:var(--border-strong)}
+.nt-opts{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px 4px}
+.nt-opts>span{display:inline-flex;min-width:0}
+.nt-opts>span:empty{display:none}
+.nt-opts .nt-postcat{border:1px solid transparent;border-radius:999px;background:var(--bg-soft);padding:6px 12px;color:var(--text)}
+.nt-opts .nt-postcat:hover,.nt-opts .nt-postcat[aria-expanded="true"]{border-color:var(--border-strong);color:var(--text-strong)}
+.nt-opts .nt-postcat.set{background:color-mix(in srgb,var(--dc,var(--accent)) 11%,var(--bg-input))}
+.nt-opts .nt-postcat svg{color:var(--text-muted);flex:none}
+.nt-box .rich-ed,.nt-box textarea{min-height:96px;max-height:60vh;resize:none;border:none;border-radius:0;background:none;padding:8px 18px 12px;box-shadow:none}
+.nt-box .rich-ed:focus,.nt-box textarea:focus{box-shadow:none}
+.nt-box .rich-ed.is-empty::before{left:18px;top:8px;right:18px}
+.nt-box .nt-compose-foot{margin:0;padding:8px 10px;border-top:1px solid var(--border);flex-wrap:nowrap}
+.nt-box .nt-tools,.nt-box .fmt-tools{gap:2px;flex-wrap:nowrap}
+.nt-box .fmt-tools{display:contents}
+.nt-box .nt-tool,.nt-box .fmt-tools .nt-tool{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 8px;border:none;border-radius:8px;background:none;color:var(--text-muted);font-size:14px}
+.nt-box .nt-tool:hover,.nt-box .fmt-tools .fmt-sz.on{background:var(--bg-hover);color:var(--text-strong)}
+.nt-box .fmt-tools .fmt-sz{gap:5px;font-size:13px;margin:0 6px;padding:0 10px}
+.nt-box .fmt-tools .fmt-ind{order:2}
+.nt-box .nt-compose-foot .btn-save{margin-left:auto;flex:none}
+.nt-box:has(.rich-ed.is-empty) .btn-save{opacity:.55}
+@media (max-width:700px){
+  .nt-opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 8px 2px}
+  .nt-opts>span:first-child{grid-column:1/-1}
+  .nt-opts .nt-postcat{width:100%;justify-content:center;padding:6px 8px}
+  .nt-box .rich-ed,.nt-box textarea{padding:8px 14px 10px}
+  .nt-box .rich-ed.is-empty::before{left:14px;right:14px}
+  .nt-box .nt-compose-foot{flex-wrap:wrap;gap:8px;padding:6px}
+  .nt-box .nt-compose-foot .nt-tools{display:flex;width:100%;gap:0}
+  .nt-box .nt-tool,.nt-box .fmt-tools .nt-tool{flex:1 1 auto;min-width:0;height:40px;min-height:40px;padding:0 4px}
+  .nt-box .fmt-tools .fmt-sz{margin:0;padding:0 4px;gap:3px}
+  .nt-box .nt-compose-foot .btn-save{width:100%;min-height:42px}
+}
