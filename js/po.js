@@ -13,25 +13,46 @@ var PO_LOADED=false,PO_MISSING=false;
 var PO_VIEW="list";          /* "list" | "models" */
 var PO_SEL="";               /* PO open in the side panel */
 var PO_FOFFICE="",PO_FYEAR="",PO_SEARCH="";
+var PO_YEARS={};             /* year picked on each tab (see poApplyYear) */
+var PO_FPAY=false;           /* only unpaid POs */
+var PO_MODEL="";             /* model open in the By model side panel */
 var PO_ATT=[];               /* modal attachment staging */
 var PO_OFFICES=["China","Indonesia","Singapore"];
-/* Two sections share the page: printer POs to CUSTOM (section empty) and
-   Fire fighting expense sheets (section "Fire fighting", amounts in IDR,
-   lines carry category / group / supplier / price paid incl. VAT). */
-var PO_FIRE="Fire fighting";
+/* Sections share the page, one tab each: printer POs to CUSTOM (section
+   empty), Automotive (same kind of orders) and Fire fighting expense sheets
+   (amounts in IDR, lines carry category / group / supplier / price paid
+   incl. VAT). */
+var PO_FIRE="Fire fighting",PO_AUTO="Automotive";
+var PO_SECS=[["","CUSTOM"],[PO_AUTO,"Automotive"],[PO_FIRE,"Fire Fighting"]];
 var PO_SECTION="";try{PO_SECTION=localStorage.getItem("cpd_po_section")||"";}catch(e){}
+if(!PO_SECS.some(function(s){return s[0]===PO_SECTION;}))PO_SECTION="";
+function poInSec(p){return (p.section||"")===PO_SECTION;}
 function poIsFire(){return PO_SECTION===PO_FIRE;}
-function poPickSection(v){
-  PO_SECTION=v;PO_SEL="";PO_FOFFICE="";PO_VIEW="list";
-  try{localStorage.setItem("cpd_po_section",v);}catch(e){}
+function poSaveSec(v){PO_SECTION=v;try{localStorage.setItem("cpd_po_section",v);}catch(e){}}
+function poGo(sec){
+  if(sec!==PO_SECTION){poSaveSec(sec);PO_FOFFICE="";PO_SEARCH="";}
+  poSetView("list");
+}
+function poSetView(v){
+  PO_VIEW=v;PO_SEL="";PO_MODEL="";PO_FPAY=false;
   renderPOs();
 }
+function poThisYear(){return String(new Date().getFullYear());}
+/* Orders opens on this year; By model and Fire Fighting on all years. A year
+   picked in one place stays there. */
+function poYearKey(){return PO_SECTION+"|"+PO_VIEW;}
+function poApplyYear(){
+  var k=poYearKey();
+  PO_FYEAR=PO_YEARS[k]!==undefined?PO_YEARS[k]:
+    !poIsFire()&&PO_VIEW==="list"&&PO_LIST.some(function(p){return poInSec(p)&&poYear(p)===poThisYear();})?poThisYear():"";
+}
+function poUnpaid(p){return !!p.invoiceNo&&!p.paidDate;}
 function poNum(v){return (v===null||v===undefined||v==="")?null:Number(v);}
 function poOfficeSlug(o){return String(o||"").toLowerCase().replace(/\s/g,"");}
 
 /* ===== converters ===== */
 function dbToPo(r){return{_id:r.id,poNumber:r.po_number||"",office:r.office||"",date:r.po_date||"",vendor:r.vendor||"CUSTOM S.p.A.",currency:r.currency||"USD",total:(r.total===null||r.total===undefined)?null:Number(r.total),notes:r.notes||"",invoiceNo:r.invoice_no||"",paidDate:r.paid_date||"",receivedDate:r.received_date||"",attachments:Array.isArray(r.attachments)?r.attachments:[],section:r.section||"",projectId:r.project_id||"",createdAt:r.created_at||""};}
-function poToDb(p){return{po_number:p.poNumber,office:p.office||null,po_date:p.date||null,vendor:p.vendor||"CUSTOM S.p.A.",currency:p.currency||"USD",total:(p.total===null||isNaN(p.total))?null:p.total,notes:p.notes||null,invoice_no:p.invoiceNo||null,paid_date:p.paidDate||null,received_date:p.receivedDate||null,attachments:p.attachments||[],section:p.section||null,project_id:p.projectId||null};}
+function poToDb(p){return{po_number:p.poNumber,office:p.office||null,po_date:p.date||null,vendor:p.vendor||(p.section===PO_AUTO?null:"CUSTOM S.p.A."),currency:p.currency||"USD",total:(p.total===null||isNaN(p.total))?null:p.total,notes:p.notes||null,invoice_no:p.invoiceNo||null,paid_date:p.paidDate||null,received_date:p.receivedDate||null,attachments:p.attachments||[],section:p.section||null,project_id:p.projectId||null};}
 function dbToPoLine(r){return{_id:r.id,poId:r.po_id,pn:r.pn||"",description:r.description||"",qty:Number(r.qty)||0,unit:r.unit||"pcs",unitPrice:(r.unit_price===null||r.unit_price===undefined)?null:Number(r.unit_price),sortOrder:Number(r.sort_order)||0,category:r.category||"",itemGroup:r.item_group||"",supplier:r.supplier||"",actualTotal:poNum(r.actual_total),delivery:poNum(r.delivery),note:r.note||""};}
 function poLineToDb(l){return{po_id:l.poId,pn:l.pn||null,description:l.description||null,qty:l.qty||0,unit:l.unit||"pcs",unit_price:(l.unitPrice===null||isNaN(l.unitPrice))?null:l.unitPrice,sort_order:l.sortOrder||0,category:l.category||null,item_group:l.itemGroup||null,supplier:l.supplier||null,actual_total:(l.actualTotal===null||l.actualTotal===undefined||isNaN(l.actualTotal))?null:l.actualTotal,delivery:(l.delivery===null||l.delivery===undefined||isNaN(l.delivery))?null:l.delivery,note:l.note||null};}
 
@@ -76,13 +97,16 @@ function poSearchInput(v){
 }
 
 /* ===== filtering ===== */
-function poFiltered(){
+/* o.year: another year than the picked one; o.anyPay: paid ones too */
+function poFiltered(o){
+  o=o||{};
   var q=PO_SEARCH.trim().toLowerCase();
-  var fire=poIsFire();
+  var fire=poIsFire(),year=o.year!==undefined?o.year:PO_FYEAR;
   return PO_LIST.filter(function(p){
-    if((p.section===PO_FIRE)!==fire)return false;
+    if(!poInSec(p))return false;
     if(PO_FOFFICE&&p.office!==PO_FOFFICE)return false;
-    if(PO_FYEAR&&poYear(p)!==PO_FYEAR)return false;
+    if(year&&poYear(p)!==year)return false;
+    if(PO_FPAY&&!fire&&!o.anyPay&&!poUnpaid(p))return false;
     if(q){
       var hay=(p.poNumber+" "+p.office+" "+p.notes+" "+p.invoiceNo+" "+
         poLinesFor(p._id).map(function(l){return l.pn+" "+l.description+" "+l.supplier+" "+l.itemGroup+" "+l.category;}).join(" ")).toLowerCase();
@@ -140,26 +164,59 @@ function poSyncToolbar(){
   btn.style.display="";
   if(typeof TRK_BTN_HTML==="string")btn.innerHTML=TRK_BTN_HTML.replace("Add entry",poIsFire()?"Add expenses":"Add PO");
 }
-function poRenderStats(list){
-  var el=document.getElementById("stats");
-  if(!el)return;
-  if(poIsFire()){poFireStats(el,list);return;}
-  var spend=0,units=0,models={};
+/* spend, printers (not parts) and how many printer models in a set of POs */
+function poSums(list){
+  var r={spend:0,printers:0,models:{}},all=PO_SECTION===PO_AUTO;
   list.forEach(function(p){
     var u=poUsd(p.total,p.currency);
-    if(u!==null)spend+=u;
+    if(u!==null)r.spend+=u;
     poLinesFor(p._id).forEach(function(l){
-      units+=l.qty;
-      var k=(l.pn||l.description||"").toLowerCase();
-      if(k)models[k]=1;
+      if(all||poIsPrinter(l.pn)){r.printers+=l.qty;r.models[poModelKey(l)]=1;}
     });
   });
-  var scope=PO_FYEAR?PO_FYEAR:"all years";
+  return r;
+}
+function poUsdTxt(v){return typeof fxFormatUSD==="function"?fxFormatUSD(v):"$"+Math.round(v).toLocaleString();}
+/* Three boxes that follow the year, office and search. The current year is
+   compared with last year up to the same date; older years are complete, so
+   they just show their count. */
+function poRenderStats(){
+  var el=document.getElementById("stats");
+  if(!el)return;
+  if(poIsFire()){poFireStats(el,poFiltered());return;}
+  var all=poFiltered({anyPay:true}),s=poSums(all);
+  var ny=poThisYear(),prev=null;
+  if(PO_FYEAR===ny){
+    var d=new Date(),md=("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+    prev=poSums(poFiltered({anyPay:true,year:String(ny-1)}).filter(function(p){return p.date.slice(5)<=md;}));
+  }
+  function vs(now,was,plain){
+    if(!prev||!was)return plain;
+    var pc=Math.round((now-was)/was*100);
+    return "<b>"+(pc>0?"&#9650; "+pc+"%":pc<0?"&#9660; "+(-pc)+"%":"same")+"</b> vs same date "+(ny-1);
+  }
+  var nModels=Object.keys(s.models).length;
+  var un=all.filter(poUnpaid),unUsd=0;
+  un.forEach(function(p){unUsd+=poUsd(p.total,p.currency)||0;});
+  var can=un.length||PO_FPAY;
   el.innerHTML=
-    "<div class='stat'><div class='stat-label'>Purchase orders</div><div class='stat-value'>"+list.length+"</div><div class='stat-sub'>"+scope+(PO_FOFFICE?" · "+PO_FOFFICE:"")+"</div></div>"+
-    "<div class='stat'><div class='stat-label'>Total spend</div><div class='stat-value'>"+(typeof fxFormatUSD==="function"?fxFormatUSD(spend):"$"+spend.toLocaleString())+"</div><div class='stat-sub'>USD equivalent</div></div>"+
-    "<div class='stat'><div class='stat-label'>Units ordered</div><div class='stat-value'>"+units.toLocaleString()+"</div><div class='stat-sub'>all line items</div></div>"+
-    "<div class='stat'><div class='stat-label'>Distinct items</div><div class='stat-value'>"+Object.keys(models).length+"</div><div class='stat-sub'>models / part numbers</div></div>";
+    "<div class='stat po-stat cb-stat-rev'><div class='stat-label'>"+(PO_FYEAR?"Spend in "+PO_FYEAR:"Total spend")+"</div><div class='stat-value'>"+poUsdTxt(s.spend)+"</div><div class='stat-sub'>"+vs(s.spend,prev&&prev.spend,all.length+" PO"+(all.length===1?"":"s"))+"</div></div>"+
+    "<div class='stat po-stat'><div class='stat-label'>"+(PO_SECTION===PO_AUTO?"Units":"Printers")+" ordered</div><div class='stat-value'>"+s.printers.toLocaleString()+"</div><div class='stat-sub'>"+vs(s.printers,prev&&prev.printers,nModels+(PO_SECTION===PO_AUTO?" item":" model")+(nModels===1?"":"s"))+"</div></div>"+
+    "<div class='stat po-stat"+(can?" po-stat-btn":"")+(PO_FPAY?" on":"")+"'"+(can?" role='button' tabindex='0' aria-pressed='"+PO_FPAY+"' onclick='poToggleUnpaid()' onkeydown='if(event.key===\"Enter\"||event.key===\" \"){event.preventDefault();poToggleUnpaid();}'":"")+">"+
+      "<div class='stat-label'>Unpaid</div><div class='stat-value'>"+(un.length?un.length+" PO"+(un.length===1?"":"s"):"None")+"</div>"+
+      "<div class='stat-sub'>"+(PO_FPAY?"Showing only these &middot; <u>show all</u>":un.length?poUsdTxt(unUsd)+" of POs &middot; <u>show them</u>":"of those with an invoice recorded")+"</div></div>";
+}
+/* the Unpaid box lists the unpaid POs; a second click shows all again */
+function poToggleUnpaid(){
+  PO_FPAY=!PO_FPAY;
+  if(PO_FPAY&&PO_VIEW!=="list"){var y=PO_FYEAR;PO_VIEW="list";PO_YEARS[poYearKey()]=y;PO_MODEL="";}
+  poDropSel();
+  renderPOs();
+}
+/* a filter was changed on purpose: the open PO closes if it is filtered out
+   (a PO opened from a link instead brings its own year into view) */
+function poDropSel(){
+  if(PO_SEL&&!poFiltered().some(function(p){return p._id===PO_SEL;}))PO_SEL="";
 }
 
 /* ===== main render ===== */
@@ -179,44 +236,51 @@ function renderPOs(){
     });
     return;
   }
-  /* an item opened from the address or another page: show its section */
+  /* an item opened from the address or another page: show where it is */
   if(PO_SEL){
     var rec=PO_LIST.filter(function(p){return p._id===PO_SEL;})[0];
-    if(rec){var sec=rec.section===PO_FIRE?PO_FIRE:"";if(sec!==PO_SECTION){PO_SECTION=sec;PO_VIEW="list";}}
+    if(rec){
+      if(!poInSec(rec)){poSaveSec(rec.section||"");PO_FOFFICE="";PO_SEARCH="";}
+      PO_VIEW="list";
+      poApplyYear();
+      if(PO_FYEAR&&poYear(rec)!==PO_FYEAR)PO_YEARS[poYearKey()]=poYear(rec);
+      if(PO_FPAY&&!poUnpaid(rec))PO_FPAY=false;
+    }
   }
+  poApplyYear();
   var list=poFiltered();
-  poRenderStats(list);
+  poRenderStats();
 
   var years=[];
-  var secList=PO_LIST.filter(function(p){return (p.section===PO_FIRE)===poIsFire();});
-  secList.forEach(function(p){var y=poYear(p);if(y&&years.indexOf(y)===-1)years.push(y);});
+  PO_LIST.filter(poInSec).forEach(function(p){var y=poYear(p);if(y&&years.indexOf(y)===-1)years.push(y);});
   years.sort().reverse();
 
-  /* One toolbar: view switch, a search box that also holds the active
-     filters as removable pills, then the office and year pickers */
+  /* one line of tabs with the add button, then view, search and two menus */
   var fire=poIsFire();
-  var secSw="<div class='po-secs'>"+[["","CUSTOM"],[PO_FIRE,"Fire Fighting"]].map(function(s){
-    var n=PO_LIST.filter(function(p){return (p.section===PO_FIRE)===(s[0]===PO_FIRE);}).length;
-    return "<button class='po-sec-btn"+(PO_SECTION===s[0]?" active":"")+(s[0]?" po-sec-fire":"")+"' onclick='poPickSection(\""+s[0]+"\")'>"+s[1]+"<span class='po-dd-n'>"+n+"</span></button>";
+  var tabs="<div class='po-tabs'>"+PO_SECS.map(function(s){
+    var on=PO_SECTION===s[0];
+    return "<button class='po-tab"+(on?" on":"")+"'"+(on?" aria-current='page'":"")+" onclick='poGo(\""+s[0]+"\")'>"+s[1]+"</button>";
+  }).join("")+
+    "<button class='btn-add po-add' onclick='openModal()'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' style='width:13px;height:13px'><line x1='12' y1='5' x2='12' y2='19'/><line x1='5' y1='12' x2='19' y2='12'/></svg> "+(fire?"Add expenses":"Add PO")+"</button></div>";
+  var seg="<div class='po-seg'>"+[["list",fire?"List":"Orders"],["models",fire?"By group":"By model"]].map(function(v){
+    return "<button class='po-seg-btn"+(PO_VIEW===v[0]?" active":"")+"' onclick='poSetView(\""+v[0]+"\")'>"+v[1]+"</button>";
   }).join("")+"</div>";
-  var seg=(fire?[["list","List"],["models","By group"]]:[["list","List"],["models","By model"]]).map(function(v){
-    return "<button class='po-seg-btn"+(PO_VIEW===v[0]?" active":"")+"' onclick='PO_VIEW=\""+v[0]+"\";renderPOs()'>"+v[1]+"</button>";
-  }).join("");
-  var pills=(PO_FOFFICE?"<span class='trk-badge po-of-"+poOfficeSlug(PO_FOFFICE)+" po-pill'>"+trkEsc(PO_FOFFICE)+"<button aria-label='Clear office filter' onclick='PO_FOFFICE=\"\";renderPOs()'>&times;</button></span>":"")+
-    (PO_FYEAR?"<span class='trk-badge po-pill po-pill-year'>"+PO_FYEAR+"<button aria-label='Clear year filter' onclick='PO_FYEAR=\"\";renderPOs()'>&times;</button></span>":"");
+  var more=0;
+  if(PO_SEARCH.trim()&&PO_FYEAR)more=poFiltered({year:""}).length-list.length;
   var toolbar=
-    "<div class='po-bar'>"+
-      "<div class='po-seg'>"+seg+"</div>"+
-      "<label class='po-searchbox'>"+pills+
-        "<input id='po-search' placeholder='"+(fire?"Search item / supplier&hellip;":"Search PO no. / model / PN&hellip;")+"' value='"+trkEsc(PO_SEARCH)+"' oninput='poSearchInput(this.value)'>"+
+    "<div class='po-bar'>"+seg+
+      "<label class='po-searchbox'>"+
+        "<input id='po-search' placeholder='"+(fire?"Search item or supplier":"Search PO no., model or P/N")+"' value='"+trkEsc(PO_SEARCH)+"' oninput='poSearchInput(this.value)'>"+
       "</label>"+
-      (fire?"":uiDropdown({key:"po-office",onPick:"poPickOffice",cur:PO_FOFFICE,opts:[{value:"",label:"All offices",count:secList.length}].concat(PO_OFFICES.map(function(o){
-        return {value:o,label:o,dot:poOfficeSlug(o),count:PO_LIST.filter(function(p){return p.office===o&&p.section!==PO_FIRE;}).length};
+      (fire?"":uiDropdown({key:"po-office",onPick:"poPickOffice",cur:PO_FOFFICE,opts:[{value:"",label:"All offices"}].concat(PO_OFFICES.map(function(o){
+        return {value:o,label:o,dot:poOfficeSlug(o)};
       }))}))+
-      uiDropdown({key:"po-year",onPick:"poPickYear",cur:PO_FYEAR,opts:[{value:"",label:"All years",count:secList.length}].concat(years.map(function(y){
-        return {value:y,label:y,count:secList.filter(function(p){return poYear(p)===y;}).length};
+      uiDropdown({key:"po-year",onPick:"poPickYear",cur:PO_FYEAR,opts:[{value:"",label:"All years"}].concat(years.map(function(y){
+        return {value:y,label:y};
       }))})+
-    "</div>";
+    "</div>"+
+    /* the page opens on this year: a search says when older years match too */
+    (more>0?"<button class='po-more' onclick='poPickYear(\"\")'>"+more+" more in other years &middot; <u>search all years</u></button>":"");
 
   if(PO_SEL&&!list.some(function(p){return p._id===PO_SEL;}))PO_SEL="";
   if(!PO_SEL)PO_FULL=false;
@@ -227,12 +291,12 @@ function renderPOs(){
     poMarkHits();
     return;
   }
-  content.innerHTML=secSw+toolbar+(fire?(PO_VIEW==="models"?poFireGroupsHtml(list):poTableHtml(list)):(PO_VIEW==="models"?poModelsHtml(list):poTableHtml(list)));
+  content.innerHTML=tabs+toolbar+(fire?(PO_VIEW==="models"?poFireGroupsHtml(list):poTableHtml(list)):(PO_VIEW==="models"?poModelsHtml(list):poTableHtml(list)));
   poMarkHits();
 }
 
-function poPickOffice(v){PO_FOFFICE=v;renderPOs();}
-function poPickYear(v){PO_FYEAR=v;renderPOs();}
+function poPickOffice(v){PO_FOFFICE=v;poDropSel();renderPOs();}
+function poPickYear(v){PO_YEARS[poYearKey()]=v;PO_FYEAR=v;poDropSel();renderPOs();}
 
 /* ===== filter menus — styled replacements for <select>, whose open list
    the browser draws and can't be themed. Shared by the PO page and the
@@ -300,16 +364,17 @@ function poTableHtml(list){
     byLabel[ml].push(p);
   });
   /* simple list: month heading with its total, then one row per PO */
-  var cols=fire?3:4;
+  var cols=fire?3:5;
   var rows=groups.map(function(ml){
     var g=byLabel[ml];
     return "<tr class='po-grp2'><td colspan='"+(cols-1)+"'>"+ml+"</td>"+
       "<td class='num'>"+(fire?poFmtMoney(g.reduce(function(t,p){return t+(p.total||0);},0),"IDR"):poUsdSum(g))+"</td></tr>"+
       g.map(function(p){
         return "<tr class='po-row"+(PO_SEL===p._id?" sel":"")+"' onclick='poSelect(\""+p._id+"\")'>"+
-          "<td class='po-c-no'><span class='po-q'>"+trkEsc(p.poNumber)+"</span>"+(p.invoiceNo&&!p.paidDate?" <span class='po-unpaid' title='Invoiced, not yet paid'>Unpaid</span>":"")+poHitHtml(p)+"</td>"+
+          "<td class='po-c-no'><span class='po-q'>"+trkEsc(p.poNumber)+"</span>"+poHitHtml(p)+"</td>"+
           (fire?"":"<td class='po-c-of po-oftxt-"+poOfficeSlug(p.office)+"'>"+trkEsc(p.office||"")+"</td>")+
           "<td class='po-c-date'>"+(p.date?trkFmtDate(p.date):"&mdash;")+"</td>"+
+          (fire?"":"<td class='po-c-st'>"+(p.paidDate?"<span class='po-paid'>Paid</span>":poUnpaid(p)?"<span class='po-unpaid' title='Invoiced, not yet paid'>Unpaid</span>":"")+"</td>")+
           "<td class='num po-c-amt'>"+poFmtMoney(p.total,p.currency)+"</td>"+
         "</tr>";
       }).join("");
@@ -317,7 +382,7 @@ function poTableHtml(list){
   var sel=PO_SEL?PO_LIST.filter(function(p){return p._id===PO_SEL;})[0]:null;
   return "<div class='po-split"+(sel?" has-sel":"")+"'>"+
     "<div class='po-table-wrap'><table class='po-table po-list po-simple'>"+
-      "<thead><tr><th>"+(fire?"Expense sheet":"PO")+"</th>"+(fire?"":"<th>Office</th>")+"<th>Date</th><th class='num'>Amount</th></tr></thead>"+
+      "<thead><tr><th>"+(fire?"Expense sheet":"PO")+"</th>"+(fire?"":"<th>Office</th>")+"<th>Date</th>"+(fire?"":"<th>Status</th>")+"<th class='num'>Amount</th></tr></thead>"+
       "<tbody>"+rows+"</tbody></table></div>"+
     (sel?(sel.section===PO_FIRE?poFirePanelHtml(sel):poPanelHtml(sel)):"")+
   "</div>";
@@ -367,7 +432,9 @@ function poSelect(id){
 function poToggleFull(){PO_FULL=!PO_FULL;renderPOs();window.scrollTo(0,0);}
 /* Esc closes the panel; up/down step through the visible POs */
 document.addEventListener("keydown",function(e){
-  if(typeof currentTab==="undefined"||currentTab!=="po"||PO_VIEW!=="list"||!PO_SEL)return;
+  if(typeof currentTab==="undefined"||currentTab!=="po")return;
+  if(e.key==="Escape"&&PO_VIEW==="models"&&PO_MODEL&&!/^(INPUT|TEXTAREA|SELECT)$/.test((e.target&&e.target.tagName)||"")&&!document.querySelector(".modal-overlay.open")){poPickModel("");return;}
+  if(PO_VIEW!=="list"||!PO_SEL)return;
   if(PO_FULL&&e.key!=="Escape")return;
   if(/^(INPUT|TEXTAREA|SELECT)$/.test((e.target&&e.target.tagName)||""))return;
   if(document.querySelector(".modal-overlay.open"))return;
@@ -388,54 +455,119 @@ function poMonthLabel(p){
 }
 function poEmptyHtml(){
   if(poIsFire())return "<div class='empty'>"+(PO_SEARCH||PO_FYEAR?"No expense sheets match this filter.":"No fire fighting expenses yet. Click <strong>+ Add expenses</strong>.")+"</div>";
-  return "<div class='empty'>"+(PO_LIST.length?"No purchase orders match this filter.":"No purchase orders yet. Click <strong>+ Add PO</strong> and drop the PO PDF — the form fills itself.")+"</div>";
+  return "<div class='empty'>"+(PO_LIST.some(poInSec)?"No purchase orders match this filter.":"No "+(PO_SECTION===PO_AUTO?"Automotive ":"")+"purchase orders yet. Click <strong>+ Add PO</strong> and drop the PO PDF — the form fills itself.")+"</div>";
 }
 
-/* ===== "By model" rollup — units and price history per part number ===== */
-function poModelsHtml(list){
-  var ids={};list.forEach(function(p){ids[p._id]=p;});
-  var groups={};
+/* ===== "By model" — what was bought of each model, and at what price =====
+   PO_SAME joins part numbers that are the same model (old P/N -> new P/N),
+   so a model whose P/N changed over the years is one row. */
+var PO_SAME={};
+function poModelKey(l){var k=l.pn||l.description||"?";return String(PO_SAME[k]||k).toLowerCase();}
+/* 911 / 915 part numbers are printers; everything else is a part or accessory */
+function poIsPrinter(pn){return /^91[15]/.test(pn||"");}
+function poModelGroups(list){
+  var ids={},groups={};
+  list.forEach(function(p){ids[p._id]=p;});
   PO_LINES.forEach(function(l){
     var p=ids[l.poId];
     if(!p)return;
-    var key=(l.pn||l.description||"?").toLowerCase();
-    var g=groups[key];
-    if(!g){g={pn:l.pn,desc:l.description,units:0,pos:{},spend:0,prices:[]};groups[key]=g;}
-    if((l.description||"").length>(g.desc||"").length)g.desc=l.description;
+    var key=poModelKey(l),g=groups[key];
+    if(!g)g=groups[key]={key:key,pns:[],desc:"",printer:PO_SECTION!==PO_AUTO&&poIsPrinter(l.pn),units:0,spend:0,priced:0,buys:[],hit:0};
+    if(l.pn&&g.pns.indexOf(l.pn)===-1)g.pns.push(l.pn);
+    if((l.description||"").length>g.desc.length)g.desc=l.description;
     if(poLineHit(l))g.hit=1;
     g.units+=l.qty;
-    g.pos[l.poId]=1;
-    if(l.unitPrice!==null){
-      var usd=poUsd(l.unitPrice,p.currency);
-      var sub=poUsd(l.qty*l.unitPrice,p.currency);
-      if(sub!==null)g.spend+=sub;
-      g.prices.push({date:p.date||"",price:l.unitPrice,cur:p.currency,usd:usd});
-    }
+    var usd=l.unitPrice===null?null:poUsd(l.unitPrice*l.qty,p.currency);
+    if(usd!==null){g.spend+=usd;g.priced+=l.qty;}
+    g.buys.push({p:p,l:l,usd:usd});
   });
-  var rows=Object.keys(groups).map(function(k){return groups[k];})
-    .sort(function(a,b){return (b.hit||0)-(a.hit||0)||b.units-a.units;}); // searched items first
-  if(!rows.length)return "<div class='empty'>No line items in the selected range.</div>";
-
-  var html=rows.map(function(g){
-    g.prices.sort(function(a,b){return (a.date||"").localeCompare(b.date||"");});
-    var first=g.prices[0],last=g.prices[g.prices.length-1];
-    var uniq=[];g.prices.forEach(function(pr){if(uniq.indexOf(pr.price)===-1)uniq.push(pr.price);});
-    var changed=uniq.length>1;
-    var trend="";
-    if(changed&&first&&last&&first.price!==last.price){
-      var up=last.price>first.price;
-      trend="<div class='po-m-trend "+(up?"po-up":"po-down")+"'>"+(up?"&#9650; up":"&#9660; down")+" from "+poFmtMoney(first.price,first.cur)+"</div>";
-    }
-    return "<tr>"+
-      "<td><div class='po-m-desc'>"+trkEsc(g.desc||"—")+"</div>"+(g.pn?"<div class='po-m-pn'>"+trkEsc(g.pn)+"</div>":"")+"</td>"+
-      "<td class='num po-m-units' data-label='Units'>"+g.units.toLocaleString()+"</td>"+
-      "<td class='num po-m-spend' data-label='Spend'>"+(typeof fxFormatUSD==="function"?fxFormatUSD(g.spend):"$"+g.spend.toLocaleString())+"</td>"+
-      "<td class='num po-m-last' data-label='Last price'>"+(last?poFmtMoney(last.price,last.cur):"—")+trend+"</td>"+
-    "</tr>";
-  }).join("");
-  return "<div class='po-table-wrap'><table class='po-table po-models'>"+
-    "<thead><tr><th>Model</th><th class='num'>Units</th><th class='num'>Spend (USD)</th><th class='num'>Last price</th></tr></thead>"+
-    "<tbody>"+html+"</tbody></table></div>";
+  return Object.keys(groups).map(function(k){
+    var g=groups[k];
+    g.buys.sort(function(a,b){return (a.p.date||"").localeCompare(b.p.date||"");});
+    return g;
+  }).sort(function(a,b){return (b.printer?1:0)-(a.printer?1:0)||b.units-a.units;});
+}
+function poAvg(spend,priced){return priced?poFmtMoney(Math.round(spend/priced*100)/100,"USD"):"&mdash;";}
+/* the latest price, and the one before it at the same office (offices can
+   pay different prices, so comparing across them would look like a change) */
+function poLastPrice(g){
+  var b=g.buys.filter(function(x){return x.l.unitPrice!==null;}),last=b[b.length-1];
+  if(!last)return "&mdash;";
+  var was=b.filter(function(x){return x.p.office===last.p.office&&x.p.currency===last.p.currency&&x.l.unitPrice!==last.l.unitPrice;}).pop();
+  return poFmtMoney(last.l.unitPrice,last.p.currency)+
+    (was?"<div class='po-m-trend "+(last.l.unitPrice>was.l.unitPrice?"po-up'>&#9650;":"po-down'>&#9660;")+" was "+poFmtMoney(was.l.unitPrice,was.p.currency)+"</div>":"");
+}
+function poModelsHtml(list){
+  var groups=poModelGroups(list);
+  if(poQuery()&&groups.some(function(g){return g.hit;}))groups=groups.filter(function(g){return g.hit;});
+  if(!groups.length)return poEmptyHtml();
+  function rows(title,gs){
+    if(!gs.length)return "";
+    var u=0,s=0;
+    gs.forEach(function(g){u+=g.units;s+=g.spend;});
+    return "<tr class='po-grp2'><td>"+title+"</td><td class='num' data-label='Units'>"+u.toLocaleString()+"</td><td class='num' data-label='Total paid'>"+poUsdTxt(s)+"</td><td colspan='2'></td></tr>"+
+      gs.map(function(g){
+        return "<tr class='po-row"+(PO_MODEL===g.key?" sel":"")+"' data-k='"+trkEsc(g.key)+"' onclick='poPickModel(this.getAttribute(\"data-k\"))'>"+
+          "<td><div class='po-m-desc'>"+trkEsc(g.desc||"—")+"</div><div class='po-m-pn'>"+g.pns.map(trkEsc).join(", ")+"</div></td>"+
+          "<td class='num po-m-units' data-label='Units'>"+g.units.toLocaleString()+"</td>"+
+          "<td class='num po-m-spend' data-label='Total paid'>"+poUsdTxt(g.spend)+"</td>"+
+          "<td class='num po-m-spend' data-label='Average price'>"+poAvg(g.spend,g.priced)+"</td>"+
+          "<td class='num po-m-last' data-label='Last price'>"+poLastPrice(g)+"</td>"+
+        "</tr>";
+      }).join("");
+  }
+  var sel=PO_MODEL?poModelPanelHtml():"";
+  return "<div class='po-split"+(sel?" has-sel":"")+"'><div class='po-table-wrap'><table class='po-table po-models'>"+
+    "<thead><tr><th>Model</th><th class='num'>Units</th><th class='num'>Total paid</th><th class='num'>Average price</th><th class='num'>Last price</th></tr></thead>"+
+    "<tbody>"+rows("Printers",groups.filter(function(g){return g.printer;}))+rows(PO_SECTION===PO_AUTO?"Items":"Parts and accessories",groups.filter(function(g){return !g.printer;}))+"</tbody></table></div>"+sel+"</div>";
+}
+function poPickModel(k){PO_MODEL=PO_MODEL===k?"":(k||"");renderPOs();}
+/* one model: every year, every office, every order (the office menu applies,
+   the year menu does not, so the price history is always complete) */
+function poModelPanelHtml(){
+  var g=poModelGroups(PO_LIST.filter(function(p){return poInSec(p)&&(!PO_FOFFICE||p.office===PO_FOFFICE);}))
+    .filter(function(x){return x.key===PO_MODEL;})[0];
+  if(!g){PO_MODEL="";return "";}
+  function table(title,keyOf,order){
+    var m={};
+    g.buys.forEach(function(b){
+      var k=keyOf(b)||"—",r=m[k]=m[k]||{u:0,s:0,n:0,p:{}};
+      r.u+=b.l.qty;
+      if(b.usd!==null){r.s+=b.usd;r.n+=b.l.qty;r.p[b.l.unitPrice]=1;}
+    });
+    return "<div class='po-panel-sec'>"+title+"</div><table class='po-mt'><thead><tr><th></th><th>Units</th><th>Average</th><th>Total</th></tr></thead><tbody>"+
+      Object.keys(m).sort(order).map(function(k){
+        var r=m[k],ps=Object.keys(r.p).map(Number),lo=Math.min.apply(null,ps),hi=Math.max.apply(null,ps);
+        return "<tr><td>"+trkEsc(k)+"</td><td>"+r.u.toLocaleString()+"</td><td>"+poAvg(r.s,r.n)+
+          (ps.length>1?"<div class='po-dim'>"+poFmtMoney(lo,"USD")+" to "+poFmtMoney(hi,"USD")+"</div>":"")+
+          "</td><td>"+poUsdTxt(r.s)+"</td></tr>";
+      }).join("")+"</tbody></table>";
+  }
+  var miss=g.units-g.priced;
+  return "<aside class='po-panel po-model-panel'>"+
+    "<div class='po-panel-head'><span class='po-panel-no'>"+trkEsc(g.desc||g.pns[0]||"—")+"</span>"+
+      "<button class='po-panel-x' aria-label='Close' onclick='poPickModel(\"\")'>&times;</button></div>"+
+    "<div class='po-panel-meta'><span>"+g.pns.map(trkEsc).join(", ")+(PO_FOFFICE?" &middot; "+trkEsc(PO_FOFFICE)+" only":"")+"</span></div>"+
+    "<div class='po-panel-total'>"+poUsdTxt(g.spend)+"<span class='po-mt-u'>"+g.units.toLocaleString()+" units</span></div>"+
+    (miss>0?"<div class='po-dim'>"+miss.toLocaleString()+" units have no price recorded</div>":"")+
+    table("By year",function(b){return poYear(b.p);},function(a,b){return b.localeCompare(a);})+
+    (PO_FOFFICE?"":table("By office",function(b){return b.p.office;}))+
+    "<div class='po-panel-sec'>"+g.buys.length+" order line"+(g.buys.length===1?"":"s")+"</div>"+
+    g.buys.slice().reverse().map(function(b){
+      return "<button class='po-pl po-mb' onclick='poOpenFromModel(\""+b.p._id+"\")'>"+
+        "<span class='po-pl-main'><span class='po-pl-desc'>"+trkEsc(b.p.poNumber)+"</span>"+
+          "<span class='po-dim'>"+[trkEsc(b.p.office||""),b.p.date?trkFmtDate(b.p.date):""].filter(Boolean).join(" &middot; ")+"</span></span>"+
+        "<span class='po-mb-r'><span class='po-pl-sub'>"+b.l.qty.toLocaleString()+(b.l.unitPrice!==null?" &times; "+poFmtMoney(b.l.unitPrice,b.p.currency):"")+"</span>"+
+          (g.pns.length>1?"<span class='po-dim'>"+trkEsc(b.l.pn)+"</span>":"")+"</span>"+
+      "</button>";
+    }).join("")+
+  "</aside>";
+}
+function poOpenFromModel(id){
+  PO_VIEW="list";PO_SEL=id;PO_FULL=false;PO_MODEL="";PO_SEARCH="";
+  renderPOs();
+  var r=document.querySelector(".po-row.sel");
+  if(r)r.scrollIntoView({block:"center"});
 }
 
 /* ===== modal ===== */
@@ -520,6 +652,7 @@ function poRecalc(){
 function poOpenModal(){
   var m=document.getElementById("modal-po");
   m.removeAttribute("data-edit-id");
+  PO_EDIT_SEC=PO_SECTION;
   poModalMode(poIsFire());
   document.getElementById("po-modal-title").textContent=poIsFire()?"Add fire fighting expenses":"Add purchase order";
   document.getElementById("btn-delete-po").style.display="none";
@@ -536,6 +669,7 @@ function poEdit(id){
   if(!p)return;
   var m=document.getElementById("modal-po");
   m.setAttribute("data-edit-id",id);
+  PO_EDIT_SEC=p.section||"";
   poModalMode(p.section===PO_FIRE);
   document.getElementById("po-modal-title").textContent=p.section===PO_FIRE?"Edit fire fighting expenses":"Edit purchase order";
   document.getElementById("btn-delete-po").style.display="inline-flex";
@@ -558,6 +692,7 @@ function poEdit(id){
   poRenderAttList();
   m.classList.add("open");
 }
+var PO_EDIT_SEC="";            /* section of the PO in the form */
 async function poSave(){
   var num=document.getElementById("po-number").value.trim();
   var fireM=document.getElementById("modal-po").classList.contains("po-fire");
@@ -585,7 +720,7 @@ async function poSave(){
     paidDate:document.getElementById("po-paid").value,
     receivedDate:document.getElementById("po-received").value,
     attachments:PO_ATT.map(function(a){return{name:a.name,url:a.url};}),
-    section:fireM?PO_FIRE:"",
+    section:PO_EDIT_SEC,
     projectId:fireM?document.getElementById("po-project").value:""
   };
   var lines=polReadRows();
@@ -766,7 +901,7 @@ async function poBulkImport(pdfs){
         continue;
       }
       await poUploadAtt(a);
-      var p={poNumber:d.poNumber,office:d.office,date:d.date,currency:d.currency,total:d.total,notes:"",attachments:[{name:a.name,url:a.url}]};
+      var p={poNumber:d.poNumber,office:d.office,date:d.date,currency:d.currency,total:d.total,notes:"",section:PO_EDIT_SEC,attachments:[{name:a.name,url:a.url}]};
       var r=await trkInsert("purchase_orders",poToDb(p));
       if(!r||!r[0])throw new Error("insert failed");
       p._id=r[0].id;p.createdAt=r[0].created_at;
@@ -999,9 +1134,8 @@ function poSheetsForProject(id){
 function poOpenSheet(id){
   var p=PO_LIST.find(function(x){return x._id===id;});
   if(!p)return;
-  PO_SECTION=p.section===PO_FIRE?PO_FIRE:"";
-  try{localStorage.setItem("cpd_po_section",PO_SECTION);}catch(e){}
-  PO_VIEW="list";PO_FOFFICE="";PO_FYEAR="";PO_SEARCH="";
+  poSaveSec(p.section||"");
+  PO_VIEW="list";PO_FOFFICE="";PO_YEARS={};PO_FPAY=false;PO_SEARCH="";
   navTo("po",id);
 }
 /* "Expenses" row on a tracker project: linked sheets with their totals */

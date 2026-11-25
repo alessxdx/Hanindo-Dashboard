@@ -494,9 +494,10 @@ function trkSyncToolbar(){
   if(!btn)return;
   if(TRK_BTN_HTML===null)TRK_BTN_HTML=btn.innerHTML;
   /* phones hide the toolbar but keep its add button as a floating + on every
-     tab that can add something; the computer's tracker uses its own button */
+     tab that can add something; the computer's tracker and Purchase Orders
+     use their own button */
   var tb=document.getElementById("toolbar");
-  tb.classList.toggle("trk-fab",currentTab==="tracker");
+  tb.classList.toggle("trk-fab",currentTab==="tracker"||currentTab==="po");
   tb.classList.toggle("has-fab",["tracker","po","buying","spares","others"].indexOf(currentTab)>-1);
   /* Today only reads; Customer Base is built from the tracker's projects
      (a new customer appears as soon as a project for it is added there) */
