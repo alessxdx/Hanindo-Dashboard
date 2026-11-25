@@ -58,11 +58,11 @@ function ntDateWords(d){
   return trkDateWords(s);
 }
 /* yellow highlight on the words that matched */
-function ntMark(root,words){
+function ntMark(root,words,sel){
   if(!root||!words.length)return;
   var re=new RegExp("("+words.slice().sort(function(a,b){return b.length-a.length;}).map(function(w){return w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}).join("|")+")","gi");
   var tw=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[];
-  while(tw.nextNode())if(tw.currentNode.parentElement.closest(".nt-body,.nt-amt,.nt-term,.exp-month span,.exp-main,.exp-amt"))nodes.push(tw.currentNode);
+  while(tw.nextNode())if(tw.currentNode.parentElement.closest(sel||".nt-body,.nt-amt,.nt-term,.exp-month span,.exp-main,.exp-amt"))nodes.push(tw.currentNode);
   nodes.forEach(function(n){
     var parts=n.nodeValue.split(re);
     if(parts.length<2)return;

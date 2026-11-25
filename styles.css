@@ -3630,3 +3630,8 @@ font[size="6"],font[size="7"]{font-size:1.65em;line-height:1.35}
 
 /* Notes: numbers and bullets start at the edge, with the text close behind */
 .nt-text .txt-ln{--li-in:0px;--li-mk:1.1em;--li-gap:.25em}
+
+/* Purchase orders: where the search matched */
+.po-hit{font-size:12px;font-weight:400;color:var(--text-muted);margin-top:3px;line-height:1.4;white-space:normal;overflow-wrap:anywhere}
+.po-table mark,.po-panel mark,.po-fg mark{background:#fde68a;color:#1a1a1a;border-radius:2px;padding:0 1px}
+.po-pl-hit{background:color-mix(in srgb,#fde68a 22%,transparent);box-shadow:-8px 0 0 color-mix(in srgb,#fde68a 22%,transparent),8px 0 0 color-mix(in srgb,#fde68a 22%,transparent)}
