@@ -3635,3 +3635,30 @@ font[size="6"],font[size="7"]{font-size:1.65em;line-height:1.35}
 .po-hit{font-size:12px;font-weight:400;color:var(--text-muted);margin-top:3px;line-height:1.4;white-space:normal;overflow-wrap:anywhere}
 .po-table mark,.po-panel mark,.po-fg mark{background:#fde68a;color:#1a1a1a;border-radius:2px;padding:0 1px}
 .po-pl-hit{background:color-mix(in srgb,#fde68a 22%,transparent);box-shadow:-8px 0 0 color-mix(in srgb,#fde68a 22%,transparent),8px 0 0 color-mix(in srgb,#fde68a 22%,transparent)}
+
+/* Notes: categories (row of tabs, label on each note, menu) */
+#nt-cats .exp-tabs{margin:0 0 2px}
+:root[data-theme="dark"] #nt-cats .exp-tab.on{color:color-mix(in srgb,var(--dc) 55%,#fff)}
+.nt-cat,.nt-postcat{font:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px;background:none;cursor:pointer;color:var(--text)}
+.nt-cat{font-size:12px;border:none;padding:0;margin:0 0 4px;color:var(--text-muted)}
+.nt-cat:hover{color:var(--text-strong)}
+.nt-cat i,.nt-postcat i,.nt-catm i{width:8px;height:8px;border-radius:50%;background:var(--dc);flex:none}
+.nt-post{display:inline-flex;align-items:center;gap:8px;flex:none;min-width:0;max-width:100%}
+#nt-postcat{min-width:0;display:inline-flex}
+.nt-postcat{font-size:13px;font-weight:500;border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text-muted);text-align:left;min-width:0}
+.nt-postcat.set{color:var(--text-strong);font-weight:600}
+.nt-postcat:hover{border-color:var(--accent);color:var(--text-strong)}
+.nt-catm{min-width:230px;max-width:min(320px,calc(100vw - 16px));max-height:min(60vh,420px)}
+.nt-catnew{display:flex;gap:6px;border-top:1px solid var(--divider);margin-top:5px;padding:8px 5px 4px}
+.nt-catnew input{flex:1;min-width:0;font:inherit;font-size:13px;color:var(--text-strong);background:var(--bg-stat);border:1px solid var(--border);border-radius:7px;padding:6px 9px}
+.nt-catnew input:focus{outline:none;border-color:var(--accent)}
+.nt-cattools{margin-left:auto;display:inline-flex;gap:14px}
+.nt-cattools button{font:inherit;font-size:12px;color:var(--text-muted);background:none;border:none;padding:4px 0;cursor:pointer}
+.nt-cattools button:hover{color:var(--text-strong);text-decoration:underline}
+@media (max-width:700px){
+  .nt-catnew input{font-size:16px;min-height:38px}
+  .nt-post{margin-left:auto}
+  .nt-compose-foot{justify-content:flex-start}
+  .nt-postcat{min-height:38px}
+  .nt-cat{padding:4px 0}
+}

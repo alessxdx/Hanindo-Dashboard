@@ -817,9 +817,11 @@ function renderOthers(){
   if(typeof NT_VIEW!=="undefined"&&NT_VIEW==="expenses")return renderExpenses();
   /* search: every typed word must appear in the note, its date or its amount */
   const words=ntWords(),searching=words.length>0;
-  const hit=x=>ntMatch(words,[x.o.desc,x.o.sub,x.o.value,x.o.date,ntDateWords(x.o.date)]);
+  const hit=x=>ntMatch(words,[x.o.desc,x.o.sub,x.o.value,x.o.cat,x.o.date,ntDateWords(x.o.date)]);
   const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
-  const all=OTHERS.map((o,i)=>({o:o,i:i})).filter(x=>!searching||hit(x));
+  ntCatCheck();
+  const found=OTHERS.map((o,i)=>({o:o,i:i})).filter(x=>!searching||hit(x));
+  const all=found.filter(x=>ntInCat(x.o));
   const newest=(a,b)=>(b.o.created||"").localeCompare(a.o.created||"")||b.i-a.i;
   const isTerm=x=>x.o.value==="Shipping term";
   /* a lone dash was the old way round the required value field */
@@ -848,18 +850,18 @@ function renderOthers(){
     return order.map(k=>`<div class="exp-month"><span>${esc(k)}</span></div>${g[k].map(update).join("")}`).join("");
   };
   const update=x=>{const o=x.o,i=x.i;return `<div class="nt-upd">${dateBlock(o.date)}
-    <div class="nt-body"><div class="nt-text">${trkLines(o.desc)}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
-    <div class="nt-acts">${btn("edit","Edit",`editOther(${i})`)}${btn("del","Delete",`deleteOtherQuick(${i})`)}</div></div>`;};
+    <div class="nt-body">${ntCatTag(o,i)}<div class="nt-text">${trkLines(o.desc)}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
+    <div class="nt-acts">${ntCatIcon(i)}${btn("edit","Edit",`editOther(${i})`)}${btn("del","Delete",`deleteOtherQuick(${i})`)}</div></div>`;};
   const record=x=>{const o=x.o,i=x.i;return `<div class="nt-rec">
-    <div class="nt-body"><div class="nt-title">${fmtInline(esc(o.desc))}${o.date?`<span class="nt-when">${esc(o.date)}</span>`:""}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
+    <div class="nt-body">${ntCatTag(o,i)}<div class="nt-title">${fmtInline(esc(o.desc))}${o.date?`<span class="nt-when">${esc(o.date)}</span>`:""}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
     <div class="nt-amt">${esc(o.value)}</div>
-    <div class="nt-acts">${btn("edit","Edit",`editOther(${i})`)}${btn("trash","Remove",`deleteOther(${i})`)}</div></div>`;};
+    <div class="nt-acts">${ntCatIcon(i)}${btn("edit","Edit",`editOther(${i})`)}${btn("trash","Remove",`deleteOther(${i})`)}</div></div>`;};
   const term=x=>{const o=x.o,i=x.i,parts=String(o.desc).split(/\s+[—–-]\s+/);return `<div class="nt-term">
     <div class="nt-term-h"><span class="nt-code">${esc(parts[0])}</span><span class="nt-term-name">${esc(parts.slice(1).join(" — "))}</span>${btn("edit","Edit",`editOther(${i})`)}</div>
     ${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>`;};
-  const head=(title,n,hint)=>`<div class="nt-head"><span class="nt-h">${title}</span><span class="nt-n2">${n}</span>${hint?`<span class="nt-hint">${hint}</span>`:""}</div>`;
-  const list=searching&&!all.length?`<div class="nt-empty">No notes match <strong>${esc(NT_Q.trim())}</strong>.</div>`:
-    `${updates.length||!searching?`<div class="nt-card">${head("Updates",updates.length,"newest first")}
+  const head=(title,n,hint,tools)=>`<div class="nt-head"><span class="nt-h">${title}</span><span class="nt-n2">${n}</span>${hint?`<span class="nt-hint">${hint}</span>`:""}${tools||""}</div>`;
+  const list=searching&&!all.length?`<div class="nt-empty">No ${NT_CAT?(NT_CAT===NT_PLAIN?"plain ":esc(NT_CAT)+" "):""}notes match <strong>${esc(NT_Q.trim())}</strong>.${NT_CAT&&found.length?` There are ${found.length} in All.`:""}</div>`:
+    `${updates.length||(!searching&&!(NT_CAT&&records.length))?`<div class="nt-card">${head(NT_CAT?(NT_CAT===NT_PLAIN?"Plain notes":esc(NT_CAT)):"Updates",updates.length,"newest first",ntCatTools())}
       ${updates.length?byMonth(updates):`<div class="nt-empty">No updates yet. Anything you post above lands here and can be deleted with one click.</div>`}</div>`:""}
     ${records.length?`<div class="nt-card">${head("Records",records.length,"amounts and breakdowns")}${records.map(record).join("")}</div>`:""}
     ${terms.length?`<details class="nt-card nt-terms"${searching?" open":""}><summary>${head("Shipping terms",terms.length,"Incoterms reference")}</summary><div class="nt-term-grid">${terms.map(term).join("")}</div></details>`:""}`;
@@ -868,18 +870,22 @@ function renderOthers(){
      where they are (the writing box hides while searching) */
   const box=document.getElementById("nt-list");
   if(box){
+    ntCatClose();
+    document.getElementById("nt-cats").innerHTML=ntCatRow(found.map(x=>x.o));
+    ntPostCatSync();
     box.innerHTML=list;
     box.parentElement.classList.toggle("nt-searching",searching);
     ntMark(box,words);
     return;
   }
   document.getElementById("content").innerHTML=`<div class="nt-page nt-simple${searching?" nt-searching":""}">${typeof ntViewChips==="function"?ntViewChips():""}
+    <div id="nt-cats">${ntCatRow(found.map(x=>x.o))}</div>
     <div class="nt-card nt-compose">
       <textarea id="others-quick" rows="6" placeholder="Write an update… start a line with - or 1. for a list" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();postOtherQuick();}else listKeys(event)" oninput="listInput(event)"></textarea>
       <div class="nt-compose-foot">
         <div class="nt-tools">${FMT_TOOLS('others-quick')}<button type="button" class="nt-tool" title="Bulleted list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','•')">• List</button><button type="button" class="nt-tool" title="Numbered list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','1.')">1. List</button>
-        <span class="nt-hint">Enter new line · Tab indent · Ctrl+B/I/U · Ctrl+Enter to post</span></div>
-        <button class="btn-save" onclick="postOtherQuick()">Post update</button></div>
+        <span class="nt-hint">Tab indent · Ctrl+Enter to post</span></div>
+        <span class="nt-post"><span id="nt-postcat">${ntPostCatBtn()}</span><button class="btn-save" onclick="postOtherQuick()">Post update</button></span></div>
     </div>
     <div id="nt-list">${list}</div>
   </div>`;
@@ -896,7 +902,7 @@ let NT_POSTING=false;
 async function postOtherQuick(){
   const el=document.getElementById("others-quick"),text=el.value.trim();
   if(!text||NT_POSTING)return;
-  const d=new Date(),no={date:d.getDate()+" "+d.toLocaleString("en-GB",{month:"short"})+" "+d.getFullYear(),desc:text,value:"",sub:"",created:d.toISOString()};
+  const d=new Date(),no={date:d.getDate()+" "+d.toLocaleString("en-GB",{month:"short"})+" "+d.getFullYear(),desc:text,value:"",sub:"",cat:NT_POST_CAT,created:d.toISOString()};
   let r=null;
   NT_POSTING=true;
   try{r=await sbInsert("others",oToDb(no));}catch(e){}
@@ -907,7 +913,10 @@ async function postOtherQuick(){
   const now=document.getElementById("others-quick");
   if(now){if(now.value.trim()===text){now.value="";ntDraftSave("");}}
   else if(ntDraft().trim()===text)ntDraftSave("");
-  OTHERS.push(no);renderContent();
+  OTHERS.push(no);
+  /* shown right away, also when another category is open */
+  if(NT_CAT&&!ntInCat(no))NT_CAT=no.cat||NT_PLAIN;
+  renderContent();
   const again=document.getElementById("others-quick");if(again)again.focus();
 }
 /* Plain-text list editing for note textareas: Enter continues a "•" or
@@ -1389,6 +1398,7 @@ function openModal(){
   }
   else if(currentTab==="others"){
     closeOtherModal();
+    ntCatField(NT_CAT===NT_PLAIN?"":NT_CAT);
     document.getElementById("modal-others").classList.add("open");
   }
 }
