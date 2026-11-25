@@ -812,11 +812,14 @@ function renderBuying(bodyOnly){
 /* Notes are split by what they are: quick updates (no value), records with
    an amount, and the shipping-term reference cards. Newest first in the
    first two; the terms are A-Z and folded away since they rarely change. */
-function renderOthers(){
+function renderOthers(bodyOnly){
   pgHideStats();
   if(typeof NT_VIEW!=="undefined"&&NT_VIEW==="expenses")return renderExpenses();
+  /* search: every typed word must appear in the note, its date or its amount */
+  const words=ntWords(),searching=words.length>0;
+  const hit=x=>ntMatch(words,[x.o.desc,x.o.sub,x.o.value,x.o.date,ntDateWords(x.o.date)]);
   const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
-  const all=OTHERS.map((o,i)=>({o:o,i:i}));
+  const all=OTHERS.map((o,i)=>({o:o,i:i})).filter(x=>!searching||hit(x));
   const newest=(a,b)=>(b.o.created||"").localeCompare(a.o.created||"")||b.i-a.i;
   const isTerm=x=>x.o.value==="Shipping term";
   /* a lone dash was the old way round the required value field */
@@ -855,7 +858,21 @@ function renderOthers(){
     <div class="nt-term-h"><span class="nt-code">${esc(parts[0])}</span><span class="nt-term-name">${esc(parts.slice(1).join(" — "))}</span>${btn("edit","Edit",`editOther(${i})`)}</div>
     ${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>`;};
   const head=(title,n,hint)=>`<div class="nt-head"><span class="nt-h">${title}</span><span class="nt-n2">${n}</span>${hint?`<span class="nt-hint">${hint}</span>`:""}</div>`;
-  document.getElementById("content").innerHTML=`<div class="nt-page nt-simple">${typeof ntViewChips==="function"?ntViewChips():""}
+  const list=searching&&!all.length?`<div class="nt-empty">No notes match <strong>${esc(NT_Q.trim())}</strong>.</div>`:
+    `${updates.length||!searching?`<div class="nt-card">${head("Updates",updates.length,"newest first")}
+      ${updates.length?byMonth(updates):`<div class="nt-empty">No updates yet. Anything you post above lands here and can be deleted with one click.</div>`}</div>`:""}
+    ${records.length?`<div class="nt-card">${head("Records",records.length,"amounts and breakdowns")}${records.map(record).join("")}</div>`:""}
+    ${terms.length?`<details class="nt-card nt-terms"${searching?" open":""}><summary>${head("Shipping terms",terms.length,"Incoterms reference")}</summary><div class="nt-term-grid">${terms.map(term).join("")}</div></details>`:""}`;
+  /* typing in the search only swaps the list, so the box keeps focus and a
+     half-written update is kept (the writing box hides while searching) */
+  const box=document.getElementById("nt-list");
+  if(bodyOnly&&box){
+    box.innerHTML=list;
+    box.parentElement.classList.toggle("nt-searching",searching);
+    ntMark(box,words);
+    return;
+  }
+  document.getElementById("content").innerHTML=`<div class="nt-page nt-simple${searching?" nt-searching":""}">${typeof ntViewChips==="function"?ntViewChips():""}
     <div class="nt-card nt-compose">
       <textarea id="others-quick" rows="6" placeholder="Write an update… start a line with - or 1. for a list" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();postOtherQuick();}else listKeys(event)" oninput="listInput(event)"></textarea>
       <div class="nt-compose-foot">
@@ -863,11 +880,9 @@ function renderOthers(){
         <span class="nt-hint">Enter new line · Tab indent · Ctrl+B/I/U · Ctrl+Enter to post</span></div>
         <button class="btn-save" onclick="postOtherQuick()">Post update</button></div>
     </div>
-    <div class="nt-card">${head("Updates",updates.length,"newest first")}
-      ${updates.length?byMonth(updates):`<div class="nt-empty">No updates yet. Anything you post above lands here and can be deleted with one click.</div>`}</div>
-    ${records.length?`<div class="nt-card">${head("Records",records.length,"amounts and breakdowns")}${records.map(record).join("")}</div>`:""}
-    ${terms.length?`<details class="nt-card nt-terms"><summary>${head("Shipping terms",terms.length,"Incoterms reference")}</summary><div class="nt-term-grid">${terms.map(term).join("")}</div></details>`:""}
+    <div id="nt-list">${list}</div>
   </div>`;
+  ntMark(document.getElementById("nt-list"),words);
   if(typeof richify==="function")richify(document.getElementById("others-quick"));
 }
 async function postOtherQuick(){

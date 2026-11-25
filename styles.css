@@ -3600,3 +3600,11 @@ input[list]::-webkit-calendar-picker-indicator{display:none!important}
 .trk-c-fu .trk-tx+.trk-fu-sol{margin-top:2px}
 .trk-sec-due{text-transform:none;letter-spacing:0;white-space:nowrap}
 @media (max-width:700px){.trk-sec-due{margin-left:8px}.trk-low-div:has(.trk-sec-due) .trk-sec-hint{display:none}}
+
+/* Notes page: Notes / Expenses switch and the search on one line */
+.nt-bar{margin:0 0 10px}
+.nt-bar .trk-chips{margin:0;flex:none}
+.nt-bar .trk-search{max-width:420px;margin-left:auto}
+.nt-searching .nt-compose{display:none}
+.nt-simple mark{background:#fde68a;color:#1a1a1a;border-radius:2px;padding:0 1px}
+@media (max-width:700px){.nt-bar .trk-search{max-width:none;flex:1 1 100%}}

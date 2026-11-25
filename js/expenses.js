@@ -32,11 +32,53 @@ async function expLoad(){
 }
 
 function ntSetView(v){NT_VIEW=v;renderContent();}
+/* ---------- search (one box for Notes and Expenses) ---------- */
+var NT_Q="";
+function ntSearchInput(v){
+  NT_Q=v;
+  if(NT_VIEW==="expenses")renderExpenses(true);else renderOthers(true);
+}
+function ntWords(){return NT_Q.toLowerCase().split(/\s+/).filter(Boolean);}
+/* every word somewhere in the fields; bold/italic marks don't get in the way,
+   and 1500000 finds 1,500,000 (and the other way round) */
+function ntNum(s){return s.replace(/(\d)[,.](?=\d{3})/g,"$1");}
+function ntMatch(words,fields){
+  var hay=fields.filter(function(f){return f!==undefined&&f!==null&&f!=="";}).join(" ").toLowerCase().replace(/\*\*|__|\*/g,""),plain=ntNum(hay);
+  return words.every(function(w){return hay.indexOf(w)>-1||plain.indexOf(ntNum(w))>-1;});
+}
+/* every way to type a date: 12 Oct 2026, October 2026, 12/10/2026, 2026-10 */
+function ntDateWords(d){
+  var s=String(d||"").trim(),m=/^(\d{1,2})\s+([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{4})$/.exec(s);
+  if(m){
+    var mo=EXP_MON.map(function(x){return x.toLowerCase();}).indexOf(m[2].toLowerCase());
+    if(mo>-1)s=m[3]+"-"+("0"+(mo+1)).slice(-2)+"-"+("0"+m[1]).slice(-2);
+  }
+  return trkDateWords(s);
+}
+/* yellow highlight on the words that matched */
+function ntMark(root,words){
+  if(!root||!words.length)return;
+  var re=new RegExp("("+words.slice().sort(function(a,b){return b.length-a.length;}).map(function(w){return w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}).join("|")+")","gi");
+  var tw=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[];
+  while(tw.nextNode())if(tw.currentNode.parentElement.closest(".nt-body,.nt-amt,.nt-term,.exp-month span,.exp-main,.exp-amt"))nodes.push(tw.currentNode);
+  nodes.forEach(function(n){
+    var parts=n.nodeValue.split(re);
+    if(parts.length<2)return;
+    var f=document.createDocumentFragment();
+    parts.forEach(function(t,i){
+      if(!t)return;
+      if(i%2){var k=document.createElement("mark");k.textContent=t;f.appendChild(k);}
+      else f.appendChild(document.createTextNode(t));
+    });
+    n.parentNode.replaceChild(f,n);
+  });
+}
 function ntViewChips(){
-  return "<div class='trk-toolbar nt-views'><div class='trk-chips'>"+
+  return "<div class='trk-bar nt-views nt-bar'><div class='trk-chips'>"+
     [["notes","Notes"],["expenses","Expenses"]].map(function(v){
       return "<button class='trk-chip"+(NT_VIEW===v[0]?" active":"")+"' onclick='ntSetView(\""+v[0]+"\")'>"+v[1]+"</button>";
-    }).join("")+"</div></div>";
+    }).join("")+"</div>"+
+    "<div class='trk-search'><span class='trk-search-ico'>&#128269;</span><input id='nt-search' type='search' placeholder='Search "+(NT_VIEW==="expenses"?"expenses":"notes")+"&hellip;' value='"+trkEsc(NT_Q).replace(/'/g,"&#39;")+"' oninput='ntSearchInput(this.value)' autocomplete='off' data-1p-ignore data-lpignore='true' data-bwignore></div></div>";
 }
 
 var EXP_MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -68,7 +110,7 @@ function expShort(v){
 function expMonthKey(e){return (e.date||"").slice(0,7);}
 var EXP_MONTHS_LONG=["January","February","March","April","May","June","July","August","September","October","November","December"];
 
-function renderExpenses(){
+function renderExpenses(bodyOnly){
   var content=document.getElementById("content");
   var head=ntViewChips();
   if(!EXP_LOADED){
@@ -84,18 +126,35 @@ function renderExpenses(){
   var depts=EXP_DEPTS.concat(EXPENSES.map(function(e){return e.department;}).filter(function(d,i,a){return d&&EXP_DEPTS.indexOf(d)<0&&a.indexOf(d)===i;}).sort());
   var dept=depts.indexOf(EXP_DEPT_SEL)>-1?EXP_DEPT_SEL:depts[0];
   var color=expDeptColor(dept)||"var(--accent)";
-  var all=EXPENSES.filter(function(e){return e.department===dept;});
+  var words=ntWords(),searching=words.length>0;
+  var found=!searching?EXPENSES:EXPENSES.filter(function(e){
+    return ntMatch(words,[e.description,e.category,e.paidBy,e.note,e.period,ntDateWords(e.date),e.amount,e.currency,e.kind]);
+  });
+  var all=found.filter(function(e){return e.department===dept;});
+  var total=EXPENSES.filter(function(e){return e.department===dept;}).length;
+  /* typing in the search only swaps what is below it */
+  var show=function(html){
+    var box=document.getElementById("exp-body");
+    if(!(bodyOnly&&box)){
+      content.innerHTML="<div class='nt-page nt-simple exp-page'>"+head+"<div id='exp-body'></div></div>";
+      box=document.getElementById("exp-body");
+    }
+    box.innerHTML=html;
+    ntMark(box,words);
+  };
   var ico=function(kind,title,fn){
     var path=kind==="edit"?'<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/>':'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>';
     return "<button class='nt-ico"+(kind==="edit"?"":" nt-ico-del")+"' title='"+title+"' aria-label='"+title+"' onclick='"+fn+"'><svg viewBox='0 0 24 24' aria-hidden='true'>"+path+"</svg></button>";
   };
   /* department switch, each with its entry count */
   var tabs="<div class='exp-tabs'>"+depts.map(function(d){
-    var n=EXPENSES.filter(function(e){return e.department===d;}).length;
+    var n=found.filter(function(e){return e.department===d;}).length;
     return "<button class='exp-tab"+(d===dept?" on":"")+"' style='--dc:"+(expDeptColor(d)||"var(--accent)")+"' onclick='expSetDept("+JSON.stringify(d).replace(/'/g,"&#39;")+")'>"+trkEsc(d)+"<span>"+n+"</span></button>";
   }).join("")+"</div>";
   if(!all.length){
-    content.innerHTML="<div class='nt-page nt-simple exp-page'>"+head+tabs+"<div class='nt-empty'>No expenses recorded for "+trkEsc(dept)+" yet. Use + Add entry.</div></div>";
+    var other=depts.filter(function(d){return found.some(function(e){return e.department===d;});});
+    show(tabs+"<div class='nt-empty'>"+(searching?"No "+trkEsc(dept)+" expenses match <strong>"+trkEsc(NT_Q.trim())+"</strong>."+(other.length?" There are matches in "+other.map(trkEsc).join(", ")+".":""):
+      "No expenses recorded for "+trkEsc(dept)+" yet. Use + Add entry.")+"</div>");
     return;
   }
   /* main currency = the one with the most spent (a department normally uses one) */
@@ -159,9 +218,10 @@ function renderExpenses(){
   var src=files.length?"<div class='exp-files'><span>Source file"+(files.length>1?"s":"")+"</span>"+files.map(function(a){
     return "<a class='trk-att' href='"+trkEsc(a.url)+"' data-name='"+trkEsc(a.name)+"' onclick='return trkViewFile(this)'>"+(typeof trkFileIcon==="function"?trkFileIcon(a.name)+" ":"")+trkEsc(a.name)+"</a>";
   }).join("")+"</div>":"";
-  content.innerHTML="<div class='nt-page nt-simple exp-page'>"+head+tabs+
-    "<div class='exp-head'><span class='exp-dept' style='color:"+color+"'>"+trkEsc(dept)+"</span><span class='nt-n2'>"+all.length+" entr"+(all.length===1?"y":"ies")+"</span></div>"+
-    stats+src+"<div class='exp-charts'>"+(bars?"<div>"+bars+"</div>":"")+(chart?"<div>"+chart+"</div>":"")+"</div><div class='exp-sec'>Entries</div>"+list+"</div>";
+  show(tabs+
+    "<div class='exp-head'><span class='exp-dept' style='color:"+color+"'>"+trkEsc(dept)+"</span><span class='nt-n2'>"+all.length+(searching?" of "+total:"")+" entr"+((searching?total:all.length)===1?"y":"ies")+"</span></div>"+
+    stats+(searching?"":src+"<div class='exp-charts'>"+(bars?"<div>"+bars+"</div>":"")+(chart?"<div>"+chart+"</div>":"")+"</div>")+
+    "<div class='exp-sec'>"+(searching?"Matching entries":"Entries")+"</div>"+list);
 }
 
 /* ---------- add / edit ---------- */
