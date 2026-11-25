@@ -136,3 +136,51 @@ function ntCatField(val){
   document.getElementById("o-cat-list").innerHTML=ntCats().map(function(c){return "<option value='"+trkEsc(c)+"'>";}).join("");
   inp.value=val||"";
 }
+
+/* ============================================================
+   NOTE DATES — the date of an update can be picked before posting
+   (today unless changed) and changed later by clicking the date.
+   Stored as text like before: "25 Nov 2026".
+   ============================================================ */
+var NT_POST_DATE=""; /* "" = today, else 2026-11-20 */
+function ntToday(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+function ntDateIso(t){
+  var m=/^(\d{1,2})\s+([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{4})$/.exec(String(t||"").trim());if(!m)return "";
+  var k=EXP_MON.map(function(x){return x.toLowerCase();}).indexOf(m[2].toLowerCase());
+  return k<0?"":m[3]+"-"+("0"+(k+1)).slice(-2)+"-"+("0"+m[1]).slice(-2);
+}
+function ntDateText(iso){var p=iso.split("-");return (+p[2])+" "+EXP_MON[+p[1]-1]+" "+p[0];}
+/* a date field laid invisibly over what is shown: a click or tap opens the calendar */
+function ntDateInput(iso,fn,label){
+  return "<input type='date' value='"+trkEsc(iso)+"' min='2000-01-01' max='2099-12-31' aria-label='"+trkEsc(label)+"' onclick='try{this.showPicker()}catch(e){}' onchange='"+fn+"'>";
+}
+/* half-typed years (0002, 0202) and an emptied field are not dates */
+function ntDateOk(v){return /^20\d\d-\d\d-\d\d$/.test(v);}
+function ntPostDateBtn(){
+  var iso=NT_POST_DATE||ntToday(),t=ntDateText(iso);
+  return "<span class='nt-postcat nt-dpick"+(NT_POST_DATE?" set":"")+"' title='Date of this update'>"+
+    "<svg viewBox='0 0 16 16' width='13' height='13' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><rect x='2' y='3' width='12' height='11' rx='2'/><path d='M2 6.5h12M5 1.5V4M11 1.5V4'/></svg>"+
+    (NT_POST_DATE?t:"Today")+ntDateInput(iso,"ntPostDateSet(this)","Date of this update, "+t)+"</span>";
+}
+function ntPostDateSync(){
+  var b=document.getElementById("nt-postdate");
+  if(b&&!b.contains(document.activeElement))b.innerHTML=ntPostDateBtn();
+}
+function ntPostDateSet(inp){
+  if(inp.value&&!ntDateOk(inp.value))return;
+  NT_POST_DATE=inp.value===ntToday()?"":inp.value;
+  inp.blur();ntPostDateSync();
+}
+async function ntDateSave(o,text){
+  var old=o.date;if(old===text)return true;
+  o.date=text;renderOthers();
+  var ok=true;
+  if(o._id){try{ok=(await fetch(SB_URL+"/rest/v1/others?id=eq."+o._id,{method:"PATCH",headers:sbH(),body:JSON.stringify({date:text})})).ok;}catch(e){ok=false;}}
+  if(!ok){o.date=old;renderOthers();alert("Couldn't save the date. Nothing was changed, please try again.");}
+  return ok;
+}
+async function ntDateSet(i,inp){
+  var o=OTHERS[i];if(!o||!ntDateOk(inp.value))return;
+  var old=o.date,text=ntDateText(inp.value);if(old===text)return;
+  if(await ntDateSave(o,text))showUndoToast("Date changed to "+text,function(){ntDateSave(o,old);});
+}

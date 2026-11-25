@@ -826,7 +826,10 @@ function renderOthers(){
   const isTerm=x=>x.o.value==="Shipping term";
   /* a lone dash was the old way round the required value field */
   const hasVal=x=>!/^[\s\-–—]*$/.test(x.o.value||"");
-  const updates=all.filter(x=>!hasVal(x)).sort(newest);
+  /* updates go by their own date (it can be changed); one without a full date
+     goes by the day it was added */
+  const dayKey=o=>ntDateIso(o.date)||String(o.created||"").slice(0,10);
+  const updates=all.filter(x=>!hasVal(x)).sort((a,b)=>dayKey(b.o).localeCompare(dayKey(a.o))||newest(a,b));
   const records=all.filter(x=>hasVal(x)&&!isTerm(x)).sort(newest);
   const terms=all.filter(isTerm).sort((a,b)=>a.o.desc.localeCompare(b.o.desc));
   const ico={
@@ -843,13 +846,13 @@ function renderOthers(){
     const t=new Date("1 "+m[2]+" "+m[3]);
     return isNaN(t)?m[2]+" "+m[3]:t.toLocaleString("en-GB",{month:"long"})+" "+m[3];
   };
-  const dateBlock=d=>{const m=dateParts(d);return m?`<div class="exp-day">${m[1]}<span>${m[2]}</span></div>`:"";};
+  const dateBlock=(d,i)=>{const m=dateParts(d);return m?`<div class="exp-day nt-dpick" title="Change date">${m[1]}<span>${m[2]}</span>${ntDateInput(ntDateIso(d),`ntDateSet(${i},this)`,"Date of this note, "+d)}</div>`:"";};
   const byMonth=list=>{
     const g={},order=[];
     list.forEach(x=>{const k=monthLabel(x.o.date);if(!g[k]){g[k]=[];order.push(k);}g[k].push(x);});
     return order.map(k=>`<div class="exp-month"><span>${esc(k)}</span></div>${g[k].map(update).join("")}`).join("");
   };
-  const update=x=>{const o=x.o,i=x.i;return `<div class="nt-upd">${dateBlock(o.date)}
+  const update=x=>{const o=x.o,i=x.i;return `<div class="nt-upd">${dateBlock(o.date,i)}
     <div class="nt-body">${ntCatTag(o,i)}<div class="nt-text">${trkLines(o.desc)}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
     <div class="nt-acts">${ntCatIcon(i)}${btn("edit","Edit",`editOther(${i})`)}${btn("del","Delete",`deleteOtherQuick(${i})`)}</div></div>`;};
   const record=x=>{const o=x.o,i=x.i;return `<div class="nt-rec">
@@ -872,7 +875,7 @@ function renderOthers(){
   if(box){
     ntCatClose();
     document.getElementById("nt-cats").innerHTML=ntCatRow(found.map(x=>x.o));
-    ntPostCatSync();
+    ntPostCatSync();ntPostDateSync();
     box.innerHTML=list;
     box.parentElement.classList.toggle("nt-searching",searching);
     ntMark(box,words);
@@ -885,7 +888,7 @@ function renderOthers(){
       <div class="nt-compose-foot">
         <div class="nt-tools">${FMT_TOOLS('others-quick')}<button type="button" class="nt-tool" title="Bulleted list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','•')">• List</button><button type="button" class="nt-tool" title="Numbered list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','1.')">1. List</button>
         <span class="nt-hint">Tab indent · Ctrl+Enter to post</span></div>
-        <span class="nt-post"><span id="nt-postcat">${ntPostCatBtn()}</span><button class="btn-save" onclick="postOtherQuick()">Post update</button></span></div>
+        <span class="nt-post"><span id="nt-postdate">${ntPostDateBtn()}</span><span id="nt-postcat">${ntPostCatBtn()}</span><button class="btn-save" onclick="postOtherQuick()">Post update</button></span></div>
     </div>
     <div id="nt-list">${list}</div>
   </div>`;
@@ -902,7 +905,7 @@ let NT_POSTING=false;
 async function postOtherQuick(){
   const el=document.getElementById("others-quick"),text=el.value.trim();
   if(!text||NT_POSTING)return;
-  const d=new Date(),no={date:d.getDate()+" "+d.toLocaleString("en-GB",{month:"short"})+" "+d.getFullYear(),desc:text,value:"",sub:"",cat:NT_POST_CAT,created:d.toISOString()};
+  const d=new Date(),no={date:ntDateText(NT_POST_DATE||ntToday()),desc:text,value:"",sub:"",cat:NT_POST_CAT,created:d.toISOString()};
   let r=null;
   NT_POSTING=true;
   try{r=await sbInsert("others",oToDb(no));}catch(e){}
@@ -913,7 +916,7 @@ async function postOtherQuick(){
   const now=document.getElementById("others-quick");
   if(now){if(now.value.trim()===text){now.value="";ntDraftSave("");}}
   else if(ntDraft().trim()===text)ntDraftSave("");
-  OTHERS.push(no);
+  OTHERS.push(no);NT_POST_DATE="";
   /* shown right away, also when another category is open */
   if(NT_CAT&&!ntInCat(no))NT_CAT=no.cat||NT_PLAIN;
   renderContent();
