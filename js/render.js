@@ -817,7 +817,7 @@ function renderOthers(){
   if(typeof NT_VIEW!=="undefined"&&NT_VIEW==="expenses")return renderExpenses();
   /* search: every typed word must appear in the note, its date or its amount */
   const words=ntWords(),searching=words.length>0;
-  const hit=x=>ntMatch(words,[x.o.desc,x.o.sub,x.o.value,x.o.cat,x.o.date,ntDateWords(x.o.date)]);
+  const hit=x=>ntMatch(words,[x.o.desc,x.o.sub,x.o.value,x.o.cat,x.o.date,ntDateWords(x.o.date),ntFollow(x.o)?"follow up "+trkDateWords(x.o.fu):""]);
   const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
   ntCatCheck();
   const found=OTHERS.map((o,i)=>({o:o,i:i})).filter(x=>!searching||hit(x));
@@ -852,13 +852,13 @@ function renderOthers(){
     list.forEach(x=>{const k=monthLabel(x.o.date);if(!g[k]){g[k]=[];order.push(k);}g[k].push(x);});
     return order.map(k=>`<div class="exp-month"><span>${esc(k)}</span></div>${g[k].map(update).join("")}`).join("");
   };
-  const update=x=>{const o=x.o,i=x.i;return `<div class="nt-upd">${dateBlock(o.date,i)}
-    <div class="nt-body">${ntCatTag(o,i)}<div class="nt-text">${trkLines(o.desc)}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
-    <div class="nt-acts">${ntCatIcon(i)}${btn("edit","Edit",`editOther(${i})`)}${btn("del","Delete",`deleteOtherQuick(${i})`)}</div></div>`;};
-  const record=x=>{const o=x.o,i=x.i;return `<div class="nt-rec">
-    <div class="nt-body">${ntCatTag(o,i)}<div class="nt-title">${fmtInline(esc(o.desc))}${o.date?`<span class="nt-when">${esc(o.date)}</span>`:""}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
+  const update=x=>{const o=x.o,i=x.i;return `<div class="nt-upd" data-nid="${esc(o._id)}">${dateBlock(o.date,i)}
+    <div class="nt-body">${ntMetaLine(o,i)}<div class="nt-text">${trkLines(o.desc)}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
+    <div class="nt-acts">${ntFuIcon(i)}${ntCatIcon(i)}${btn("edit","Edit",`editOther(${i})`)}${btn("del","Delete",`deleteOtherQuick(${i})`)}</div></div>`;};
+  const record=x=>{const o=x.o,i=x.i;return `<div class="nt-rec" data-nid="${esc(o._id)}">
+    <div class="nt-body">${ntMetaLine(o,i)}<div class="nt-title">${fmtInline(esc(o.desc))}${o.date?`<span class="nt-when">${esc(o.date)}</span>`:""}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
     <div class="nt-amt">${esc(o.value)}</div>
-    <div class="nt-acts">${ntCatIcon(i)}${btn("edit","Edit",`editOther(${i})`)}${btn("trash","Remove",`deleteOther(${i})`)}</div></div>`;};
+    <div class="nt-acts">${ntFuIcon(i)}${ntCatIcon(i)}${btn("edit","Edit",`editOther(${i})`)}${btn("trash","Remove",`deleteOther(${i})`)}</div></div>`;};
   const term=x=>{const o=x.o,i=x.i,parts=String(o.desc).split(/\s+[—–-]\s+/);return `<div class="nt-term">
     <div class="nt-term-h"><span class="nt-code">${esc(parts[0])}</span><span class="nt-term-name">${esc(parts.slice(1).join(" — "))}</span>${btn("edit","Edit",`editOther(${i})`)}</div>
     ${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>`;};
@@ -875,7 +875,7 @@ function renderOthers(){
   if(box){
     ntCatClose();
     document.getElementById("nt-cats").innerHTML=ntCatRow(found.map(x=>x.o));
-    ntPostCatSync();ntPostDateSync();
+    ntPostCatSync();ntPostDateSync();ntPostFuSync();
     box.innerHTML=list;
     box.parentElement.classList.toggle("nt-searching",searching);
     ntMark(box,words);
@@ -886,9 +886,8 @@ function renderOthers(){
     <div class="nt-card nt-compose">
       <textarea id="others-quick" rows="6" placeholder="Write an update… start a line with - or 1. for a list" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();postOtherQuick();}else listKeys(event)" oninput="listInput(event)"></textarea>
       <div class="nt-compose-foot">
-        <div class="nt-tools">${FMT_TOOLS('others-quick')}<button type="button" class="nt-tool" title="Bulleted list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','•')">• List</button><button type="button" class="nt-tool" title="Numbered list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','1.')">1. List</button>
-        <span class="nt-hint">Tab indent · Ctrl+Enter to post</span></div>
-        <span class="nt-post"><span id="nt-postdate">${ntPostDateBtn()}</span><span id="nt-postcat">${ntPostCatBtn()}</span><button class="btn-save" onclick="postOtherQuick()">Post update</button></span></div>
+        <div class="nt-tools">${FMT_TOOLS('others-quick')}<button type="button" class="nt-tool" title="Bulleted list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','•')">• List</button><button type="button" class="nt-tool" title="Numbered list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','1.')">1. List</button></div>
+        <span class="nt-post"><span id="nt-postdate">${ntPostDateBtn()}</span><span id="nt-postfu">${ntPostFuBtn()}</span><span id="nt-postcat">${ntPostCatBtn()}</span><button class="btn-save" title="Ctrl+Enter" onclick="postOtherQuick()">Post update</button></span></div>
     </div>
     <div id="nt-list">${list}</div>
   </div>`;
@@ -905,7 +904,7 @@ let NT_POSTING=false;
 async function postOtherQuick(){
   const el=document.getElementById("others-quick"),text=el.value.trim();
   if(!text||NT_POSTING)return;
-  const d=new Date(),no={date:ntDateText(NT_POST_DATE||ntToday()),desc:text,value:"",sub:"",cat:NT_POST_CAT,created:d.toISOString()};
+  const d=new Date(),no={date:ntDateText(NT_POST_DATE||ntToday()),desc:text,value:"",sub:"",cat:NT_POST_CAT,fu:NT_POST_FU,created:d.toISOString()};
   let r=null;
   NT_POSTING=true;
   try{r=await sbInsert("others",oToDb(no));}catch(e){}
@@ -916,7 +915,7 @@ async function postOtherQuick(){
   const now=document.getElementById("others-quick");
   if(now){if(now.value.trim()===text){now.value="";ntDraftSave("");}}
   else if(ntDraft().trim()===text)ntDraftSave("");
-  OTHERS.push(no);NT_POST_DATE="";
+  OTHERS.push(no);NT_POST_DATE="";NT_POST_FU="";
   /* shown right away, also when another category is open */
   if(NT_CAT&&!ntInCat(no))NT_CAT=no.cat||NT_PLAIN;
   renderContent();
@@ -1402,7 +1401,7 @@ function openModal(){
   }
   else if(currentTab==="others"){
     closeOtherModal();
-    ntCatField(NT_CAT===NT_PLAIN?"":NT_CAT);
+    ntCatField(NT_CAT===NT_PLAIN?"":NT_CAT);ntFuField("");
     document.getElementById("modal-others").classList.add("open");
   }
 }

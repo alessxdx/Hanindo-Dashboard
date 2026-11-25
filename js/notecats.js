@@ -53,7 +53,7 @@ function ntCatCheck(){
 /* small label above a note; not repeated when only that category is shown */
 function ntCatTag(o,i){
   if(!OTHERS_HAS_CAT||!o.cat||NT_CAT)return "";
-  return "<button class='nt-cat' style='--dc:"+ntCatColor(o.cat)+"' title='Change category' onclick='ntCatMenu(this,"+i+")'><i></i>"+trkEsc(o.cat)+"</button>";
+  return "<button class='nt-cat nt-cat-c' style='--dc:"+ntCatColor(o.cat)+"' title='Change category' onclick='ntCatMenu(this,"+i+")'><i></i>"+trkEsc(o.cat)+"</button>";
 }
 function ntCatIcon(i){
   if(!OTHERS_HAS_CAT)return "";
@@ -85,6 +85,10 @@ function ntCatMenu(btn,i){
   m.querySelector("form").addEventListener("submit",function(e){
     e.preventDefault();var v=ntCatClean(this.querySelector("input").value);if(v)pick(v);
   });
+  ntMenuOpen(btn,m);
+}
+/* shows a menu under (or above) its button */
+function ntMenuOpen(btn,m){
   document.body.appendChild(m);m.style.display="block";
   var r=btn.getBoundingClientRect(),vv=window.visualViewport,h=vv?vv.offsetTop+vv.height:innerHeight,up=r.bottom+m.offsetHeight+8>h&&r.top>m.offsetHeight+8;
   m.style.left=Math.max(8,Math.min(r.left,document.documentElement.clientWidth-m.offsetWidth-8))+"px";
@@ -183,4 +187,93 @@ async function ntDateSet(i,inp){
   var o=OTHERS[i];if(!o||!ntDateOk(inp.value))return;
   var old=o.date,text=ntDateText(inp.value);if(old===text)return;
   if(await ntDateSave(o,text))showUndoToast("Date changed to "+text,function(){ntDateSave(o,old);});
+}
+
+/* ============================================================
+   NOTE FOLLOW-UPS — an optional follow-up date on a note
+   (others.follow_up, notes-followup-setup.sql). It shows on the note and
+   on the Today page: due or overdue, or coming up this week. "Done" takes
+   it off. Until that column exists nothing here is shown.
+   ============================================================ */
+var OTHERS_HAS_FU=false; /* set when the notes are loaded (supabase.js) */
+var NT_POST_FU="";       /* follow-up date the next posted update gets */
+var NT_BELL="<svg viewBox='0 0 16 16' width='13' height='13' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M4 7a4 4 0 0 1 8 0c0 3 1.2 4 1.2 4H2.8S4 10 4 7zM6.8 13.5a1.4 1.4 0 0 0 2.4 0'/></svg>";
+/* same shape as a project's follow-up, so trkFollowText shows both alike */
+function ntFollow(o){
+  if(!OTHERS_HAS_FU||!o.fu||ntIsTerm(o))return null;
+  var late=trkDaysBetween(o.fu,ntToday());
+  return {due:late>=0,kind:"followup",days:late,date:o.fu};
+}
+/* small line above a note: category and follow-up */
+function ntMetaLine(o,i){
+  var f=ntFollow(o),c=ntCatTag(o,i);
+  if(!f)return c;
+  return "<div class='nt-meta'>"+c+"<button class='nt-cat nt-fu"+(f.days>0?" late":f.days===0?" now":"")+"' title='Change or finish the follow-up' aria-haspopup='listbox' onclick='ntFuMenu(this,"+i+")'>"+NT_BELL+trkFollowText(f)+"</button></div>";
+}
+function ntFuIcon(i){
+  if(!OTHERS_HAS_FU)return "";
+  return "<button class='nt-ico' title='Follow-up date' aria-label='Follow-up date' aria-haspopup='listbox' onclick='ntFuMenu(this,"+i+")'><svg viewBox='0 0 24 24' aria-hidden='true'><path d='M6 10a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6zM10 20a2.2 2.2 0 0 0 4 0'/></svg></button>";
+}
+function ntPostFuBtn(){
+  if(!OTHERS_HAS_FU)return "";
+  return "<button type='button' class='nt-postcat"+(NT_POST_FU?" set":"")+"' title='Follow-up date of this update' aria-haspopup='listbox' onclick='ntFuMenu(this,-1)'>"+NT_BELL+
+    (NT_POST_FU?"Follow up "+ntDateText(NT_POST_FU).replace(/ \d{4}$/,""):"Follow up")+"</button>";
+}
+function ntPostFuSync(){var b=document.getElementById("nt-postfu");if(b)b.innerHTML=ntPostFuBtn();}
+function ntPlus(n){var d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+/* same day next month; 31 Jan gives the last day of February */
+function ntNextMonth(){
+  var d=new Date(),day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+1);
+  d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));
+  return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+}
+/* i = note, -1 = the update being written */
+function ntFuMenu(btn,i){
+  if(NT_CATM){var same=NT_CATM.btn===btn;ntCatClose();if(same)return;}
+  var o=i<0?null:OTHERS[i];if(i>=0&&!o)return;
+  var cur=o?o.fu||"":NT_POST_FU;
+  var opts=[[ntPlus(3),"3 days"],[ntPlus(7),"1 week"],[ntNextMonth(),"1 month"]];
+  var m=document.createElement("div");m.className="dd-pop nt-catm";
+  var row=function(v,label,note,on){return "<div class='dd-item"+(on?" on":"")+"' role='option' aria-selected='"+!!on+"' data-v='"+v+"'><span class='dd-check'>"+(on?"&#10003;":"")+"</span><span class='dd-lbl'>"+label+"</span>"+(note?"<span class='nt-fu-d'>"+note+"</span>":"")+"</div>";};
+  var day=function(iso){return new Date(iso+"T00:00:00").toLocaleDateString("en-GB",{weekday:"short"})+" "+ntDateText(iso).replace(/ \d{4}$/,"");};
+  var preset=opts.some(function(x){return x[0]===cur;});
+  m.innerHTML=(cur?"<div class='dd-group'>Follow up "+ntDateText(cur)+"</div>"+row("",o?"&#10003; Done, remove follow-up":"No follow-up","",false):"<div class='dd-group'>Follow up</div>")+
+    "<div role='listbox'>"+opts.map(function(x){return row(x[0],x[1],day(x[0]),x[0]===cur);}).join("")+"</div>"+
+    "<div class='dd-item nt-dpick nt-fu-pick"+(cur&&!preset?" on":"")+"'><span class='dd-check'>"+(cur&&!preset?"&#10003;":"")+"</span><span class='dd-lbl nt-fu-cal'><svg viewBox='0 0 16 16' width='14' height='14' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><rect x='2' y='3' width='12' height='11' rx='2'/><path d='M2 6.5h12M5 1.5V4M11 1.5V4'/></svg>Calendar</span>"+
+      (cur&&!preset?"<span class='nt-fu-d'>"+day(cur)+"</span>":"")+ntDateInput(cur||ntPlus(1),"","Follow-up date").replace("min='2000-01-01'","min='"+ntToday()+"'")+"</div>";
+  var pick=function(v){ntCatClose();if(o)ntFuSet(o,v);else{NT_POST_FU=v;ntPostFuSync();}};
+  m.addEventListener("click",function(e){var it=e.target.closest(".dd-item");if(it&&it.hasAttribute("data-v"))pick(it.getAttribute("data-v"));});
+  m.querySelector("input").addEventListener("change",function(){if(ntDateOk(this.value)&&this.value>=ntToday())pick(this.value);});
+  ntMenuOpen(btn,m);
+}
+async function ntFuSave(o,v){
+  var old=o.fu||"";if(old===v)return true;
+  o.fu=v;renderContent();
+  var ok=true;
+  if(o._id){try{ok=(await fetch(SB_URL+"/rest/v1/others?id=eq."+o._id,{method:"PATCH",headers:sbH(),body:JSON.stringify({follow_up:v||null})})).ok;}catch(e){ok=false;}}
+  if(!ok){o.fu=old;renderContent();alert("Couldn't save the follow-up. Nothing was changed, please try again.");}
+  return ok;
+}
+async function ntFuSet(o,v){
+  var old=o.fu||"";if(old===v)return;
+  if(await ntFuSave(o,v))showUndoToast(v?"Follow up "+ntDateText(v):"Follow-up done",function(){ntFuSave(o,old);});
+}
+/* Follow-up field of the Add / Edit note form */
+function ntFuField(val){
+  var g=document.getElementById("o-fu-group");if(!g)return;
+  g.style.display=OTHERS_HAS_FU?"":"none";
+  document.getElementById("o-fu").value=val||"";
+}
+/* first line of a note, without marks and list signs */
+function ntTitle(o){
+  var t=fmtNoSize(o.desc).replace(/\*\*|__|\*/g,"").split("\n").map(function(l){return l.replace(/^\s*([•●▪◦‣-]|\d+[.)])\s+/,"").trim();}).filter(Boolean)[0]||"Note";
+  return t.length>90?t.slice(0,88).trim()+"\u2026":t;
+}
+/* from the Today page: the note, in view and marked for a moment */
+function ntOpenNote(id){
+  NT_VIEW="notes";NT_CAT="";NT_Q="";
+  tdGo("others","");
+  var el=document.querySelector('[data-nid="'+id+'"]');if(!el)return;
+  el.scrollIntoView({block:"start"});window.scrollBy(0,-80);
+  el.classList.add("nt-flash");setTimeout(function(){el.classList.remove("nt-flash");},2500);
 }

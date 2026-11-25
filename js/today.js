@@ -118,12 +118,14 @@ function tdIcon(title){
   var x=TD_ICONS[title];if(!x)return "";
   return "<span class='td-ic td-c-"+x[0]+"' aria-hidden='true'><svg viewBox='0 0 24 24' width='18' height='18' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>"+x[1]+"</svg></span>";
 }
+/* a note has no country: a small page icon in the same round place */
+var TD_NOTE_LEAD="<span class='row-flag'><span class='row-flag-none td-notelead'><svg viewBox='0 0 24 24' width='16' height='16' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z'/><path d='M14 3v5h5M9 13h6M9 17h4'/></svg></span></span>";
 function tdRow(o){
   /* o: {name, cust, country, right, sub, badge, go, sel} */
   /* the customer is left out when the project name already starts with it */
   var cust=o.cust&&String(o.name||"").toLowerCase().indexOf(String(o.cust).toLowerCase())===0?"":(o.cust||"");
   var sub=[tdEsc(cust),o.sub||""].filter(Boolean).join(" &middot; ");
-  return "<button class='td-row' onclick='"+tdAttr(tdGoAttr(o.go,o.sel))+"'>"+tdFlagLead(o.country)+
+  return "<button class='td-row' onclick='"+tdAttr(o.js||tdGoAttr(o.go,o.sel))+"'>"+(o.note?TD_NOTE_LEAD:tdFlagLead(o.country))+
     "<span class='td-main'><span class='td-name'>"+tdEsc(o.name)+"</span>"+
       "<span class='td-sub'>"+sub+"</span></span>"+
     (o.badge?"<span class='td-badge'>"+o.badge+"</span>":"")+
@@ -158,10 +160,19 @@ function renderToday(){
     if(f.due)(f.kind==="quiet"?quiet:due).push({p:p,f:f});
     else if(f.kind==="followup"&&tdDays(today,f.date)<=7)soon.push({p:p,f:f});
   });
+  /* notes with a follow-up date */
+  if(typeof ntFollow==="function")OTHERS.forEach(function(o){
+    var f=ntFollow(o);
+    if(!f)return;
+    if(f.due)due.push({n:o,f:f});
+    else if(tdDays(today,f.date)<=7)soon.push({n:o,f:f});
+  });
   due.sort(function(a,b){return b.f.days-a.f.days;});
   quiet.sort(function(a,b){return b.f.days-a.f.days;});
   soon.sort(function(a,b){return a.f.date.localeCompare(b.f.date);});
   var fuRow=function(x){
+    if(x.n)return tdRow({name:ntTitle(x.n),badge:trkFollowText(x.f),note:true,
+      sub:["Note",tdEsc(x.n.cat||""),tdEsc(x.n.date||"")].filter(Boolean).join(" &middot; "),js:"ntOpenNote("+JSON.stringify(x.n._id)+")"});
     var last=trkLastDate(x.p,act);
     return tdRow({name:x.p.name,cust:x.p.customer,country:x.p.country,badge:trkFollowText(x.f),
       sub:[x.p.lowPriority?"Low priority":"",last?"last update "+trkFmtDate(last):""].filter(Boolean).join(" &middot; "),go:"tracker",sel:x.p._id});

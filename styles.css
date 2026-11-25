@@ -3686,3 +3686,19 @@ font[size="7"]{font-size:2em;line-height:1.3}
 #nt-postdate{display:inline-flex;min-width:0}
 .nt-postcat.nt-dpick{white-space:nowrap}
 @media (max-width:700px){.nt-post{flex-wrap:wrap;justify-content:flex-end}}
+
+/* Notes: follow-up date (posting row, each note, Today page) */
+.nt-compose-foot{flex-wrap:wrap}
+.nt-post{margin-left:auto}
+#nt-postfu{display:inline-flex;min-width:0}
+.nt-postcat{white-space:nowrap}
+.nt-meta{display:flex;flex-wrap:wrap;gap:0 16px}
+.nt-fu .trk-tx{font-size:12px;font-weight:600}
+.nt-fu.late{color:var(--badge-ls-fg)}
+.nt-fu-d{flex:none;font-size:12px;color:var(--text-muted)}
+.nt-catm .dd-item.on .nt-fu-d{color:inherit}
+.nt-fu-cal{display:inline-flex;align-items:center;gap:7px}
+.nt-fu-pick{border-top:1px solid var(--divider);border-radius:0 0 7px 7px;margin-top:4px}
+.td-notelead{display:inline-flex;align-items:center;justify-content:center;color:var(--text-muted)}
+.nt-flash{animation:nt-flash 2.5s ease-out}
+@keyframes nt-flash{0%,40%{background:color-mix(in srgb,#fde68a 35%,transparent)}100%{background:transparent}}
