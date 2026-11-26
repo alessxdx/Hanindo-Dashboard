@@ -136,6 +136,13 @@ function trkIsDone(p){return !!(p&&p.done);}
    needs no code change: the known ones get a curated dot color, any
    new one a stable hashed hue (same trick as the country colors). */
 var TRK_SOLUTIONS=["Custom","Posiva","Fire fighting","Automotive","Others"];
+/* headings shown as the company logo: one for light, one for dark theme */
+var TRK_SOL_LOGO={"Custom":"custom","Posiva":"posiva"};
+function trkSolLogo(x){
+  var k=TRK_SOL_LOGO[x],a=trkEsc(x);
+  return "<img class='trk-band2-logo trk-logo-light' src='icons/co/"+k+".png' alt='"+a+"'>"+
+    "<img class='trk-band2-logo trk-logo-dark' src='icons/co/"+k+"-dark.png' alt='"+a+"'>";
+}
 var TRK_SOLUTION_COLORS={
   "Custom":"#1d4ed8",        /* blue */
   "Posiva":"#7c3aed",        /* violet */
@@ -913,7 +920,7 @@ function trkRenderList(bodyOnly){
       var due=grp.filter(function(p){return trkFollowDue(p,act);}).length;
       var col=x?trkSolutionColor(x):"var(--border-strong)";
       return "<tr class='trk-band2'><td colspan='"+COLS+"' style='--sol:"+col+"'>"+
-        "<span class='trk-band2-name'>"+(x?trkEsc(x):"No tag yet")+"</span><span class='trk-band2-n'>"+grp.length+" project"+(grp.length===1?"":"s")+"</span>"+
+        "<span class='trk-band2-name'>"+(TRK_SOL_LOGO[x]?trkSolLogo(x):x?trkEsc(x):"No tag yet")+"</span><span class='trk-band2-n'>"+grp.length+" project"+(grp.length===1?"":"s")+"</span>"+
         (due?"<span class='trk-band2-due'>"+due+" need"+(due===1?"s":"")+" follow-up</span>":"")+
       "</td></tr>"+grp.map(rowHtml).join("");
     }).join("")+parkedSections(parked);
