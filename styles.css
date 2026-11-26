@@ -3891,3 +3891,14 @@ font[size="7"]{font-size:2em;line-height:1.3}
 }
 /* files on a note */
 .nt-files{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+/* files picked for a note, before saving */
+.nt-files-pick{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
+.nt-files-pick:empty{display:none}
+#o-files.nt-files-pick{padding:0 0 8px}
+.nt-fchip{display:inline-flex;align-items:center;gap:6px;max-width:100%;font-size:12.5px;font-weight:600;color:var(--accent-text,var(--accent));background:var(--accent-soft);border-radius:8px;padding:4px 4px 4px 9px}
+.nt-fchip svg{flex:none;width:14px;height:14px}
+.nt-fchip-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.nt-fchip button{flex:none;border:none;background:none;color:inherit;font-size:16px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:6px}
+.nt-fchip button:hover{background:var(--bg-hover)}
+@media (max-width:700px){.nt-fchip button{min-width:32px;min-height:32px}}
+.nt-box .nt-attach{order:3}

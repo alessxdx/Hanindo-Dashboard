@@ -817,8 +817,9 @@ function renderOthers(){
     <div class="nt-card nt-compose nt-box">
       <div class="nt-opts"><span id="nt-postcat">${ntPostCatBtn()}</span><span id="nt-postdate">${ntPostDateBtn()}</span><span id="nt-postfu">${ntPostFuBtn()}</span></div>
       <textarea id="others-quick" rows="4" placeholder="Write an update…" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();postOtherQuick();}else listKeys(event)" oninput="listInput(event)"></textarea>
+      <div class="nt-files-pick" id="nt-files">${typeof ntFileChips==="function"?ntFileChips(NT_FILES,"box"):""}</div>
       <div class="nt-compose-foot">
-        <div class="nt-tools">${FMT_TOOLS('others-quick')}<button type="button" class="nt-tool" title="Bulleted list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','•')" aria-label="Bulleted list"><svg viewBox='0 0 16 16' width='16' height='16' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M7 4h7M7 8h7M7 12h7'/><path d='M3 4h.01M3 8h.01M3 12h.01' stroke-width='2.6'/></svg></button><button type="button" class="nt-tool" title="Numbered list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','1.')" aria-label="Numbered list"><svg viewBox='0 0 16 16' width='16' height='16' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M7.5 4h6.5M7.5 8h6.5M7.5 12h6.5'/><path d='M2.2 3.2L3.4 2.4V6M2 10.4c.3-.7 2-.8 2 .3 0 .9-2 1.4-2 2.5h2.1' stroke-width='1.3'/></svg></button></div>
+        <div class="nt-tools">${FMT_TOOLS('others-quick')}<button type="button" class="nt-tool" title="Bulleted list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','•')" aria-label="Bulleted list"><svg viewBox='0 0 16 16' width='16' height='16' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M7 4h7M7 8h7M7 12h7'/><path d='M3 4h.01M3 8h.01M3 12h.01' stroke-width='2.6'/></svg></button><button type="button" class="nt-tool" title="Numbered list" onmousedown="event.preventDefault()" onclick="toggleList('others-quick','1.')" aria-label="Numbered list"><svg viewBox='0 0 16 16' width='16' height='16' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M7.5 4h6.5M7.5 8h6.5M7.5 12h6.5'/><path d='M2.2 3.2L3.4 2.4V6M2 10.4c.3-.7 2-.8 2 .3 0 .9-2 1.4-2 2.5h2.1' stroke-width='1.3'/></svg></button>${OTHERS_HAS_ATT?`<button type="button" class="nt-tool nt-attach" title="Attach file" aria-label="Attach file" onmousedown="event.preventDefault()" onclick="document.getElementById('nt-file-in').click()">${NT_CLIP}</button><input type="file" id="nt-file-in" multiple hidden onchange="ntPickBox(this)">`:""}</div>
         <button class="btn-save" title="Ctrl+Enter" onclick="postOtherQuick()">Post update</button></div>
     </div>
     <div id="nt-list">${list}</div>
@@ -839,6 +840,12 @@ async function postOtherQuick(){
   const d=new Date(),no={date:ntDateText(NT_POST_DATE||ntToday()),desc:text,value:"",sub:"",cat:NT_POST_CAT,fu:NT_POST_FU,created:d.toISOString()};
   let r=null;
   NT_POSTING=true;
+  if(NT_FILES.length){
+    showLoad("Uploading files...");
+    try{no.atts=await ntUploadFiles(NT_FILES);}
+    catch(e){hideLoad();NT_POSTING=false;alert(e.message+". Nothing was posted; your text and files are still in the box.");return;}
+    hideLoad();
+  }
   try{r=await sbInsert("others",oToDb(no));}catch(e){}
   NT_POSTING=false;
   if(!r||!r[0]){alert("Couldn't post the update. Your text is still in the box, please try again.");return;}
@@ -847,7 +854,7 @@ async function postOtherQuick(){
   const now=document.getElementById("others-quick");
   if(now){if(now.value.trim()===text){now.value="";ntDraftSave("");}}
   else if(ntDraft().trim()===text)ntDraftSave("");
-  OTHERS.push(no);NT_POST_DATE="";NT_POST_FU="";
+  OTHERS.push(no);NT_POST_DATE="";NT_POST_FU="";NT_FILES=[];
   /* shown right away, also when another category is open */
   if(NT_CAT&&!ntInCat(no))NT_CAT=no.cat||NT_PLAIN;
   renderContent();
@@ -1247,7 +1254,7 @@ function openModal(){
   }
   else if(currentTab==="others"){
     closeOtherModal();
-    ntCatField(NT_CAT===NT_PLAIN?"":NT_CAT);ntFuField("");
+    ntCatField(NT_CAT===NT_PLAIN?"":NT_CAT);ntFuField("");ntOFilesShow([]);
     document.getElementById("modal-others").classList.add("open");
   }
 }

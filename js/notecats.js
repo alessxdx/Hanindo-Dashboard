@@ -278,3 +278,54 @@ function ntOpenNote(id){
   el.scrollIntoView({block:"start"});window.scrollBy(0,-80);
   el.classList.add("nt-flash");setTimeout(function(){el.classList.remove("nt-flash");},2500);
 }
+
+/* ---------- files on notes ----------
+   NT_FILES: picked in the writing box, uploaded when the update is posted.
+   NT_OFILES: the edit form's list, saved files {name,url} and new ones {name,file}. */
+var NT_FILES=[],NT_OFILES=[],NT_FILE_MAX=20*1024*1024;
+var NT_CLIP="<svg viewBox='0 0 16 16' width='16' height='16' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M10.5 4.5L5.2 9.8a1.6 1.6 0 0 0 2.3 2.3l5.6-5.6a3 3 0 0 0-4.3-4.3L3.2 7.8a4.4 4.4 0 0 0 6.2 6.2l4.1-4.1'/></svg>";
+function ntFileAdd(list,input){
+  [].slice.call(input.files||[]).forEach(function(f){
+    if(f.size>NT_FILE_MAX){alert(f.name+" is bigger than 20 MB, so it was not added.");return;}
+    list.push({name:f.name,file:f});
+  });
+  input.value="";
+}
+function ntFileChips(list,where){
+  return list.map(function(a,k){
+    var n=trkEsc(a.name||"file");
+    return "<span class='nt-fchip'>"+NT_CLIP+"<span class='nt-fchip-n' title='"+n+"'>"+n+"</span>"+
+      "<button type='button' title='Remove' aria-label='Remove "+n+"' onclick='ntFileDrop(\""+where+"\","+k+")'>&times;</button></span>";
+  }).join("");
+}
+function ntFileSync(){
+  var b=document.getElementById("nt-files");if(b)b.innerHTML=ntFileChips(NT_FILES,"box");
+  var m=document.getElementById("o-files");if(m)m.innerHTML=ntFileChips(NT_OFILES,"modal");
+}
+function ntFileDrop(where,k){(where==="box"?NT_FILES:NT_OFILES).splice(k,1);ntFileSync();}
+function ntPickBox(input){ntFileAdd(NT_FILES,input);ntFileSync();}
+function ntPickModal(input){ntFileAdd(NT_OFILES,input);ntFileSync();}
+/* the edit form's files, from the note being edited (none for a new one) */
+function ntOFilesShow(list){
+  NT_OFILES=(list||[]).map(function(a){return {name:a.name,url:a.url};});
+  var g=document.getElementById("o-files-group");if(g)g.style.display=OTHERS_HAS_ATT?"":"none";
+  ntFileSync();
+}
+/* uploads the files not uploaded yet (private bucket, notes/ folder) and
+   returns the list as saved on the note; a file that went up keeps its link,
+   so trying again does not upload it twice */
+async function ntUploadFiles(list){
+  var out=[];
+  for(var i=0;i<list.length;i++){
+    var a=list[i];
+    if(!a.url){
+      var safe=(a.name||"file").replace(/[^a-zA-Z0-9._-]/g,"_"),path="notes/"+Date.now()+"-"+safe;
+      var r=await fetch(SB_URL+"/storage/v1/object/documents/"+path,{method:"POST",
+        headers:{"apikey":SB_KEY,"Authorization":"Bearer "+sbToken(),"Content-Type":a.file.type||"application/octet-stream"},body:a.file});
+      if(!r.ok)throw new Error(a.name+" could not be uploaded (HTTP "+r.status+")");
+      a.url=SB_URL+"/storage/v1/object/public/documents/"+path;delete a.file;
+    }
+    out.push({name:a.name,url:a.url});
+  }
+  return out;
+}

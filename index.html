@@ -23,7 +23,7 @@
    while after an edit). Anywhere else it is APP_VERSION, so files cache
    normally and change only when a deploy bumps the constant.
    BUMP APP_VERSION WHEN DEPLOYING, or returning visitors keep the old JS. */
-var APP_VERSION = "2026-11-26.3";
+var APP_VERSION = "2026-11-26.4";
 var ASSET_V=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
   ?Date.now():APP_VERSION;
 document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
@@ -215,6 +215,7 @@ document.write('<link rel="stylesheet" href="styles.css?v='+ASSET_V+'">');
       <div class="form-group" id="o-cat-group" style="display:none"><label>Category</label><input id="o-cat" list="o-cat-list" maxlength="40" placeholder="Pick one or type a new name"><datalist id="o-cat-list"></datalist></div>
       <div class="form-group" id="o-fu-group" style="display:none"><label>Follow up <span style="font-size:10px;color:#aaa;font-weight:400">(optional)</span></label><input id="o-fu" type="date"></div>
       <div class="form-group form-full"><label class="fmt-label"><span>Description *</span><span class="fmt-tools"><button type="button" class="nt-tool fmt-b" title="Bold (Ctrl+B)" onmousedown="event.preventDefault()" onclick="toggleWrap('o-desc','**')">B</button><button type="button" class="nt-tool fmt-i" title="Italic (Ctrl+I)" onmousedown="event.preventDefault()" onclick="toggleWrap('o-desc','*')">I</button><button type="button" class="nt-tool fmt-u" title="Underline (Ctrl+U)" onmousedown="event.preventDefault()" onclick="toggleWrap('o-desc','__')">U</button></span></label><textarea id="o-desc" rows="6" placeholder="e.g. Service for Vietnam" onkeydown="listKeys(event)" oninput="listInput(event)"></textarea></div>
+      <div class="form-group form-full" id="o-files-group" style="display:none"><label>Files</label><div class="nt-files-pick" id="o-files"></div><button type="button" class="att-add" onclick="document.getElementById('o-file-in').click()">&#43; Add file</button><input type="file" id="o-file-in" multiple hidden onchange="ntPickModal(this)"></div>
       <div class="form-group form-full"><label>Sub-note / detail</label><textarea id="o-sub" placeholder="Any additional context or breakdown"></textarea></div>
     </div>
     <div class="modal-actions">

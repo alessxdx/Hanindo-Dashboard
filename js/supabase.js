@@ -278,7 +278,9 @@ async function sbSaveOther(){
   var desc=document.getElementById("o-desc").value.trim(),value=document.getElementById("o-value").value.trim();
   if(!desc){alert("Please fill in Description.");return;}
   var no={date:document.getElementById("o-date").value.trim(),desc:desc,value:value,sub:document.getElementById("o-sub").value.trim(),cat:ntCatClean(document.getElementById("o-cat").value),fu:document.getElementById("o-fu").value||""};
-  showLoad("Saving...");var r=await sbInsert("others",oToDb(no));if(r&&r[0])no._id=r[0].id;
+  showLoad("Saving...");
+  try{no.atts=await ntUploadFiles(NT_OFILES);}catch(e){hideLoad();alert(e.message+". Nothing was saved.");return;}
+  var r=await sbInsert("others",oToDb(no));if(r&&r[0])no._id=r[0].id;
   OTHERS.push(no);hideLoad();closeOtherModal();renderContent();
 }
 async function sbDeleteBuying(i){
@@ -385,7 +387,7 @@ function editOther(i){
   document.getElementById("o-value").value=o.value||"";
   document.getElementById("o-desc").value=o.desc||"";
   document.getElementById("o-sub").value=o.sub||"";
-  ntCatField(o.cat);ntFuField(o.fu);
+  ntCatField(o.cat);ntFuField(o.fu);ntOFilesShow(o.atts);
   var delBtn=document.getElementById("btn-delete-other");if(delBtn)delBtn.style.display="inline-flex";
   var saveBtnO=document.getElementById("btn-save-other");
   saveBtnO.textContent="Update entry";
@@ -395,8 +397,12 @@ function editOther(i){
     if(!desc){alert("Please fill in Description.");return;}
     var updated={date:document.getElementById("o-date").value.trim(),desc:desc,value:value,sub:document.getElementById("o-sub").value.trim(),cat:ntCatClean(document.getElementById("o-cat").value),fu:document.getElementById("o-fu").value||"",atts:o.atts||[],_id:o._id,created:o.created};
     showLoad("Updating...");
+    try{updated.atts=await ntUploadFiles(NT_OFILES);}catch(e){hideLoad();alert(e.message+". Nothing was changed.");return;}
     if(o._id){
-      await fetch(SB_URL+"/rest/v1/others?id=eq."+o._id,{method:"PATCH",headers:sbH(),body:JSON.stringify(oToDb(updated))});
+      var body=oToDb(updated);
+      /* sent even when empty, so a removed file is removed */
+      if(OTHERS_HAS_ATT)body.attachments=updated.atts;
+      await fetch(SB_URL+"/rest/v1/others?id=eq."+o._id,{method:"PATCH",headers:sbH(),body:JSON.stringify(body)});
     }
     OTHERS[i]=updated;
     hideLoad();
@@ -413,6 +419,7 @@ function closeOtherModal(){
   var saveBtnO=document.getElementById("btn-save-other");
   if(saveBtnO){saveBtnO.textContent="Save entry";saveBtnO.onclick=sbSaveOther;}
   document.getElementById("modal-others").querySelectorAll("input,textarea").forEach(function(el){el.value="";});
+  if(typeof NT_OFILES!=="undefined")NT_OFILES=[];
   closeModal("modal-others");
 }
 
