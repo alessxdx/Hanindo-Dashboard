@@ -137,11 +137,13 @@ function trkIsDone(p){return !!(p&&p.done);}
    new one a stable hashed hue (same trick as the country colors). */
 var TRK_SOLUTIONS=["Custom","Posiva","Fire fighting","Automotive","Others"];
 /* headings shown as the company logo: one for light, one for dark theme */
-var TRK_SOL_LOGO={"Custom":"custom","Posiva":"posiva"};
+var TRK_SOL_LOGO={"Custom":"custom","Posiva":"posiva","Fire fighting":"citra-band","Automotive":"automotive-band"};
+/* logos with two lines or bars need more height to stay readable */
+var TRK_SOL_TALL={"Fire fighting":1,"Automotive":1};
 function trkSolLogo(x){
-  var k=TRK_SOL_LOGO[x],a=trkEsc(x);
-  return "<img class='trk-band2-logo trk-logo-light' src='icons/co/"+k+".png' alt='"+a+"'>"+
-    "<img class='trk-band2-logo trk-logo-dark' src='icons/co/"+k+"-dark.png' alt='"+a+"'>";
+  var k=TRK_SOL_LOGO[x],a=trkEsc(x),c="trk-band2-logo"+(TRK_SOL_TALL[x]?" trk-band2-logo-tall":"");
+  return "<img class='"+c+" trk-logo-light' src='icons/co/"+k+".png' alt='"+a+"'>"+
+    "<img class='"+c+" trk-logo-dark' src='icons/co/"+k+"-dark.png' alt='"+a+"'>";
 }
 var TRK_SOLUTION_COLORS={
   "Custom":"#1d4ed8",        /* blue */
