@@ -3902,3 +3902,4 @@ font[size="7"]{font-size:2em;line-height:1.3}
 .nt-fchip button:hover{background:var(--bg-hover)}
 @media (max-width:700px){.nt-fchip button{min-width:32px;min-height:32px}}
 .nt-box .nt-attach{order:3}
+.nt-attach[hidden]{display:none!important}
