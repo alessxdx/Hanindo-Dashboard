@@ -226,16 +226,24 @@ var PX_DELIVERED=/^(DDP|DAP|CIF|CIP|CPT|DDU)$/i;
 function pxDetail(it,n){
   var h="";
   h+="<div class='px-d-sec'><div class='px-d-head'><span>Cost</span></div>";
-  if(it.costs.length)h+=it.costs.map(function(c){
+  /* a saved cost equal to the last PO price is not listed again: the
+     Last PO row carries its edit buttons */
+  var L=it.last,merged=null;
+  var shown=it.costs.filter(function(c){
+    var same=L&&!merged&&!c.b.specialPrice&&c.b.currency===L.p.currency&&pxSame(c.b.price,L.l.unitPrice);
+    if(same)merged=c;
+    return !same;
+  });
+  var acts=function(c){return pxIco("edit","Edit cost","editBuying("+c.i+")")+pxIco("trash","Remove cost","sbDeleteBuying("+c.i+")");};
+  if(shown.length)h+=shown.map(function(c){
     return "<div class='px-d-row'><span class='px-d-main'>"+trkEsc(c.b.model)+(c.b.pn?"<span class='px-sub'>"+trkEsc(c.b.pn)+"</span>":"")+"</span>"+
       "<span class='px-d-val'>"+pxMoney(c.b.price,c.b.currency)+(c.b.specialPrice?"<span class='px-sub px-special'>"+pxMoney(c.b.specialPrice,c.b.currency)+" for "+trkEsc(c.b.specialCustomer||"special deal")+"</span>":"")+"</span>"+
-      "<span class='nt-acts'>"+pxIco("edit","Edit cost","editBuying("+c.i+")")+pxIco("trash","Remove cost","sbDeleteBuying("+c.i+")")+"</span></div>";
+      "<span class='nt-acts'>"+acts(c)+"</span></div>";
   }).join("");
-  else h+="<div class='px-d-none'>No cost saved. <button class='px-link' onclick='pxAddCost("+n+")'>Add the cost</button></div>";
-  if(it.last){
-    var L=it.last;
-    h+="<div class='px-d-row'><span class='px-d-main'>Last PO<span class='px-sub'><button class='px-link' onclick='pxOpenPo("+n+")'>"+trkEsc(L.p.poNumber||"Open PO")+"</button> &middot; "+trkFmtDate(L.p.date)+(L.p.office?" &middot; "+trkEsc(L.p.office):"")+" &middot; "+L.l.qty.toLocaleString()+" "+trkEsc(L.l.unit||"pcs")+"</span></span>"+
-      "<span class='px-d-val"+(it.check?" px-warn":"")+"'>"+pxMoney(L.l.unitPrice,L.p.currency)+"</span><span class='nt-acts'></span></div>";
+  else if(!it.costs.length)h+="<div class='px-d-none'>No cost saved. <button class='px-link' onclick='pxAddCost("+n+")'>Add the cost</button></div>";
+  if(L){
+    h+="<div class='px-d-row'><span class='px-d-main'>Last PO"+(merged&&merged.label?" ("+trkEsc(merged.label)+")":"")+"<span class='px-sub'><button class='px-link' onclick='pxOpenPo("+n+")'>"+trkEsc(L.p.poNumber||"Open PO")+"</button> &middot; "+trkFmtDate(L.p.date)+(L.p.office?" &middot; "+trkEsc(L.p.office):"")+" &middot; "+L.l.qty.toLocaleString()+" "+trkEsc(L.l.unit||"pcs")+"</span></span>"+
+      "<span class='px-d-val"+(it.check?" px-warn":"")+"'>"+pxMoney(L.l.unitPrice,L.p.currency)+"</span><span class='nt-acts'>"+(merged?acts(merged):"")+"</span></div>";
     if(it.prev){
       var P=it.prev;
       h+="<div class='px-d-row'><span class='px-d-main'>Previous cost<span class='px-sub'><button class='px-link' onclick='pxOpenPo("+n+",true)'>"+trkEsc(P.p.poNumber||"Open PO")+"</button> &middot; "+trkFmtDate(P.p.date)+(P.p.office?" &middot; "+trkEsc(P.p.office):"")+" &middot; "+P.l.qty.toLocaleString()+" "+trkEsc(P.l.unit||"pcs")+"</span></span>"+
