@@ -5,6 +5,8 @@
    prices in `spares` (SPARES), and the last price paid is read
    from the purchase orders. The two edit forms are the same ones.
    - rows are joined by part number (by name when there is none)
+   - "Last sold": each customer's latest price on a won sale (status PO)
+     in Customer Base, per item name (ATB and BTP are kept apart)
    - the saved cost follows the newest PO by itself (pxFollow); when that
      is not safe (pxFollowWhy) it stays and the item is marked "Check cost"
    ============================================================ */
@@ -94,6 +96,33 @@ function pxPoIndex(){
   });
   return by;
 }
+/* won sales lines by part number */
+function pxSoldIndex(){
+  var proj={},by={};
+  (typeof PROJECTS!=="undefined"?PROJECTS:[]).forEach(function(p){if(p.status==="PO")proj[p._id]=p;});
+  (typeof LINE_ITEMS!=="undefined"?LINE_ITEMS:[]).forEach(function(l){
+    var p=proj[l.projectId];
+    if(!p||!l.pn||!(l.unitPrice>0))return;
+    var t=Date.parse(p.date)||0;
+    pxPns(l.pn).forEach(function(k){(by[k]=by[k]||[]).push({p:p,l:l,t:t});});
+  });
+  return by;
+}
+/* the latest sale per customer, country and item name; sales on the same
+   day at the same price (one PO split over sites) are added together */
+function pxSold(it,by){
+  var best={},seen={};
+  it.pns.forEach(function(pn){
+    (by[pn]||[]).forEach(function(x){
+      if(seen[x.l._id])return;seen[x.l._id]=1;
+      var label=x.l.displayModel||x.l.name||it.name,k=[pjNormName(x.p.customer),x.p.country||"",label.toLowerCase()].join("|"),b=best[k];
+      if(b&&b.t===x.t&&pxSame(b.l.unitPrice,x.l.unitPrice)&&b.p.currency===x.p.currency){
+        b.qty+=x.l.qty;if(b.sites.indexOf(x.p.project)===-1)b.sites.push(x.p.project);
+      }else if(!b||x.t>b.t)best[k]={p:x.p,l:x.l,t:x.t,label:label,qty:x.l.qty,sites:[x.p.project]};
+    });
+  });
+  return Object.keys(best).map(function(k){return best[k];}).sort(function(a,b){return poAz(a.p.customer,b.p.customer)||poAz(a.label,b.label);});
+}
 function pxBuild(){
   var items=[],byPn={},byName={};
   function add(pns,name){
@@ -125,7 +154,7 @@ function pxBuild(){
     fill(it,pns,s.pn,s.name);
     it.sells.push({s:s,i:i,usd:pxUsd(s.price,s.currency)});
   });
-  var idx=PO_LOADED?pxPoIndex():{};
+  var idx=PO_LOADED?pxPoIndex():{},soldBy=pxSoldIndex();
   items.forEach(function(it){
     pxNames(it);
     it.key=it.pns.length?it.pns[0]:"n:"+it.name.toLowerCase();
@@ -146,9 +175,19 @@ function pxBuild(){
       x.cost=pxCostFor(it,x.s.customer);
       x.margin=x.cost&&x.cost.usd!==null&&x.usd>0?Math.round((x.usd-x.cost.usd)/x.usd*100):null;
     });
+    it.sold=pxSold(it,soldBy);
+    it.sold.forEach(function(x){
+      x.usd=pxUsd(x.l.unitPrice,x.p.currency||"USD");
+      x.cost=pxCostFor(it,x.p.customer);
+      x.margin=x.cost&&x.cost.usd!==null&&x.usd>0?Math.round((x.usd-x.cost.usd)/x.usd*100):null;
+    });
+    /* every price a customer pays or was quoted, for the list columns */
+    it.prices=it.sells.map(function(x){return {price:x.s.price,cur:x.s.currency,usd:x.usd,who:x.s.customer,margin:x.margin};})
+      .concat(it.sold.map(function(x){return {price:x.l.unitPrice,cur:x.p.currency||"USD",usd:x.usd,who:x.p.customer,margin:x.margin};}));
     it.hay=[it.name,it.names.join(" "),it.pnText.join(" "),it.pns.join(" "),it.group,it.sec,
       it.costs.map(function(c){return c.b.specialCustomer||"";}).join(" "),
-      it.sells.map(function(x){return [x.s.customer,x.s.terms,x.s.note].join(" ");}).join(" ")].join(" ").toLowerCase();
+      it.sells.map(function(x){return [x.s.customer,x.s.terms,x.s.note].join(" ");}).join(" "),
+      it.sold.map(function(x){return [x.p.customer,x.p.country,x.sites.join(" "),x.label].join(" ");}).join(" ")].join(" ").toLowerCase();
   });
   return items;
 }
@@ -207,17 +246,19 @@ function pxLastCell(it){
     (it.check?"<div class='px-flag'>Saved cost is "+it.costs.map(function(c){return poFmtMoney(c.b.price,c.b.currency);}).join(" / ")+"</div>":"");
 }
 function pxSellCell(it){
-  var n=it.sells.length;
+  var P=it.prices,n=P.length;
   if(!n)return "<span class='px-none'>&mdash;</span>";
-  if(n===1){var x=it.sells[0];return "<div class='px-num'>"+pxMoney(x.s.price,x.s.currency)+"</div><div class='px-sub'>"+trkEsc(x.s.customer||"any customer")+"</div>";}
-  var same=it.sells.every(function(x){return x.s.currency===it.sells[0].s.currency;});
-  var val=function(x){return same?x.s.price:x.usd;};
-  var vals=it.sells.map(val).filter(function(v){return v!==null;}),lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals),cur=same?it.sells[0].s.currency:"USD";
+  if(n===1){var x=P[0];return "<div class='px-num'>"+pxMoney(x.price,x.cur)+"</div><div class='px-sub'>"+trkEsc(x.who||"any customer")+"</div>";}
+  var same=P.every(function(x){return x.cur===P[0].cur;});
+  var val=function(x){return same?x.price:x.usd;};
+  var vals=P.map(val).filter(function(v){return v!==null;});
+  if(!vals.length)return "<span class='px-none'>"+n+" prices</span>";
+  var lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals),cur=same?P[0].cur:"USD";
   var r=function(v){return poFmtMoney(same?v:Math.round(v),cur);};
-  return "<div class='px-num'>"+(same?"":"&asymp; ")+(pxSame(lo,hi)?r(lo):r(lo)+" &ndash; "+r(hi))+" <span class='trk-r-cur'>"+cur+"</span></div><div class='px-sub'>"+n+" customer prices</div>";
+  return "<div class='px-num'>"+(same?"":"&asymp; ")+(pxSame(lo,hi)?r(lo):r(lo)+" &ndash; "+r(hi))+" <span class='trk-r-cur'>"+cur+"</span></div><div class='px-sub'>"+n+" prices</div>";
 }
 function pxMarginCell(it){
-  var m=it.sells.map(function(x){return x.margin;}).filter(function(v){return v!==null;});
+  var m=it.prices.map(function(x){return x.margin;}).filter(function(v){return v!==null;});
   if(!m.length)return "<span class='px-none'>&mdash;</span>";
   var lo=Math.min.apply(null,m),hi=Math.max.apply(null,m);
   return "<div class='px-num"+(lo<0?" px-neg":"")+"'>"+(lo===hi?lo+"%":lo+"&ndash;"+hi+"%")+"</div>";
@@ -251,6 +292,16 @@ function pxDetail(it,n){
     }
     if(it.check)h+="<div class='px-d-warn'>The last PO paid a different price than the saved cost"+(pxFollowWhy(it)?" (not changed by itself: "+pxFollowWhy(it)+")":"")+". "+
       (it.costs.length===1?"<button class='px-link' onclick='pxUseLast("+n+")'>Use "+poFmtMoney(L.l.unitPrice,L.p.currency)+" as the cost</button>":"Use the pencil to change the cost it belongs to.")+"</div>";
+  }
+  if(it.sold.length){
+    h+="</div><div class='px-d-sec'><div class='px-d-head'><span>Last sold</span></div>";
+    h+=it.sold.map(function(x,k){
+      var p=x.p,cur=p.currency||"USD",usd=cur!=="USD"?fxUsdText(x.l.unitPrice,cur):"";
+      var sub=[x.label!==it.name?trkEsc(x.label):"",trkEsc(x.sites.filter(Boolean).join(" + ")),p.date?trkEsc(p.date):"",x.qty.toLocaleString()+" pcs",p.shippingTerms?trkEsc(p.shippingTerms):""].filter(Boolean).join(" &middot; ");
+      var m=x.margin===null?"":"<span class='px-sub"+(x.margin<0?" px-neg":"")+"'>margin "+x.margin+"%"+(PX_DELIVERED.test(p.shippingTerms||"")?" before delivery":"")+(x.cost.special?" (special cost)":"")+"</span>";
+      return "<div class='px-d-row'><span class='px-d-main'><button class='px-link' onclick='pxOpenCust("+n+","+k+")'>"+trkEsc(p.customer||"Customer")+"</button>"+(p.country?" <span class='px-sub' style='display:inline'>"+trkEsc(p.country)+"</span>":"")+(sub?"<span class='px-sub'>"+sub+"</span>":"")+"</span>"+
+        "<span class='px-d-val'>"+pxMoney(x.l.unitPrice,cur)+(usd?"<span class='px-sub'>"+usd+"</span>":"")+m+"</span><span class='nt-acts'></span></div>";
+    }).join("");
   }
   h+="</div><div class='px-d-sec'><div class='px-d-head'><span>Customer prices</span><button class='px-link' onclick='pxAddSell("+n+")'>+ Customer price</button></div>";
   if(it.sells.length)h+=it.sells.map(function(x){
@@ -335,13 +386,15 @@ function renderPrices(bodyOnly){
     "<div class='trk-chips px-chips' id='px-chips'>"+chips+"</div>"+
     "<div class='po-table-wrap buy-table'><table class='po-table buy-list buy-simple px-list'><thead><tr><th>Item</th><th class='num'>Previous cost</th><th class='num'>Last PO</th><th class='num'>Selling price</th><th class='num'>Margin</th><th></th></tr></thead>"+
     "<tbody id='px-tbody'>"+rows+"</tbody></table></div>"+
-    "<div class='px-note'>Previous cost = the last PO price before the newest one; in grey when it never changed. The saved cost follows the newest PO. Margin = (selling price &minus; cost) &divide; selling price, in USD at today's rate. With several costs the highest one is used. Delivery and duty are not taken off.</div>";
+    "<div class='px-note'>Previous cost = the last PO price before the newest one; in grey when it never changed. The saved cost follows the newest PO. Margin = (selling price &minus; cost) &divide; selling price, in USD at today's rate. With several costs the highest one is used. Last sold = the latest won sale per customer in Customer Base. Delivery and duty are not taken off.</div>";
   var inp=document.getElementById("px-search");
   /* not on touch screens: focusing would pop the keyboard up on every visit */
   if(inp&&!matchMedia("(pointer:coarse)").matches){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}
 }
 
 /* ---------- actions ---------- */
+/* the customer's page in Customer Base, where the sale is */
+function pxOpenCust(n,k){var it=PX_ITEMS[n],x=it&&it.sold[k];if(x)navTo("custbase",cbKey(x.p.customer));}
 function pxOpenPo(n,prev){var it=PX_ITEMS[n],x=it&&(prev?it.prev:it.last);if(x)poOpenSheet(x.p._id);}
 /* the add-cost form, filled with the item's name and part number */
 function pxAddCost(n){
