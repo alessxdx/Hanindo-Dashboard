@@ -196,6 +196,7 @@ async function ntDateSet(i,inp){
    it off. Until that column exists nothing here is shown.
    ============================================================ */
 var OTHERS_HAS_FU=false; /* set when the notes are loaded (supabase.js) */
+var OTHERS_HAS_ATT=false; /* notes can hold files (others.attachments) */
 var NT_POST_FU="";       /* follow-up date the next posted update gets */
 var NT_BELL="<svg viewBox='0 0 16 16' width='13' height='13' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M4 7a4 4 0 0 1 8 0c0 3 1.2 4 1.2 4H2.8S4 10 4 7zM6.8 13.5a1.4 1.4 0 0 0 2.4 0'/></svg>";
 /* same shape as a project's follow-up, so trkFollowText shows both alike */

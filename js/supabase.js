@@ -116,8 +116,10 @@ function txRemoveAttachment(e,i){
 function txSetDoctype(val,i){if(TX_ATT[i])TX_ATT[i].doctype=val;}
 function dbToB(r){return{_id:r.id,model:r.model,pn:r.pn||"",price:Number(r.price),currency:r.currency,specialPrice:r.special_price?Number(r.special_price):undefined,specialCustomer:r.special_customer||"",group:r.grp||""};}
 function bToDb(b){return{model:b.model,pn:b.pn||"",price:b.price,currency:b.currency,special_price:b.specialPrice||null,special_customer:b.specialCustomer||null,grp:b.group||null};}
-function dbToO(r){return{_id:r.id,date:r.date||"",desc:r.description||"",value:r.value||"",sub:r.sub||"",cat:r.category||"",fu:r.follow_up||"",created:r.created_at||""};}
-function oToDb(o){var r={date:o.date||"",description:o.desc,value:o.value,sub:o.sub||""};if(OTHERS_HAS_CAT)r.category=o.cat||null;if(OTHERS_HAS_FU)r.follow_up=o.fu||null;return r;}
+function dbToO(r){return{_id:r.id,date:r.date||"",desc:r.description||"",value:r.value||"",sub:r.sub||"",cat:r.category||"",fu:r.follow_up||"",atts:Array.isArray(r.attachments)?r.attachments:[],created:r.created_at||""};}
+function oToDb(o){var r={date:o.date||"",description:o.desc,value:o.value,sub:o.sub||""};if(OTHERS_HAS_CAT)r.category=o.cat||null;if(OTHERS_HAS_FU)r.follow_up=o.fu||null;
+  /* files are only sent when the note has some, so an edit never clears them */
+  if(OTHERS_HAS_ATT&&o.atts&&o.atts.length)r.attachments=o.atts;return r;}
 function dbToS(r){return{_id:r.id,name:r.name||"",pn:r.pn||"",price:Number(r.price)||0,currency:r.currency||"USD",customer:r.customer||"",terms:r.terms||"",note:r.note||""};}
 function sToDb(s){return{name:s.name,pn:s.pn||"",price:s.price,currency:s.currency||"USD",customer:s.customer||"",terms:s.terms||"",note:s.note||""};}
 function dbToM(r){return r.name;}
@@ -149,7 +151,7 @@ async function loadFromDB(){
        as it is (even if empty); a load that failed changes nothing and says so. */
     var failed=[];
     if(Array.isArray(buyRows)){BUYING.length=0;buyRows.forEach(function(r){BUYING.push(dbToB(r));});}else failed.push("Buying Prices");
-    if(Array.isArray(othRows)){OTHERS_HAS_CAT=!!othRows[0]&&"category" in othRows[0];OTHERS_HAS_FU=!!othRows[0]&&"follow_up" in othRows[0];OTHERS.length=0;othRows.forEach(function(r){OTHERS.push(dbToO(r));});}else failed.push("Notes");
+    if(Array.isArray(othRows)){OTHERS_HAS_CAT=!!othRows[0]&&"category" in othRows[0];OTHERS_HAS_FU=!!othRows[0]&&"follow_up" in othRows[0];OTHERS_HAS_ATT=!!othRows[0]&&"attachments" in othRows[0];OTHERS.length=0;othRows.forEach(function(r){OTHERS.push(dbToO(r));});}else failed.push("Notes");
     if(Array.isArray(spareRows)){SPARES.length=0;spareRows.forEach(function(r){SPARES.push(dbToS(r));});}else failed.push("Spare Parts");
     if(Array.isArray(modelRows)){if(modelRows.length)CUSTOM_MODELS=modelRows.map(dbToM);}else failed.push("Models");
     if(failed.length)alert("Couldn't load "+failed.join(", ")+" from the database. Nothing was changed. Reload the page; if it keeps happening, sign out and back in.");
@@ -391,7 +393,7 @@ function editOther(i){
     var desc=document.getElementById("o-desc").value.trim();
     var value=document.getElementById("o-value").value.trim();
     if(!desc){alert("Please fill in Description.");return;}
-    var updated={date:document.getElementById("o-date").value.trim(),desc:desc,value:value,sub:document.getElementById("o-sub").value.trim(),cat:ntCatClean(document.getElementById("o-cat").value),fu:document.getElementById("o-fu").value||"",_id:o._id,created:o.created};
+    var updated={date:document.getElementById("o-date").value.trim(),desc:desc,value:value,sub:document.getElementById("o-sub").value.trim(),cat:ntCatClean(document.getElementById("o-cat").value),fu:document.getElementById("o-fu").value||"",atts:o.atts||[],_id:o._id,created:o.created};
     showLoad("Updating...");
     if(o._id){
       await fetch(SB_URL+"/rest/v1/others?id=eq."+o._id,{method:"PATCH",headers:sbH(),body:JSON.stringify(oToDb(updated))});

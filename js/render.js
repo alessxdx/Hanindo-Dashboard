@@ -784,7 +784,7 @@ function renderOthers(){
     return order.map(k=>`<div class="exp-month"><span>${esc(k)}</span></div>${g[k].map(update).join("")}`).join("");
   };
   const update=x=>{const o=x.o,i=x.i;return `<div class="nt-upd" data-nid="${esc(o._id)}">${dateBlock(o.date,i)}
-    <div class="nt-body">${ntMetaLine(o,i)}<div class="nt-text">${trkLines(o.desc)}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
+    <div class="nt-body">${ntMetaLine(o,i)}<div class="nt-text">${trkLines(o.desc)}</div>${o.atts&&o.atts.length?`<div class="nt-files">${attClipsHtml(o.atts)}</div>`:""}${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
     <div class="nt-acts">${ntFuIcon(i)}${ntCatIcon(i)}${btn("edit","Edit",`editOther(${i})`)}${btn("del","Delete",`deleteOtherQuick(${i})`)}</div></div>`;};
   const record=x=>{const o=x.o,i=x.i;return `<div class="nt-rec" data-nid="${esc(o._id)}">
     <div class="nt-body">${ntMetaLine(o,i)}<div class="nt-title">${fmtInline(esc(o.desc))}${o.date?`<span class="nt-when">${esc(o.date)}</span>`:""}</div>${o.sub?`<div class="nt-sub">${esc(o.sub)}</div>`:""}</div>
